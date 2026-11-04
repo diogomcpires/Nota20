@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://diogomcpires.github.io/Nota20/sitemap.xml
+Sitemap: https://nota20app.pt/sitemap.xml
