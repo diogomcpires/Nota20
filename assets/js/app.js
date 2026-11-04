@@ -2237,7 +2237,7 @@
       if (!v) return;
       try {
         const hsh = await sha256(v);
-        if ((C.ACCESS_CODE_HASHES || []).includes(hsh)) { st.unlocked = true; store.set("unlocked", true); msg.textContent = "Acesso ativado. Bom estudo!"; setTimeout(() => { closeModal(); route(); }, 900); }
+        if ((C.ACCESS_CODE_HASHES || []).includes(hsh)) { st.unlocked = true; store.set("unlocked", true); GC.event("codigo-ativado"); msg.textContent = "Acesso ativado. Bom estudo!"; setTimeout(() => { closeModal(); route(); }, 900); }
         else msg.textContent = "Código inválido. Confirma se o escreveste bem.";
       } catch (e) { msg.textContent = "Não foi possível validar o código neste navegador."; }
     }
