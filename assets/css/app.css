@@ -1095,3 +1095,16 @@ h2 { font-weight: 700; }
 .login-codigo { margin-top: 10px; }
 #login-token { letter-spacing: .3em; font-weight: 800; font-size: 1.3rem; }
 #login-email[readonly] { color: var(--muted); }
+
+.inst-chip { cursor: pointer; font: inherit; font-weight: 800; font-size: 0.9rem; }
+.inst-chip svg { color: var(--mint-d); }
+@media (max-width: 560px) { .inst-chip .t { display: none; } }
+.inst-passos { padding-left: 22px; font-weight: 600; line-height: 1.6; margin: 0 0 12px; }
+@media (max-width: 480px) {
+  .top .wrap { gap: 6px; }
+  .acc-chip { margin-left: 0; }
+  .logo { font-size: 1.35rem; gap: 6px; }
+  .logo .lince { width: 36px; height: 36px; }
+  .xp-chip { gap: 6px; padding: 5px 10px 5px 8px; }
+}
+@media (max-width: 400px) { .xp-chip .fl { display: none; } }

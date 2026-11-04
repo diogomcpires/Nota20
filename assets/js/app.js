@@ -2042,7 +2042,25 @@
   /* ---------- App instalável ---------- */
   let installEvt = null;
   const inFrame = (() => { try { return window.self !== window.top; } catch (e) { return true; } })();
-  window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); installEvt = e; $$("[data-install]").forEach((b) => { b.hidden = false; }); });
+  window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); installEvt = e; $$("[data-install]").forEach((b) => { b.hidden = false; }); chipInstalar(); });
+  const instalada = () => { try { return matchMedia("(display-mode: standalone)").matches || navigator.standalone === true; } catch (e) { return false; } };
+  const ehIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  function chipInstalar() {
+    const el = document.getElementById("inst-chip");
+    if (!el) return;
+    const mostrar = !inFrame && !instalada() && (installEvt || ehIOS());
+    el.hidden = !mostrar;
+    if (mostrar) el.innerHTML = `${ic("phone")}<span class="t">Instalar app</span>`;
+  }
+  window.addEventListener("appinstalled", () => { installEvt = null; GC.event("app-instalada"); chipInstalar(); $$("[data-install]").forEach((b) => { b.hidden = true; }); });
+  function instalarTopo() {
+    GC.event("instalar-clique");
+    if (installEvt) { installEvt.prompt(); installEvt.userChoice.finally(() => { installEvt = null; chipInstalar(); }); return; }
+    openModal(`<h3>Instala a Nota20 no iPhone</h3>
+      <ol class="inst-passos"><li>Abre este site no <b>Safari</b>.</li><li>Carrega em <b>Partilhar</b> (o quadrado com a seta para cima), em baixo.</li><li>Escolhe <b>Adicionar ao ecrã principal</b> e depois <b>Adicionar</b>.</li></ol>
+      <p class="small muted" style="font-weight:600;margin:0">A Nota20 fica com o ícone do lince no ecrã principal e abre como uma app.</p>
+      <button class="btn btn-soft btn-sm" type="button" data-act="modal-close">Percebi</button>`);
+  }
   function installHTML() {
     return `<div class="card install rv"><h3>${ic("phone", 'width="20" height="20" style="vertical-align:-4px"')} Instala a app</h3>
       <p class="small muted" style="font-weight:600">Abre a Nota20 como uma app, a partir do ecrã principal do telemóvel.</p>
@@ -2365,6 +2383,7 @@
       case "escolher-extra": { const sel = a.closest(".convite") && a.closest(".convite").querySelector(".extra-sel"); const t = sel && topicById(sel.value); if (!t) break; store.set("extra", t.id); GC.event("convite-extra"); closeModal(); toast(`<span class="tl">${lince()}</span><div><b>${esc(t.titulo)} desbloqueado!</b><span>É teu para sempre neste dispositivo.</span></div>`); if (location.hash === "#t-" + t.id) route(); else location.hash = "#t-" + t.id; break; }
       case "copy-share": { const t = progressoTexto(); (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(() => { a.textContent = "Copiado!"; }).catch(() => { a.textContent = "Seleciona e copia o texto"; }); break; }
       case "privacidade": openPrivacy(); break;
+      case "install-top": instalarTopo(); break;
       case "install": if (installEvt) { installEvt.prompt(); installEvt.userChoice.finally(() => { installEvt = null; $$("[data-install]").forEach((b) => { b.hidden = true; }); }); } break;
       case "print": {
         if (currentView === "estudar" && location.hash.startsWith("#t-")) { const t = topicById(decodeURIComponent(location.hash.slice(3)).split("/")[0]); if (t && !canOpen(t)) { openPaywall("topico"); break; } document.body.classList.add("print-topic"); }
@@ -2512,6 +2531,7 @@
   window.addEventListener("hashchange", route);
   route();
   chipConta();
+  chipInstalar();
   CONTA.arranque();
   { const cod = new URLSearchParams(location.search).get("codigo"); if (cod) abrirCodigo(cod.slice(0, 40)); }
   initReviews();
