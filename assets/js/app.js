@@ -144,7 +144,7 @@
         if (!user) return;
         const antes = unlocked();
         if (await depoisDeEntrar()) { location.reload(); return; }
-        if (unlocked() !== antes) route(); else chipConta();
+        if (unlocked() !== antes) route(); else { chipConta(); refreshReviews(); }
       } catch (e) { /* sem rede: continua com o que está no navegador */ }
     }
     async function pedirCodigo(email) {
@@ -172,6 +172,11 @@
       const { error } = await sb.from("leads").insert({ email: d.email, origem: String(d.origem || "").slice(0, 40), tester: !!d.tester });
       if (error) throw error;
     }
+    async function avaliar(a) {
+      await cliente();
+      const { error } = await sb.from("avaliacoes").upsert({ user_id: user.id, estrelas: a.estrelas, texto: a.texto, nome: a.nome || null }, { onConflict: "user_id" });
+      if (error) throw error;
+    }
     async function apagar() {
       await cliente();
       const { error } = await sb.functions.invoke("apagar-conta", { method: "POST" });
@@ -181,7 +186,7 @@
       if (store.get("unlockedConta", false)) { st.unlocked = false; store.set("unlocked", false); store.set("unlockedConta", false); }
     }
     window.addEventListener("pagehide", () => { if (user) enviar().catch(() => {}); });
-    return { on, lead, arranque, pedirCodigo, confirmarCodigo, sair, apagar, agendar, enviar,
+    return { on, lead, avaliar, arranque, pedirCodigo, confirmarCodigo, sair, apagar, agendar, enviar,
       get user() { return user; }, get perfil() { return perfil; }, get ultima() { return ultima; } };
   })();
   { const set0 = store.set; store.set = (k, v) => { set0(k, v); CONTA.agendar(k); }; }
@@ -214,6 +219,7 @@
     const txt = {
       comprar: "Para a compra ficar guardada na tua conta e funcionar em qualquer dispositivo.",
       guardar: "Guarda o teu progresso e continua no telemóvel ou no computador.",
+      avaliar: "Para deixares a tua avaliação. Só alunos com conta podem avaliar.",
       comprei: "Entra com o email que usaste na compra e o plano Completo abre logo."
     }[motivo] || "Guarda o teu progresso e usa a Nota20 em qualquer dispositivo.";
     openModal(`<h3>Entrar ou criar conta</h3>
@@ -264,6 +270,12 @@
       toast(`<span class="tl">${lince()}</span><div><b>Sessão iniciada</b><span>${CONTA.perfil && CONTA.perfil.plano === "completo" ? "O teu plano Completo está ativo." : "O teu progresso fica guardado na tua conta."}</span></div>`);
       if (depois) depois(); else route();
     } catch (e) { msg.textContent = erroConta(e); btn.disabled = false; }
+  }
+
+  /* código de oferta (professores, explicadores): só por link, ex.: …/?codigo=ABC123 */
+  function abrirCodigo(v) {
+    openModal(`<h3>Ativar código de acesso</h3><form id="code-form" class="form"><label class="lbl" for="code-in">Código</label><input type="text" id="code-in" autocomplete="off" required><div class="row"><button class="btn btn-primary" type="submit">Ativar</button><button class="btn btn-ghost" data-act="modal-close" type="button">Fechar</button></div><p class="small muted" id="code-msg" aria-live="polite" style="font-weight:700"></p></form>`);
+    if (v) { const i = document.getElementById("code-in"); if (i) i.value = v; }
   }
 
   /* página da conta */
@@ -987,7 +999,6 @@
             <p>O que estudar em cada fase, os erros que mais tiram pontos e os avisos importantes (calendário, critérios). No máximo um email por semana.</p></div>
           <div data-lead-slot="home">${leadHTML("home")}</div>
         </div>
-        <div class="tester-band rv"><div><b>Procuramos 20 testadores.</b> Acesso grátis ao plano Completo em troca de uma opinião honesta, boa ou má.</div><div data-lead-slot="testers" data-tester="1">${leadHTML("testers", true)}</div></div>
       </div>
     </section>
 
@@ -1091,7 +1102,7 @@
         ${pay}
         <p class="small muted buy-terms">Pagamento único${C.IVA === "incluido" ? ", IVA incluído" : ""}. Ao comprar, aceitas os <a href="#termos">Termos e condições</a>.</p>
         ${G ? `<div class="guarantee">${ic("shield")}<span><b>Garantia de ${G} dias</b>Se não gostares, devolvemos o dinheiro.</span></div>` : ""}
-        <button class="btn btn-soft btn-sm" type="button" data-act="code">Já tenho um código de acesso</button>
+        ${CONTA.on ? (CONTA.user ? "" : `<button class="btn btn-soft btn-sm" type="button" data-act="login" data-m="comprei">Já compraste? Entra com o teu email</button>`) : `<button class="btn btn-soft btn-sm" type="button" data-act="code">Já tenho um código de acesso</button>`}
       </div>
     </div>
     ${G ? `<div class="seal-band rv"><div class="seal"><svg viewBox="0 0 120 120" aria-hidden="true"><defs><path id="sealc" d="M60 60 m-46 0 a46 46 0 1 1 92 0 a46 46 0 1 1 -92 0"/></defs><text><textPath href="#sealc" textLength="286" lengthAdjust="spacingAndGlyphs">GARANTIA · SEM RISCO · GARANTIA · SEM RISCO · </textPath></text></svg><b>${G}</b><span>dias</span></div>
@@ -1134,8 +1145,11 @@
     } else {
       html += `<div class="empty">${lince()}<span>Ainda não há avaliações. As primeiras aparecem aqui assim que os alunos as deixarem.</span></div>`;
     }
-    if (RV.state === "ready" && RV.uid && RV.canWrite !== false) {
-      const mine = RV.list.find((r) => r.id === RV.uid);
+    const uidRV = RV.mode === "sb" ? (CONTA.user && CONTA.user.id) : RV.uid;
+    if (RV.mode === "sb" && RV.state === "ready" && !uidRV) {
+      html += `<p class="muted mt" style="font-weight:600">Usaste a Nota20? <button type="button" class="linklike" data-act="login" data-m="avaliar">Entra com o teu email</button> e deixa a tua avaliação. Só alunos com conta podem avaliar, para as avaliações serem reais.</p>`;
+    } else if (RV.state === "ready" && uidRV && RV.canWrite !== false) {
+      const mine = RV.list.find((r) => r.id === uidRV);
       html += `<form class="card form mt" id="review-form" style="max-width:640px">
         <h3>${mine ? "Editar a tua avaliação" : "Deixa a tua avaliação"}</h3>
         <fieldset style="border:0;padding:0;margin:0"><legend class="lbl">Nota</legend>
@@ -1152,7 +1166,17 @@
     return html;
   }
   function refreshReviews() { const s = document.getElementById("reviews-slot"); if (s) s.innerHTML = reviewsHTML(); }
+  const SB_REST = (q) => fetch(`${C.SUPABASE_URL}/rest/v1/${q}`, { headers: { apikey: C.SUPABASE_KEY } }).then((r) => { if (!r.ok) throw new Error("http " + r.status); return r.json(); });
   async function initReviews() {
+    if (CONTA.on) {
+      RV.mode = "sb";
+      try {
+        const rows = await SB_REST("avaliacoes?select=user_id,estrelas,texto,nome,criado_em&order=criado_em.desc&limit=100");
+        RV.list = rows.map((r) => ({ id: r.user_id, estrelas: r.estrelas, texto: r.texto, nome: r.nome, at: Date.parse(r.criado_em) }));
+        RV.state = "ready";
+      } catch (e) { RV.state = "off"; }
+      refreshReviews(); return;
+    }
     if (!(window.claude && typeof window.claude.use === "function")) { RV.state = "off"; refreshReviews(); return; }
     const db = await window.claude.use("db").catch(() => null);
     if (!db) { RV.state = "off"; refreshReviews(); return; }
@@ -1180,6 +1204,16 @@
     if (!est) { msg.textContent = "Escolhe uma nota de 1 a 5."; return; }
     if (texto.length < 3) { msg.textContent = "Escreve um comentário curto."; return; }
     msg.textContent = "A publicar…";
+    if (RV.mode === "sb") {
+      try {
+        await CONTA.avaliar({ estrelas: est, texto, nome });
+        const r = { id: CONTA.user.id, estrelas: est, texto, nome, at: Date.now() };
+        RV.list = [r, ...RV.list.filter((x) => x.id !== r.id)];
+        refreshReviews(); GC.event("avaliacao");
+        const m2 = document.getElementById("rv-msg"); if (m2) m2.textContent = "Obrigado! A tua avaliação foi publicada.";
+      } catch (e) { msg.textContent = "Não foi possível publicar agora. Tenta outra vez."; }
+      return;
+    }
     try { await RV.db.doc("reviews/" + RV.uid).set({ estrelas: est, texto, nome, at: Date.now() }); msg.textContent = "Obrigado! A tua avaliação foi publicada."; }
     catch (e) { RV.canWrite = false; msg.textContent = "Não foi possível publicar com esta conta."; }
   }
@@ -1816,7 +1850,7 @@
   function openPrivacy() {
     openModal(`<h3>Como tratamos os teus dados</h3>
       <p style="font-weight:600;margin:0">O teu progresso (respostas, XP, plano de estudo) fica guardado só neste navegador: não o recebemos.</p>
-      <p style="font-weight:600;margin:0">Se deixares o email, usamo-lo apenas para te enviar dicas e avisos sobre o exame e, se pediste, para o programa de testadores. Não o partilhamos nem o vendemos.</p>
+      <p style="font-weight:600;margin:0">Se deixares o email, usamo-lo apenas para te enviar dicas e avisos sobre o exame Não o partilhamos nem o vendemos.</p>
       <p style="font-weight:600;margin:0">Podes cancelar a qualquer momento e pedir que apaguemos o teu email${C.CONTACTO_EMAIL ? `: escreve para ${esc(C.CONTACTO_EMAIL)}` : ", respondendo a qualquer email nosso"}.</p>
       <a class="btn btn-ghost btn-sm" href="#termos/privacidade" data-act="modal-close">Ler a política completa</a>
       <button class="btn btn-soft btn-sm" type="button" data-act="modal-close">Fechar</button>`);
@@ -1886,8 +1920,9 @@
         <p>Responsável pelo tratamento dos dados: ${falta(V.NOME)}${C.CONTACTO_EMAIL ? ` (${esc(C.CONTACTO_EMAIL)})` : ""}.</p>
         <ul>
           ${CONTA.on ? `<li><b>Conta</b> (opcional no plano grátis, necessária para comprar): guardamos o teu email, o plano que tens e o teu progresso de estudo (respostas, XP, plano de estudo), para os teres em qualquer dispositivo. Os dados ficam no Supabase, em servidores na União Europeia (Irlanda). Guardamo-los até apagares a conta, o que podes fazer a qualquer momento em «A minha conta».</li>
-          <li><b>Progresso sem conta</b>: fica guardado só no teu navegador. Não o recebemos.</li>` : `<li><b>Progresso de estudo</b> (respostas, XP, plano): fica guardado só no teu navegador. Não o recebemos.</li>`}
-          <li><b>Email para dicas ou testadores</b>: só se o deixares, com o teu consentimento. Usamo-lo para te enviar dicas e avisos sobre o exame. Guardamo-lo até cancelares.</li>
+          <li><b>Progresso sem conta</b>: fica guardado só no teu navegador. Não o recebemos.</li>
+          <li><b>Avaliações</b>: se deixares uma avaliação, a nota, o comentário e o nome que escolheres ficam visíveis no site. Podes editá-la, e ela é apagada se apagares a conta.</li>` : `<li><b>Progresso de estudo</b> (respostas, XP, plano): fica guardado só no teu navegador. Não o recebemos.</li>`}
+          <li><b>Email para dicas</b>: só se o deixares, com o teu consentimento. Usamo-lo para te enviar dicas e avisos sobre o exame. Guardamo-lo até cancelares.</li>
           <li><b>Compra</b>: nome, email e dados do pagamento são tratados pela Stripe e por nós para ativar o acesso e emitir a fatura (obrigação legal). As faturas são guardadas durante o prazo legal.</li>
           <li><b>Perguntas ao explicador</b>: são enviadas a um fornecedor de inteligência artificial só para gerar a resposta.</li>
           ${C.GOATCOUNTER ? `<li><b>Estatísticas de visitas</b>: contamos as visitas e algumas ações (por exemplo, criar um plano) de forma anónima, com o GoatCounter. Não usamos cookies nem guardamos o teu IP.</li>` : ""}
@@ -2401,9 +2436,7 @@
         st.sim = { id, startedAt: Date.now(), submitted: false, answers: {}, scores: {} }; saveSim(); renderSim(); enhance(app); window.scrollTo({ top: 0, behavior: "instant" }); break;
       }
       case "sim-ai": simAI(a.dataset.key); break;
-      case "code":
-        openModal(`<h3>Ativar código de acesso</h3><form id="code-form" class="form"><label class="lbl" for="code-in">Código</label><input type="text" id="code-in" autocomplete="off" required><div class="row"><button class="btn btn-primary" type="submit">Ativar</button><button class="btn btn-ghost" data-act="modal-close" type="button">Fechar</button></div><p class="small muted" id="code-msg" aria-live="polite" style="font-weight:700"></p></form>`);
-        break;
+      case "code": abrirCodigo(); break;
       case "modal-close": closeModal(); break;
       case "modal-close-bg": if (ev.target === a) closeModal(); break;
       case "del-review": if (RV.isOwner && RV.db) RV.db.doc("reviews/" + a.dataset.id).delete().catch(() => {}); break;
@@ -2480,5 +2513,6 @@
   route();
   chipConta();
   CONTA.arranque();
+  { const cod = new URLSearchParams(location.search).get("codigo"); if (cod) abrirCodigo(cod.slice(0, 40)); }
   initReviews();
 })();
