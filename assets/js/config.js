@@ -58,6 +58,11 @@ window.N20_CONFIG = {
      Vazio = desligado. Nunca conta dentro do Claude nem no modo de demonstração. */
   GOATCOUNTER: "nota20",
 
+  /* Contas (Supabase): entrar com um código enviado por email, progresso guardado e plano pago.
+     O URL e a chave publicável podem estar no site; as chaves secretas ficam só no Supabase. */
+  SUPABASE_URL: "https://fvbxunpfziahvfmioxcr.supabase.co",
+  SUPABASE_KEY: "sb_publishable_aRi7XdYToIkpQIdTUMA_dQ_Ak5f1fZE",
+
   /* Partilhas precisas para o aluno escolher 1 tópico do plano Completo grátis. */
   CONVITES_PARA_TOPICO: 3,
 

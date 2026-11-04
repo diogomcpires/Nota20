@@ -86,6 +86,208 @@
   const isExtra = (id) => !!id && id === extraId() && TOPICS.some((t) => t.id === id);
   const canOpen = (x) => !!(x && (x.free || unlocked() || (x.titulo && isExtra(x.id) && x.resumo)));
 
+  /* ---------- contas (Supabase): código por email, progresso na nuvem, plano pago ---------- */
+  const CONTA = (() => {
+    const on = !!(C.SUPABASE_URL && C.SUPABASE_KEY);
+    const REF = on ? ((String(C.SUPABASE_URL).match(/https:\/\/([^.]+)/) || [])[1] || "") : "";
+    const NAO_SINC = new Set(["unlocked", "unlockedConta", "previewFree", "used", "counted"]);
+    let sb = null, user = null, perfil = null, carregar = null, timer = null, ultima = null;
+    const temSessao = () => { try { return !!localStorage.getItem(`sb-${REF}-auth-token`); } catch (e) { return false; } };
+    const lib = () => window.supabase && window.supabase.createClient ? Promise.resolve() : (carregar = carregar || new Promise((ok, falha) => {
+      const s = document.createElement("script"); s.src = "assets/js/vendor/supabase.js"; s.onload = ok; s.onerror = () => { carregar = null; falha(new Error("lib")); }; document.head.appendChild(s);
+    }));
+    async function cliente() {
+      if (!on) throw new Error("off");
+      if (sb) return sb;
+      await lib();
+      sb = window.supabase.createClient(C.SUPABASE_URL, C.SUPABASE_KEY, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false } });
+      return sb;
+    }
+    function local() {
+      const o = {};
+      try { for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k && k.startsWith("n20:") && !NAO_SINC.has(k.slice(4))) o[k.slice(4)] = localStorage.getItem(k); } } catch (e) { /* sem armazenamento */ }
+      return o;
+    }
+    const xpDe = (o) => { try { return +JSON.parse(o.xp || "0") || 0; } catch (e) { return 0; } };
+    async function enviar() {
+      if (!sb || !user) return;
+      const { error } = await sb.from("progresso").upsert({ user_id: user.id, dados: local(), atualizado_em: new Date().toISOString() });
+      if (!error) ultima = new Date();
+    }
+    function agendar(k) { if (!user || NAO_SINC.has(k)) return; clearTimeout(timer); timer = setTimeout(() => enviar().catch(() => {}), 4000); }
+    async function perfilEPlano() {
+      const { data } = await sb.from("perfis").select("plano,email").eq("id", user.id).maybeSingle();
+      perfil = data || null;
+      if (perfil && perfil.plano === "completo" && !st.unlocked) { st.unlocked = true; store.set("unlocked", true); store.set("unlockedConta", true); }
+    }
+    /* devolve true se trouxe da nuvem um progresso maior (a página tem de recarregar) */
+    async function sincronizar() {
+      const { data } = await sb.from("progresso").select("dados").eq("user_id", user.id).maybeSingle();
+      const nuvem = (data && data.dados) || {}, loc = local();
+      if (Object.keys(nuvem).length && xpDe(nuvem) > xpDe(loc)) {
+        for (const [k, v] of Object.entries(nuvem)) if (!NAO_SINC.has(k) && typeof v === "string") { try { localStorage.setItem("n20:" + k, v); } catch (e) { /* cheio */ } }
+        ultima = new Date(); return true;
+      }
+      await enviar(); return false;
+    }
+    async function depoisDeEntrar() {
+      await perfilEPlano();
+      const recarregar = await sincronizar();
+      return recarregar;
+    }
+    async function arranque() {
+      if (!on || !temSessao()) return;
+      try {
+        await cliente();
+        const { data } = await sb.auth.getSession();
+        user = data && data.session ? data.session.user : null;
+        if (!user) return;
+        const antes = unlocked();
+        if (await depoisDeEntrar()) { location.reload(); return; }
+        if (unlocked() !== antes) route(); else chipConta();
+      } catch (e) { /* sem rede: continua com o que está no navegador */ }
+    }
+    async function pedirCodigo(email) {
+      await cliente();
+      const { error } = await sb.auth.signInWithOtp({ email, options: { shouldCreateUser: true } });
+      if (error) throw error;
+      GC.event("conta-codigo-pedido");
+    }
+    async function confirmarCodigo(email, token) {
+      await cliente();
+      const { data, error } = await sb.auth.verifyOtp({ email, token, type: "email" });
+      if (error) throw error;
+      user = data.user || (data.session && data.session.user) || null;
+      GC.event("conta-entrou");
+      return depoisDeEntrar();
+    }
+    async function sair() {
+      try { await enviar(); } catch (e) { /* segue */ }
+      if (sb) await sb.auth.signOut().catch(() => {});
+      user = null; perfil = null;
+      if (store.get("unlockedConta", false)) { st.unlocked = false; store.set("unlocked", false); store.set("unlockedConta", false); }
+    }
+    async function lead(d) {
+      await cliente();
+      const { error } = await sb.from("leads").insert({ email: d.email, origem: String(d.origem || "").slice(0, 40), tester: !!d.tester });
+      if (error) throw error;
+    }
+    async function apagar() {
+      await cliente();
+      const { error } = await sb.functions.invoke("apagar-conta", { method: "POST" });
+      if (error) throw error;
+      await sb.auth.signOut().catch(() => {});
+      user = null; perfil = null;
+      if (store.get("unlockedConta", false)) { st.unlocked = false; store.set("unlocked", false); store.set("unlockedConta", false); }
+    }
+    window.addEventListener("pagehide", () => { if (user) enviar().catch(() => {}); });
+    return { on, lead, arranque, pedirCodigo, confirmarCodigo, sair, apagar, agendar, enviar,
+      get user() { return user; }, get perfil() { return perfil; }, get ultima() { return ultima; } };
+  })();
+  { const set0 = store.set; store.set = (k, v) => { set0(k, v); CONTA.agendar(k); }; }
+
+  /* link de pagamento com a conta: a Stripe devolve o id e o email no webhook */
+  function payHref() {
+    if (!C.PAYMENT_LINK) return "#precos";
+    try {
+      const u = new URL(C.PAYMENT_LINK);
+      if (CONTA.user) { u.searchParams.set("client_reference_id", CONTA.user.id); if (CONTA.user.email) u.searchParams.set("prefilled_email", CONTA.user.email); }
+      return u.toString();
+    } catch (e) { return C.PAYMENT_LINK; }
+  }
+
+  function chipConta() {
+    const el = document.getElementById("acc-chip");
+    if (!el) return;
+    if (!CONTA.on) { el.hidden = true; return; }
+    el.hidden = false;
+    const u = CONTA.user;
+    el.innerHTML = u ? `<span class="av">${esc((u.email || "?").slice(0, 1).toUpperCase())}</span>` : `${ic("user")}<span class="t">Entrar</span>`;
+    el.setAttribute("aria-label", u ? "A minha conta" : "Entrar ou criar conta");
+  }
+
+  /* janela de entrada: email → código de 6 dígitos (sem palavra-passe) */
+  let depoisLogin = null;
+  function openLogin(motivo, depois) {
+    if (!CONTA.on) return;
+    depoisLogin = depois || null;
+    const txt = {
+      comprar: "Para a compra ficar guardada na tua conta e funcionar em qualquer dispositivo.",
+      guardar: "Guarda o teu progresso e continua no telemóvel ou no computador.",
+      comprei: "Entra com o email que usaste na compra e o plano Completo abre logo."
+    }[motivo] || "Guarda o teu progresso e usa a Nota20 em qualquer dispositivo.";
+    openModal(`<h3>Entrar ou criar conta</h3>
+      <p class="small muted" style="font-weight:600;margin:0 0 12px">${txt} Não precisas de palavra-passe: enviamos-te um código por email.</p>
+      <form id="login-form" class="form">
+        <label class="lbl" for="login-email">Email</label>
+        <input type="email" id="login-email" autocomplete="email" inputmode="email" required maxlength="120" placeholder="o.teu@email.pt">
+        <div class="login-codigo" hidden>
+          <label class="lbl" for="login-token">Código que recebeste no email</label>
+          <input type="text" id="login-token" autocomplete="one-time-code" inputmode="numeric" pattern="[0-9]*" maxlength="10" placeholder="123456">
+        </div>
+        <div class="row"><button class="btn btn-primary" type="submit" data-step="email">Enviar código</button><button class="btn btn-ghost" type="button" data-act="modal-close">Agora não</button></div>
+        <p class="small muted" id="login-msg" aria-live="polite" style="font-weight:700;margin:6px 0 0"></p>
+        <p class="small muted" style="margin:6px 0 0">Ao continuar, aceitas os <a href="#termos" data-act="modal-close">Termos e a Política de privacidade</a>.</p>
+      </form>`);
+    setTimeout(() => { const i = document.getElementById("login-email"); if (i) i.focus(); }, 50);
+  }
+  const erroConta = (e) => {
+    const c = (e && (e.code || e.error_code)) || "", m = String((e && e.message) || "");
+    if (c === "over_email_send_rate_limit" || /rate limit|429/i.test(m)) return "Foram pedidos muitos códigos. Espera uns minutos e tenta outra vez.";
+    if (c === "email_address_not_authorized") return "Os emails de entrada ainda não estão ativos. Tenta mais tarde.";
+    if (c === "otp_expired" || /expired|invalid/i.test(m)) return "Código errado ou expirado. Confirma ou pede um novo.";
+    if (c === "email_address_invalid" || /invalid email/i.test(m)) return "Esse email não parece válido.";
+    return "Não foi possível agora. Verifica a ligação e tenta outra vez.";
+  };
+  async function submitLogin(f) {
+    const msg = $("#login-msg", f), btn = $("button[type=submit]", f), email = $("#login-email", f).value.trim().toLowerCase();
+    if (!email) return;
+    if (btn.dataset.step === "email") {
+      btn.disabled = true; msg.textContent = "A enviar…";
+      try {
+        await CONTA.pedirCodigo(email);
+        $(".login-codigo", f).hidden = false; $("#login-email", f).readOnly = true;
+        btn.dataset.step = "codigo"; btn.textContent = "Entrar";
+        msg.innerHTML = `Enviámos um código para <b>${esc(email)}</b>. Vê também o spam. <button type="button" class="linklike" data-act="login-reenviar">Reenviar</button>`;
+        setTimeout(() => { const t = document.getElementById("login-token"); if (t) t.focus(); }, 50);
+      } catch (e) { msg.textContent = erroConta(e); }
+      btn.disabled = false; return;
+    }
+    const token = $("#login-token", f).value.replace(/\D/g, "");
+    if (token.length < 6) { msg.textContent = "Escreve o código de 6 dígitos."; return; }
+    btn.disabled = true; msg.textContent = "A confirmar…";
+    try {
+      const recarregar = await CONTA.confirmarCodigo(email, token);
+      closeModal(); chipConta();
+      const depois = depoisLogin; depoisLogin = null;
+      if (recarregar) { location.reload(); return; }
+      toast(`<span class="tl">${lince()}</span><div><b>Sessão iniciada</b><span>${CONTA.perfil && CONTA.perfil.plano === "completo" ? "O teu plano Completo está ativo." : "O teu progresso fica guardado na tua conta."}</span></div>`);
+      if (depois) depois(); else route();
+    } catch (e) { msg.textContent = erroConta(e); btn.disabled = false; }
+  }
+
+  /* página da conta */
+  function renderConta() {
+    const u = CONTA.user, p = CONTA.perfil;
+    const fmtData = (d) => d ? d.toLocaleString("pt-PT", { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" }) : "";
+    app.innerHTML = `<div class="wrap" style="padding-bottom:60px;max-width:720px">
+      <div class="page-head"><span class="eyebrow">${ic("user", 'width="18" height="18"')} A minha conta</span><h1>${u ? "A tua conta" : "Entrar ou criar conta"}</h1>
+      <p>${u ? "O teu progresso fica guardado aqui e acompanha-te em qualquer dispositivo." : "Com uma conta, o teu progresso fica guardado e podes continuar no telemóvel ou no computador. É grátis e não precisa de palavra-passe."}</p></div>
+      ${!CONTA.on ? `<div class="card"><p style="margin:0">As contas ainda não estão disponíveis.</p></div>`
+        : u ? `<div class="card conta-card">
+            <p><b>Email</b><span>${esc(u.email || "")}</span></p>
+            <p><b>Plano</b><span>${p && p.plano === "completo" ? '<span class="chip free">Completo</span>' : `Grátis · <a href="#precos">ver o plano Completo</a>`}</span></p>
+            <p><b>Progresso</b><span>${CONTA.ultima ? `guardado às ${esc(fmtData(CONTA.ultima))}` : "guardado automaticamente"} · ${st.xp} XP</span></p>
+            <div class="row mt"><button class="btn btn-ghost btn-sm" type="button" data-act="conta-guardar">Guardar agora</button><button class="btn btn-soft btn-sm" type="button" data-act="conta-sair">Sair</button></div>
+          </div>
+          <details class="card mt"><summary style="font-weight:800;cursor:pointer">Apagar a conta</summary>
+            <p class="small muted" style="font-weight:600">Apaga o teu email, o progresso guardado e o acesso ligado à conta. Os registos de compras são guardados durante o prazo legal das faturas. Não dá para desfazer.</p>
+            <button class="btn btn-ghost btn-sm" type="button" data-act="conta-apagar" style="color:var(--coral-d)">Apagar a minha conta</button></details>`
+        : `<div class="card"><button class="btn btn-primary" type="button" data-act="login" data-m="guardar">${ic("user")} Entrar ou criar conta</button>
+            <p class="small muted" style="font-weight:600;margin:12px 0 0">Já compraste? Entra com o mesmo email da compra e o plano Completo abre logo.</p></div>`}
+    </div>`;
+  }
+
   const GRUPOS = {
     I: { nome: "Grupo I", desc: "Educação Literária", icon: "book" },
     II: { nome: "Grupo II", desc: "Leitura e Gramática", icon: "type" },
@@ -144,6 +346,7 @@
 
   /* ---------- ícones ---------- */
   const P = {
+    user: '<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/>',
     book: '<path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v17H6.5A2.5 2.5 0 0 0 4 21.5z"/><path d="M4 21.5A2.5 2.5 0 0 1 6.5 19H20v3H6.5"/>',
     type: '<path d="M4 7V5h16v2"/><path d="M9 19h6"/><path d="M12 5v14"/>',
     pen: '<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>',
@@ -286,7 +489,7 @@
     }[reason] || ["Desbloqueia o plano Completo", ""];
     const s = streak(), certas = Object.values(st.res).filter((r) => r.ok).length;
     const pay = C.PAYMENT_LINK
-      ? `<a class="btn btn-primary btn-shine" href="${esc(C.PAYMENT_LINK)}" rel="noopener">Desbloquear tudo · ${esc(C.PRECO)}</a>`
+      ? `<a class="btn btn-primary btn-shine" href="${esc(payHref())}" rel="noopener" data-buy>Desbloquear tudo · ${esc(C.PRECO)}</a>`
       : `<a class="btn btn-primary btn-shine" href="#precos" data-act="modal-close">Desbloquear tudo · ${esc(C.PRECO)}</a>`;
     openModal(`<div class="pw-head">${lince()}<div><h3>${M[0]}</h3><p class="muted" style="margin:6px 0 0;font-weight:600">${M[1]}</p></div></div>
       <div class="pw-stats"><div><b>${st.xp}</b><span>XP</span></div><div><b>${s}</b><span>dias seguidos</span></div><div><b>${certas}</b><span>respostas certas</span></div></div>
@@ -626,7 +829,7 @@
     setNav(h === "precos" ? "precos" : (navOf[currentView] || currentView));
     if (view.startsWith("t-")) renderTopic(view.slice(2));
     else if (view.startsWith("e-")) renderExam(view.slice(2));
-    else ({ inicio: renderHome, estudar: renderStudy, exames: renderExams, provaveis: renderProvaveis, simulado: renderSim, duvidas: renderTutor, plano: renderPlano, treino: renderTreino, erros: renderErros, cabula: renderCabula, pais: renderPais, termos: renderTermos }[view] || renderHome)();
+    else ({ inicio: renderHome, estudar: renderStudy, exames: renderExams, provaveis: renderProvaveis, simulado: renderSim, duvidas: renderTutor, plano: renderPlano, treino: renderTreino, erros: renderErros, cabula: renderCabula, pais: renderPais, termos: renderTermos, conta: renderConta }[view] || renderHome)();
     enhance(app);
     renderPromo();
     if (anchor) {
@@ -845,14 +1048,14 @@
     ["A correção com IA substitui um professor?", "Não. É uma estimativa útil para treinar e perceber o que falta, mas pode errar. Compara sempre com a proposta de resolução e, se puderes, mostra os teus textos ao teu professor."],
     ["Como funciona o plano de estudo?", "Escolhes os dias e o tempo que tens por dia. A Nota20 distribui os tópicos pela ordem dos mais prováveis, com treinos, textos do Grupo III, exames e simulados. Se falhares um dia, o plano reorganiza-se. Podes adicionar as sessões ao calendário do telemóvel."],
     ["Dá para usar como app no telemóvel?", "Sim. No Android, abre a Nota20 no Chrome e escolhe «Instalar app». No iPhone, abre no Safari, toca em Partilhar e depois em «Adicionar ao ecrã principal»."],
-    ["Preciso de criar conta?", "Não. O teu progresso, o XP e os dias seguidos ficam guardados neste navegador. Se mudares de telemóvel ou apagares os dados do navegador, não passam contigo."],
+    ["Preciso de criar conta?", CONTA.on ? "Não, o plano grátis funciona sem conta e o progresso fica guardado neste navegador. Se criares conta (grátis, só com o email, sem palavra-passe), o progresso fica guardado e continuas em qualquer dispositivo. Para comprar o plano Completo, a conta é necessária: assim o acesso fica sempre contigo." : "Não. O teu progresso, o XP e os dias seguidos ficam guardados neste navegador. Se mudares de telemóvel ou apagares os dados do navegador, não passam contigo."],
     ["Como funciona o pagamento?", `Pagamento único de ${C.PRECO}, sem subscrição. O acesso dura até ${C.ACESSO_ATE}.`],
     ["Serve para Português Língua Não Materna?", "Não. A Nota20 está pensada para a prova 639 (Português, 12.º ano)."]
   ];
 
   function plansHTML() {
     const pay = C.PAYMENT_LINK
-      ? `<a class="btn btn-primary btn-shine" href="${esc(C.PAYMENT_LINK)}" rel="noopener">Comprar por ${esc(C.PRECO)} ${ic("arrow")}</a>`
+      ? `<a class="btn btn-primary btn-shine" href="${esc(payHref())}" rel="noopener" data-buy>Comprar por ${esc(C.PRECO)} ${ic("arrow")}</a>`
       : `<button class="btn btn-primary" type="button" disabled>Pagamentos disponíveis brevemente</button>`;
     return `<div class="plans">
       <div class="plan rv">
@@ -1578,7 +1781,7 @@
   }
 
   /* ---------- Email e testadores ---------- */
-  const leadsOn = () => !!(C.LEADS_ENDPOINT || (RV.db && RV.uid && RV.canWrite !== false));
+  const leadsOn = () => !!(C.LEADS_ENDPOINT || CONTA.on || (RV.db && RV.uid && RV.canWrite !== false));
   function leadHTML(origem, tester) {
     if (store.get(tester ? "leadTester" : "lead", false)) return `<div class="lead-done">${ic("check")} ${tester ? "Já estás inscrito como testador. Obrigado!" : "Já estás inscrito. Obrigado!"}</div>`;
     if (!leadsOn()) return "";
@@ -1602,6 +1805,7 @@
     msg.textContent = "A enviar…";
     try {
       if (C.LEADS_ENDPOINT) { const r = await fetch(C.LEADS_ENDPOINT, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) }); if (!r.ok) throw new Error("http"); }
+      else if (CONTA.on) await CONTA.lead(data);
       else if (RV.db && RV.uid) await RV.db.doc("leads/" + RV.uid).set(data);
       else throw new Error("sem destino");
       store.set(data.tester ? "leadTester" : "lead", true);
@@ -1669,7 +1873,7 @@
         <p>${esc(C.PRECO)}, pagamento único, sem subscrição e sem renovação automática. ${iva}</p>
         <p>Pagas por ${esc(C.METODOS_PAGAMENTO || "MB WAY ou cartão")}. O pagamento é processado pela Stripe: a Nota20 não recebe nem guarda os dados do teu cartão. Recebes a fatura por email.</p></section>
       <section><h2>4. Acesso</h2>
-        <p>O acesso fica ativo logo que o pagamento é confirmado. A Nota20 funciona no navegador do telemóvel ou do computador. O teu progresso fica guardado nesse dispositivo: se apagares os dados do navegador, o progresso perde-se. Para voltares a ativar o acesso, usa o código que recebes por email depois da compra.</p></section>
+        <p>${CONTA.on ? "O acesso fica ativo na tua conta logo que o pagamento é confirmado. A Nota20 funciona no navegador do telemóvel ou do computador: entra com o mesmo email em qualquer dispositivo e o plano Completo e o progresso acompanham-te." : "O acesso fica ativo logo que o pagamento é confirmado. A Nota20 funciona no navegador do telemóvel ou do computador. O teu progresso fica guardado nesse dispositivo: se apagares os dados do navegador, o progresso perde-se. Para voltares a ativar o acesso, usa o código que recebes por email depois da compra."}</p></section>
       <section id="garantia"><h2>5. Garantia de reembolso e livre resolução</h2>
         <p>Tens ${G || 14} dias a contar da compra para pedir o reembolso total, sem teres de dar justificação, mesmo que já tenhas começado a usar a Nota20. Basta escreveres para ${falta(C.CONTACTO_EMAIL)}. Devolvemos o valor pelo mesmo meio de pagamento, no prazo máximo de 14 dias.</p></section>
       <section><h2>6. Utilização</h2>
@@ -1681,7 +1885,8 @@
       <section id="privacidade"><h2>8. Privacidade</h2>
         <p>Responsável pelo tratamento dos dados: ${falta(V.NOME)}${C.CONTACTO_EMAIL ? ` (${esc(C.CONTACTO_EMAIL)})` : ""}.</p>
         <ul>
-          <li><b>Progresso de estudo</b> (respostas, XP, plano): fica guardado só no teu navegador. Não o recebemos.</li>
+          ${CONTA.on ? `<li><b>Conta</b> (opcional no plano grátis, necessária para comprar): guardamos o teu email, o plano que tens e o teu progresso de estudo (respostas, XP, plano de estudo), para os teres em qualquer dispositivo. Os dados ficam no Supabase, em servidores na União Europeia (Irlanda). Guardamo-los até apagares a conta, o que podes fazer a qualquer momento em «A minha conta».</li>
+          <li><b>Progresso sem conta</b>: fica guardado só no teu navegador. Não o recebemos.</li>` : `<li><b>Progresso de estudo</b> (respostas, XP, plano): fica guardado só no teu navegador. Não o recebemos.</li>`}
           <li><b>Email para dicas ou testadores</b>: só se o deixares, com o teu consentimento. Usamo-lo para te enviar dicas e avisos sobre o exame. Guardamo-lo até cancelares.</li>
           <li><b>Compra</b>: nome, email e dados do pagamento são tratados pela Stripe e por nós para ativar o acesso e emitir a fatura (obrigação legal). As faturas são guardadas durante o prazo legal.</li>
           <li><b>Perguntas ao explicador</b>: são enviadas a um fornecedor de inteligência artificial só para gerar a resposta.</li>
@@ -2053,7 +2258,12 @@
      EVENTOS
      ============================================================ */
   document.addEventListener("click", (ev) => {
-    if (C.PAYMENT_LINK) { const buy = ev.target.closest("a[href]"); if (buy && buy.getAttribute("href") === C.PAYMENT_LINK) GC.event("comprar-clique"); }
+    const buy = ev.target.closest("a[data-buy]");
+    if (buy) {
+      GC.event("comprar-clique");
+      if (CONTA.on && !CONTA.user) { ev.preventDefault(); closeModal(); openLogin("comprar", () => { location.href = payHref(); }); return; }
+      buy.href = payHref();
+    }
     const jump = ev.target.closest("[data-jump]");
     if (jump) { ev.preventDefault(); const t = document.getElementById(jump.dataset.jump); if (t) t.scrollIntoView({ behavior: "smooth" }); return; }
     const a = ev.target.closest("[data-act]");
@@ -2109,6 +2319,11 @@
       }
       case "ics": downloadICS(); break;
       case "share-progress": shareProgress(); break;
+      case "login": openLogin(a.dataset.m || ""); break;
+      case "login-reenviar": { const f = document.getElementById("login-form"); const em = f && $("#login-email", f).value.trim().toLowerCase(); if (!em) break; a.disabled = true; CONTA.pedirCodigo(em).then(() => { a.textContent = "Enviado!"; }).catch((e) => { a.textContent = erroConta(e); }); break; }
+      case "conta-guardar": CONTA.enviar().then(() => { a.textContent = "Guardado!"; }).catch(() => { a.textContent = "Sem ligação"; }); break;
+      case "conta-sair": CONTA.sair().then(() => { chipConta(); toast(`<span class="tl">${lince()}</span><div><b>Sessão terminada</b><span>O teu progresso continua guardado na conta.</span></div>`); route(); }); break;
+      case "conta-apagar": if (confirm("Apagar a conta e o progresso guardado? Não dá para desfazer.")) { a.disabled = true; CONTA.apagar().then(() => { chipConta(); toast(`<span class="tl">${lince()}</span><div><b>Conta apagada</b><span>Os teus dados foram removidos.</span></div>`); location.hash = "#inicio"; }).catch(() => { a.disabled = false; a.textContent = "Não foi possível. Tenta mais tarde."; }); } break;
       case "convidar": convidar(); break;
       case "convite-wa": if (convPendente) { convPendente = false; setTimeout(conviteConta, 400); } break;
       case "convite-copiar": { const t = conviteTexto(); (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(() => { if (convPendente) { convPendente = false; conviteConta(); } }).catch(() => { a.textContent = "Seleciona e copia o texto"; }); break; }
@@ -2231,6 +2446,7 @@
       if (novo) GC.event("plano-criado");
       if (novo) { window.scrollTo({ top: 0, behavior: "instant" }); const c = $(".today"); if (c) { const [x, y] = centerOf(c); confetti(x, Math.min(y, 300), 30); addXP(20, "plano", x, Math.min(y, 300)); } }
     }
+    if (f.id === "login-form") { ev.preventDefault(); submitLogin(f); }
     if (f.id === "code-form") {
       ev.preventDefault();
       const msg = $("#code-msg"), v = $("#code-in").value.trim().toUpperCase();
@@ -2262,5 +2478,7 @@
     ${contactosHTML()}`;
   window.addEventListener("hashchange", route);
   route();
+  chipConta();
+  CONTA.arranque();
   initReviews();
 })();
