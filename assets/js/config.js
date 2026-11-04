@@ -56,7 +56,7 @@ window.N20_CONFIG = {
   /* Estatísticas anónimas com o GoatCounter (grátis, sem cookies, sem guardar o IP).
      Cria a conta em goatcounter.com e põe aqui o código (ex.: "nota20" para nota20.goatcounter.com).
      Vazio = desligado. Nunca conta dentro do Claude nem no modo de demonstração. */
-  GOATCOUNTER: "",
+  GOATCOUNTER: "nota20",
 
   /* Partilhas precisas para o aluno escolher 1 tópico do plano Completo grátis. */
   CONVITES_PARA_TOPICO: 3,
