@@ -1,0 +1,16 @@
+{
+  "name": "Nota20 · Exame de Português",
+  "short_name": "Nota20",
+  "description": "Plano de estudo, resumos, exercícios, exames resolvidos e simulados para o Exame Nacional de Português (639).",
+  "lang": "pt-PT",
+  "start_url": "./#plano",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f3f7ff",
+  "theme_color": "#2d6bff",
+  "icons": [
+    { "src": "assets/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "assets/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "assets/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
