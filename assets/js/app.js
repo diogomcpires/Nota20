@@ -167,6 +167,16 @@
       user = null; perfil = null;
       if (store.get("unlockedConta", false)) { st.unlocked = false; store.set("unlocked", false); store.set("unlockedConta", false); }
     }
+    async function ia(mode, messages) {
+      await cliente();
+      const { data, error } = await sb.functions.invoke("ia", { body: { mode, messages } });
+      if (error) {
+        let code = "indisponivel";
+        try { const j = await error.context.json(); code = j.error || code; } catch (e) { /* sem corpo */ }
+        throw { code };
+      }
+      return (data && data.text) || "";
+    }
     async function lead(d) {
       await cliente();
       const { error } = await sb.from("leads").insert({ email: d.email, origem: String(d.origem || "").slice(0, 40), tester: !!d.tester });
@@ -186,10 +196,22 @@
       if (store.get("unlockedConta", false)) { st.unlocked = false; store.set("unlocked", false); store.set("unlockedConta", false); }
     }
     window.addEventListener("pagehide", () => { if (user) enviar().catch(() => {}); });
-    return { on, lead, avaliar, arranque, pedirCodigo, confirmarCodigo, sair, apagar, agendar, enviar,
+    return { on, ia, lead, avaliar, arranque, pedirCodigo, confirmarCodigo, sair, apagar, agendar, enviar,
       get user() { return user; }, get perfil() { return perfil; }, get ultima() { return ultima; } };
   })();
   { const set0 = store.set; store.set = (k, v) => { set0(k, v); CONTA.agendar(k); }; }
+  AI.usar(async (mode, messages) => { if (!CONTA.user) throw { code: "login" }; return CONTA.ia(mode, messages); });
+  /* IA no site precisa de conta: devolve true se teve de pedir login */
+  const precisaLoginIA = (depois) => { if (aiMode === "conta" && !CONTA.user) { openLogin("ia", depois); return true; } return false; };
+  const erroIA = (e, tipo) => {
+    if (e && e.code === "login") { openLogin("ia"); return "Entra com o teu email para usar a IA. É grátis."; }
+    if (e && e.code === "limite") {
+      if (!unlocked()) { openPaywall(tipo); return "Chegaste ao limite do plano grátis."; }
+      return tipo === "correcao" ? "Chegaste às 10 correções de hoje. Amanhã há mais." : "Chegaste às 40 perguntas de hoje. Amanhã há mais.";
+    }
+    if (e && e.code === "rate_limited") return "Muitos pedidos seguidos. Tenta dentro de um minuto.";
+    return null;
+  };
 
   /* link de pagamento com a conta: a Stripe devolve o id e o email no webhook */
   function payHref() {
@@ -220,6 +242,7 @@
       comprar: "Para a compra ficar guardada na tua conta e funcionar em qualquer dispositivo.",
       guardar: "Guarda o teu progresso e continua no telemóvel ou no computador.",
       avaliar: "Para deixares a tua avaliação. Só alunos com conta podem avaliar.",
+      ia: "Para usares o explicador e a correção com IA. É grátis e não precisa de palavra-passe.",
       comprei: "Entra com o email que usaste na compra e o plano Completo abre logo."
     }[motivo] || "Guarda o teu progresso e usa a Nota20 em qualquer dispositivo.";
     openModal(`<h3>Entrar ou criar conta</h3>
@@ -807,6 +830,7 @@
     const n = wordCount(answer);
     if (n < 5) { slot.innerHTML = `<div class="fb info">Escreve primeiro a tua resposta.</div>`; return; }
     if (!canUse("correcao")) { openPaywall("correcao"); return; }
+    if (precisaLoginIA()) return;
     const btn = $('[data-act="ai-fix"]', el);
     btn.disabled = true;
     slot.innerHTML = `<div class="fb info"><span class="typing"><i></i><i></i><i></i></span> A corrigir com os critérios oficiais…</div>`;
@@ -817,7 +841,7 @@
       consume("correcao");
       const [x, y] = centerOf(btn); addXP(5, "ai:" + key, x, y - 20);
     } catch (e) {
-      slot.innerHTML = `<div class="fb info">${e && e.code === "rate_limited" ? "Muitos pedidos seguidos. Tenta dentro de um minuto." : "Não foi possível corrigir agora. Tenta de novo ou vê a proposta de resolução."}</div>`;
+      slot.innerHTML = `<div class="fb info">${erroIA(e, "correcao") || "Não foi possível corrigir agora. Tenta de novo ou vê a proposta de resolução."}</div>`;
     } finally { btn.disabled = false; }
   }
 
@@ -2246,7 +2270,7 @@
   ];
   let chatBusy = false;
   function renderTutor() {
-    const ready = aiMode === "claude" || aiMode === "endpoint";
+    const ready = aiMode === "claude" || aiMode === "endpoint" || aiMode === "conta";
     const pending = aiMode === undefined;
     const msgs = st.chat;
     app.innerHTML = `<div class="wrap" style="max-width:860px;padding-bottom:30px">
@@ -2273,6 +2297,7 @@
   async function sendChat(text) {
     if (chatBusy || !text.trim()) return;
     if (!canUse("explicador")) { openPaywall("explicador"); return; }
+    if (precisaLoginIA(() => sendChat(text))) return;
     chatBusy = true;
     st.chat.push({ role: "user", content: text.trim() });
     renderTutor();
@@ -2288,7 +2313,7 @@
       consume("explicador");
       addXP(2, null);
     } catch (e) {
-      st.chat.push({ role: "assistant", content: e && e.code === "rate_limited" ? "Muitos pedidos seguidos. Tenta de novo dentro de um minuto." : "Não consegui responder agora. Tenta de novo." });
+      st.chat.push({ role: "assistant", content: erroIA(e, "explicador") || "Não consegui responder agora. Tenta de novo." });
     }
     store.set("chat", st.chat.slice(-40));
     chatBusy = false;

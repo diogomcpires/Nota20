@@ -7,6 +7,8 @@
 (function () {
   const C = window.N20_CONFIG || {};
   let samplePromise = null;
+  let transporte = null; /* no site: a app liga aqui a função do Supabase (só com conta) */
+  const viaConta = () => !!(transporte && C.IA_CONTA);
 
   function getSample() {
     if (!samplePromise) {
@@ -48,9 +50,11 @@
 
   window.N20AI = {
     /** "claude" | "endpoint" | null */
+    usar(fn) { transporte = fn; },
     async modo() {
       const s = await getSample();
       if (s) return "claude";
+      if (viaConta()) return "conta";
       if (C.AI_ENDPOINT) return "endpoint";
       return null;
     },
@@ -64,6 +68,11 @@
           : m);
         const r = await s(msgs, { onText, signal, cache: false, modelTier: "default" });
         return r.text;
+      }
+      if (viaConta()) {
+        const t = await transporte("explicador", historico);
+        if (onText) onText({ text: t, delta: t });
+        return t;
       }
       if (C.AI_ENDPOINT) {
         const t = await viaEndpoint("explicador", historico);
@@ -85,6 +94,7 @@
         const r = await s(prompt, { modelTier: "default", cache: false });
         return extrairJSON(r.text);
       }
+      if (viaConta()) return extrairJSON(await transporte("correcao", [{ role: "user", content: prompt }]));
       if (C.AI_ENDPOINT) {
         const t = await viaEndpoint("correcao", [{ role: "user", content: prompt }]);
         return extrairJSON(t);
