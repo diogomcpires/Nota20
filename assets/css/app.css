@@ -1130,3 +1130,19 @@ h2 { font-weight: 700; }
 @media (min-width: 1240px) { .top .wrap { gap: 8px; } .nav a { padding: 9px 9px; } }
 @media (min-width: 900px) and (max-width: 1099px) { .logo { font-size: 1.3rem; gap: 5px; } .logo .lince { width: 34px; height: 34px; } .nav a { padding: 8px 6px; } .top .wrap { gap: 7px; } }
 @media (max-width: 400px) { .logo > span:last-child { display: none; } }
+
+/* matéria completa */
+.banner::after { pointer-events: none; }
+.banner .mat-btn { margin-top: 4px; justify-self: start; position: relative; z-index: 1; }
+.mat-card { display: flex; align-items: center; gap: 12px; text-decoration: none; color: var(--ink); border: 2px solid var(--yellow); background: #fffaf0; }
+.mat-card .mi { font-size: 1.8rem; }
+.mat-card b { display: block; }
+.mat-card span span { font-size: .88rem; color: var(--muted); font-weight: 600; }
+.mat-list { display: grid; gap: 12px; margin-top: 22px; }
+.mat-sec { background: var(--surface); border: 2px solid var(--line); border-radius: 20px; overflow: hidden; }
+.mat-sec[open] { border-color: var(--blue); }
+.mat-sec summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 12px; padding: 16px 18px; font-size: 1.08rem; }
+.mat-sec summary::-webkit-details-marker { display: none; }
+.mat-sec summary .n { flex: none; width: 32px; height: 32px; border-radius: 10px; background: var(--blue-50); color: var(--blue); display: grid; place-items: center; font-weight: 800; }
+.mat-sec summary b { flex: 1; }
+.mat-sec .prose-block { margin: 0 14px 14px; box-shadow: none; }

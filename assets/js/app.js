@@ -916,10 +916,11 @@
     let view = h, scrollTo = null, anchor = null;
     if (["precos", "avaliacoes", "faq", "como-funciona", "comecar", "previsao"].includes(h)) { view = "inicio"; scrollTo = h; }
     if (view.includes("/")) { anchor = view.slice(view.indexOf("/") + 1); view = view.slice(0, view.indexOf("/")); }
-    currentView = view.startsWith("t-") ? "estudar" : view.startsWith("e-") ? "exames" : view;
+    currentView = (view.startsWith("t-") || view.startsWith("m-")) ? "estudar" : view.startsWith("e-") ? "exames" : view;
     const navOf = { treino: "estudar", erros: "estudar", cabula: "estudar", simulado: "exames" };
     setNav(h === "precos" ? "precos" : (navOf[currentView] || currentView));
-    if (view.startsWith("t-")) renderTopic(view.slice(2));
+    if (view.startsWith("m-")) renderMateria(view.slice(2));
+    else if (view.startsWith("t-")) renderTopic(view.slice(2));
     else if (view.startsWith("e-")) renderExam(view.slice(2));
     else ({ inicio: renderHome, estudar: renderStudy, exames: renderExams, provaveis: renderProvaveis, simulado: renderSim, duvidas: renderTutor, plano: renderPlano, treino: renderTreino, erros: renderErros, cabula: renderCabula, pais: renderPais, termos: renderTermos, conta: renderConta }[view] || renderHome)();
     enhance(app);
@@ -1388,6 +1389,28 @@
   }
 
   /* ---------- Página de tópico ---------- */
+
+  /* ---------- matéria completa (estudo aprofundado de um tópico) ---------- */
+  const MAT = (t) => (window.N20 && N20.materia && N20.materia[t.id]) || null;
+  function renderMateria(id) {
+    const t = TOPICS.find((x) => x.id === id);
+    if (!t || !MAT(t)) return renderTopic(id);
+    const g = GRUPOS[t.grupo], secs = MAT(t), full = canOpen(t);
+    app.innerHTML = `<div class="wrap g-${t.grupo}" style="padding-bottom:60px">
+      <div class="banner g-${t.grupo}"><span class="big-ico">${ic(g.icon)}</span>
+        <span class="crumbs"><a href="#estudar">Estudar</a> / <a href="#t-${t.id}">${esc(t.titulo)}</a> / Matéria completa</span>
+        <h1>${esc(t.titulo)}</h1><p>Matéria completa · ${secs.length} secções para estudar a fundo</p>
+        <div class="toc"><a class="btn btn-glass btn-sm" href="#t-${t.id}">← Resumo e exercícios</a></div></div>
+      <div class="mat-list">${secs.map((s, i) => {
+        const aberto = full || i === 0;
+        return `<details class="mat-sec rv" ${i === 0 ? "open" : ""}><summary><span class="n">${i + 1}</span><b>${esc(s.titulo)}</b>${aberto ? "" : ic("lock", 'width="16" height="16"')}</summary>
+          <div class="prose-block">${aberto ? s.html : `<p class="muted">Esta secção faz parte do plano Completo.</p><button class="btn btn-primary btn-sm btn-shine" type="button" data-act="paywall" data-r="topico">Desbloquear</button>`}</div></details>`;
+      }).join("")}</div>
+      <div class="row mt" style="justify-content:space-between"><a class="btn btn-ghost btn-sm" href="#t-${t.id}">← Voltar ao tópico</a><a class="btn btn-primary btn-sm" href="#t-${t.id}" data-jump="exercicios">Fazer os exercícios →</a></div>
+    </div>`;
+    window.scrollTo(0, 0);
+  }
+
   function renderTopic(id) {
     const t = TOPICS.find((x) => x.id === id);
     if (!t) return renderStudy();
@@ -1398,6 +1421,7 @@
       <span class="crumbs"><a href="#estudar">Estudar</a> / ${g.nome} · ${g.desc}${t.ano ? " · " + t.ano + " ano" : ""}</span>
       <h1>${esc(t.titulo)}</h1><p>${esc(t.subtitulo)}</p>
       <div class="toc">${t.free ? '<span class="chip free">Grátis</span>' : ""}${hotChip(t)}<a href="#t-${t.id}" data-jump="resumo">Resumo</a><a href="#t-${t.id}" data-jump="pontos">Pontos-chave</a><a href="#t-${t.id}" data-jump="no-exame">No exame</a><a href="#t-${t.id}" data-jump="exercicios">${t.exercicios.length} exercícios</a></div>
+      ${MAT(t) ? `<a class="btn btn-yellow btn-sm mat-btn" href="#m-${t.id}">📚 Matéria completa</a>` : ""}
     </div>`;
     const full = canOpen(t);
     const done = st.studied.has(t.id);
@@ -1430,6 +1454,7 @@
         </div>
         <aside class="aside">
           <div data-meters>${meterHTML()}</div>
+          ${MAT(t) ? `<a class="card mat-card" href="#m-${t.id}"><span class="mi">📚</span><span><b>Matéria completa</b><span>Tudo sobre ${esc(t.titulo)}, organizado em ${MAT(t).length} secções.</span></span>${ic("arrow")}</a>` : ""}
           <div class="card">
             <h3>Já dominas este tópico?</h3>
             <p class="small muted" style="font-weight:600">Marca-o como estudado e ganha +20 XP.</p>
