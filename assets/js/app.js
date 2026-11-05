@@ -311,7 +311,7 @@
     const q = new URLSearchParams(location.search);
     if (q.get("pago") !== "1") return;
     q.delete("pago");
-    history.replaceState(null, "", location.pathname + (q.toString() ? "?" + q : "") + location.hash);
+    history.replaceState(history.state, "", location.pathname + (q.toString() ? "?" + q : "") + location.hash);
     GC.event("pagamento-regresso");
     if (unlocked()) { toast(`<span class="tl">${lince()}</span><div><b>Plano Completo ativo!</b><span>Obrigado pela confiança. Bom estudo!</span></div>`); return; }
     if (!CONTA.on || !CONTA.user) { openLogin("comprei"); return; }
@@ -876,6 +876,37 @@
   let currentView = "inicio";
   let timerInt = null;
   function setNav(v) { $$("[data-nav]").forEach((a) => { if (a.dataset.nav === v) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current"); }); }
+
+
+  /* ---------- setas recuar / avançar (como no navegador; úteis na app instalada) ---------- */
+  const HIST = (() => {
+    const K = "n20h:max";
+    let cur = 0, max = 0;
+    const lerMax = () => { try { return +sessionStorage.getItem(K) || 0; } catch (e) { return 0; } };
+    const gravarMax = () => { try { sessionStorage.setItem(K, String(max)); } catch (e) { /* sem armazenamento */ } };
+    function pintar() {
+      const b = document.getElementById("hist-back"), f = document.getElementById("hist-fwd");
+      if (b) b.disabled = cur <= 0;
+      if (f) f.disabled = cur >= max;
+    }
+    function marcar(i) { try { history.replaceState({ ...(history.state || {}), n20i: i }, "", location.href); } catch (e) { /* segue */ } }
+    function iniciar() {
+      const s = history.state;
+      if (s && typeof s.n20i === "number") { cur = s.n20i; max = Math.max(lerMax(), cur); }
+      else { cur = 0; max = 0; marcar(0); }
+      gravarMax(); pintar();
+      window.addEventListener("hashchange", () => {
+        const st2 = history.state;
+        if (st2 && typeof st2.n20i === "number") cur = st2.n20i;          /* recuou/avançou */
+        else { cur = cur + 1; max = cur; marcar(cur); }                    /* página nova */
+        gravarMax(); pintar();
+      });
+      window.addEventListener("popstate", () => { const st2 = history.state; if (st2 && typeof st2.n20i === "number") { cur = st2.n20i; pintar(); } });
+      document.getElementById("hist-back")?.addEventListener("click", () => { if (cur > 0) history.back(); });
+      document.getElementById("hist-fwd")?.addEventListener("click", () => { if (cur < max) history.forward(); });
+    }
+    return { iniciar };
+  })();
 
   function route() {
     const h = decodeURIComponent(location.hash.slice(1)) || "inicio";
@@ -2578,6 +2609,7 @@
       <span class="row small"><a href="#plano">Plano</a><a href="#estudar">Estudar</a><a href="#treino">Treino</a><a href="#exames">Exames</a><a href="#simulado">Simulados</a><a href="#cabula">Cábula</a><a href="#pais">Para pais</a><a href="#duvidas">Dúvidas</a><a href="#precos">Preços</a><a href="resumos/">Resumos</a><a href="#termos">Termos e privacidade</a><a href="${LRE}" target="_blank" rel="noopener">Livro de Reclamações</a></span></div>
     <p class="small" style="margin:0">A Nota20 não tem ligação ao EduQA (antigo IAVE), ao Ministério da Educação${CRIADOR ? " nem ao Instituto Superior Técnico" : ""}. Os enunciados e critérios oficiais pertencem ao EduQA (antigo IAVE) e são apresentados por ligação; as resoluções são propostas da Nota20.</p>
     ${contactosHTML()}`;
+  HIST.iniciar();
   window.addEventListener("hashchange", route);
   route();
   chipConta();

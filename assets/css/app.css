@@ -1119,3 +1119,14 @@ h2 { font-weight: 700; }
 @media (min-width: 900px) and (max-width: 1239px) { .top .cta { display: none; } }
 @media (min-width: 900px) { .nav a { padding: 9px 11px; } .acc-chip { margin-left: 0; } .top .wrap { gap: 10px; } }
 @media (min-width: 900px) and (max-width: 1099px) { .nav a { padding: 8px 8px; font-size: 0.92rem; } .xp-chip .fl { display: none; } }
+
+/* setas recuar / avançar */
+.hist { display: inline-flex; gap: 4px; flex-shrink: 0; }
+.hist-b { width: 34px; height: 34px; border-radius: 50%; border: 2px solid var(--line); background: var(--surface); color: var(--ink); display: grid; place-items: center; cursor: pointer; padding: 0; transition: background .2s, color .2s, border-color .2s, opacity .2s; }
+.hist-b svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
+.hist-b:hover:not(:disabled) { background: var(--blue-50); color: var(--blue); border-color: var(--blue); }
+.hist-b:disabled { opacity: .35; cursor: default; }
+@media (max-width: 480px) { .hist { gap: 2px; } .hist-b { width: 30px; height: 30px; } .hist-b svg { width: 16px; height: 16px; } }
+@media (min-width: 1240px) { .top .wrap { gap: 8px; } .nav a { padding: 9px 9px; } }
+@media (min-width: 900px) and (max-width: 1099px) { .logo { font-size: 1.3rem; gap: 5px; } .logo .lince { width: 34px; height: 34px; } .nav a { padding: 8px 6px; } .top .wrap { gap: 7px; } }
+@media (max-width: 400px) { .logo > span:last-child { display: none; } }
