@@ -161,6 +161,16 @@
       GC.event("conta-entrou");
       return depoisDeEntrar();
     }
+    /* depois do Stripe: o webhook pode chegar uns segundos depois do regresso */
+    async function verificarPagamento(tentativas = 10) {
+      if (!user) return false;
+      for (let i = 0; i < tentativas; i++) {
+        try { await perfilEPlano(); } catch (e) { /* tenta outra vez */ }
+        if (perfil && perfil.plano === "completo") return true;
+        await new Promise((r) => setTimeout(r, 3000));
+      }
+      return false;
+    }
     async function sair() {
       try { await enviar(); } catch (e) { /* segue */ }
       if (sb) await sb.auth.signOut().catch(() => {});
@@ -196,7 +206,7 @@
       if (store.get("unlockedConta", false)) { st.unlocked = false; store.set("unlocked", false); store.set("unlockedConta", false); }
     }
     window.addEventListener("pagehide", () => { if (user) enviar().catch(() => {}); });
-    return { on, ia, lead, avaliar, arranque, pedirCodigo, confirmarCodigo, sair, apagar, agendar, enviar,
+    return { on, ia, lead, avaliar, arranque, verificarPagamento, pedirCodigo, confirmarCodigo, sair, apagar, agendar, enviar,
       get user() { return user; }, get perfil() { return perfil; }, get ultima() { return ultima; } };
   })();
   { const set0 = store.set; store.set = (k, v) => { set0(k, v); CONTA.agendar(k); }; }
@@ -296,6 +306,21 @@
   }
 
   /* código de oferta (professores, explicadores): só por link, ex.: …/?codigo=ABC123 */
+  /* regresso do Stripe: o Payment Link volta para /?pago=1 */
+  async function regressoPagamento() {
+    const q = new URLSearchParams(location.search);
+    if (q.get("pago") !== "1") return;
+    q.delete("pago");
+    history.replaceState(null, "", location.pathname + (q.toString() ? "?" + q : "") + location.hash);
+    GC.event("pagamento-regresso");
+    if (unlocked()) { toast(`<span class="tl">${lince()}</span><div><b>Plano Completo ativo!</b><span>Obrigado pela confiança. Bom estudo!</span></div>`); return; }
+    if (!CONTA.on || !CONTA.user) { openLogin("comprei"); return; }
+    openModal(`<h3>Pagamento recebido</h3><p class="muted" style="font-weight:600" id="pago-msg">A ativar o plano Completo na tua conta…</p>`);
+    const ok = await CONTA.verificarPagamento();
+    if (ok) { closeModal(); route(); toast(`<span class="tl">${lince()}</span><div><b>Plano Completo ativo!</b><span>Já tens acesso a tudo. Bom estudo!</span></div>`); GC.event("pagamento-ativo"); }
+    else { const m = document.getElementById("pago-msg"); if (m) m.innerHTML = `Ainda não recebemos a confirmação. Se pagaste por Multibanco, o acesso abre sozinho quando o pagamento for confirmado (normalmente em poucas horas). Se pagaste com cartão ou MB WAY e isto não mudar em 5 minutos, recarrega a página ou escreve-nos.`; }
+  }
+
   function abrirCodigo(v) {
     openModal(`<h3>Ativar código de acesso</h3><form id="code-form" class="form"><label class="lbl" for="code-in">Código</label><input type="text" id="code-in" autocomplete="off" required><div class="row"><button class="btn btn-primary" type="submit">Ativar</button><button class="btn btn-ghost" data-act="modal-close" type="button">Fechar</button></div><p class="small muted" id="code-msg" aria-live="polite" style="font-weight:700"></p></form>`);
     if (v) { const i = document.getElementById("code-in"); if (i) i.value = v; }
@@ -2557,7 +2582,7 @@
   route();
   chipConta();
   chipInstalar();
-  CONTA.arranque();
+  CONTA.arranque().then(regressoPagamento);
   { const cod = new URLSearchParams(location.search).get("codigo"); if (cod) abrirCodigo(cod.slice(0, 40)); }
   initReviews();
 })();
