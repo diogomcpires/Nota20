@@ -64,7 +64,7 @@ window.N20_CONFIG = {
   SUPABASE_KEY: "sb_publishable_aRi7XdYToIkpQIdTUMA_dQ_Ak5f1fZE",
   /* IA no site (explicador e correção) pela função "ia" do Supabase, só para quem tem conta.
      Liga (true) depois de pores a chave ANTHROPIC_API_KEY nos segredos das Edge Functions. */
-  IA_CONTA: false,
+  IA_CONTA: true,
 
   /* Partilhas precisas para o aluno escolher 1 tópico do plano Completo grátis. */
   CONVITES_PARA_TOPICO: 3,
