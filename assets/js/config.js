@@ -34,7 +34,7 @@ window.N20_CONFIG = {
   GARANTIA_DIAS: 14,
 
   /* Link de pagamento (ex.: Stripe Payment Link). Vazio = botão mostra "brevemente". */
-  PAYMENT_LINK: "https://buy.stripe.com/test_aFabJ0fxcgqt4gicCa0sU00",
+  PAYMENT_LINK: "",
 
   /* Códigos de acesso (hash SHA-256 em hexadecimal). Ver README para gerar. */
   ACCESS_CODE_HASHES: [],
