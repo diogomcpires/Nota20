@@ -1065,7 +1065,7 @@
           <div style="width:170px;margin:22px 0 0 10px">${lince()}</div>
         </div>
         <div class="rv">${(() => { reg("home-demo", sample, {}); return renderItem(sample, "home-demo", "1"); })()}
-          <p class="muted" style="font-weight:600">Grátis: ${free.map((t) => `<a href="#t-${t.id}">${esc(t.titulo)}</a>`).join(" e ")} completos, e ${LIM.exercicios} exercícios para experimentares.</p></div>
+          <p class="muted" style="font-weight:600">Grátis: ${free.map((t) => `<a href="#t-${t.id}">${esc(t.titulo)}</a>`).join(" e ")} ${free.length === 1 ? "completo" : "completos"}, e ${LIM.exercicios} exercícios para experimentares.</p></div>
       </div>
     </section>
 
