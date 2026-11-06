@@ -101,7 +101,7 @@ N20.topics.push(
 },
 {
   id: "mensagem",
-  grupo: "I", ano: "12.º", free: true,
+  grupo: "I", ano: "12.º",
   titulo: "Mensagem",
   subtitulo: "Fernando Pessoa (1934)",
   resumo: `
