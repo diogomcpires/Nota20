@@ -1421,6 +1421,12 @@
     window.scrollTo(0, 0);
   }
 
+  /* amostra grátis do resumo: só o 1.º parágrafo, no máximo ~60 palavras */
+  function amostraResumo(html) {
+    const p1 = (html.split("</p>")[0] || "") + "</p>";
+    const txt = p1.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim(), w = txt.split(" ");
+    return w.length <= 60 ? p1 : `<p>${esc(w.slice(0, 55).join(" ").replace(/[,;:.]+$/, ""))}…</p>`;
+  }
   function renderTopic(id) {
     const t = TOPICS.find((x) => x.id === id);
     if (!t) return renderStudy();
@@ -1436,8 +1442,8 @@
     const full = canOpen(t);
     const done = st.studied.has(t.id);
     const lockCard = (txt) => `<div class="lock-card rv"><span class="lk">${ic("lock")}</span><div><b>${txt}</b><span>Continua no plano Completo${G ? ` · garantia de ${G} dias` : ""}.</span></div><button class="btn btn-primary btn-sm btn-shine" type="button" data-act="paywall" data-r="topico">Desbloquear</button></div>`;
-    const resumo = full ? t.resumo : t.resumo.split("</p>").slice(0, 2).join("</p>") + "</p>";
-    const pontos = full ? t.pontos : t.pontos.slice(0, 2);
+    const resumo = full ? t.resumo : amostraResumo(t.resumo);
+    const pontos = full ? t.pontos : t.pontos.slice(0, 1);
     const tipoTxt = { mc: "Escolha múltipla", multi: "Seleção", completar: "Completamento", aberta: "Resposta restrita", texto: "Resposta extensa" };
     app.innerHTML = `<div class="wrap g-${t.grupo}">${head}
       <div class="topic-layout">
@@ -1447,7 +1453,7 @@
           ${full ? "" : lockCard("Resumo completo, com todos os temas e exemplos")}
           <div class="block-title" id="pontos"><span class="n">2</span><h2>Pontos-chave</h2></div>
           <ul class="keypoints">${pontos.map((p) => `<li class="rv"><span class="ck">${ic("check")}</span><span>${p}</span></li>`).join("")}
-            ${full ? "" : t.pontos.slice(2).map(() => `<li class="blurred" aria-hidden="true"><span class="ck">${ic("lock")}</span><span>Ponto-chave do plano Completo para memorizar antes do exame.</span></li>`).join("")}</ul>
+            ${full ? "" : t.pontos.slice(pontos.length).map(() => `<li class="blurred" aria-hidden="true"><span class="ck">${ic("lock")}</span><span>Ponto-chave do plano Completo para memorizar antes do exame.</span></li>`).join("")}</ul>
           <div class="block-title" id="no-exame"><span class="n">3</span><h2>Como sai no exame</h2></div>
           <div class="exam-note rv"><span class="ic">${ic("target")}</span><span>${t.noExame}</span></div>
           ${historicoHTML(t)}
