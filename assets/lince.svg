@@ -1,0 +1,20 @@
+<svg class="lince " viewBox="0 0 300 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Lince, a mascote da Nota20">
+      <path d="M78 128 L92 34 Q96 26 102 32 L146 100 Z" fill="#D9893F"/><path d="M90 116 L99 52 L132 100 Z" fill="#FFB9A8"/>
+      <path d="M97 34 Q94 14 88 4" stroke="#2A1A10" stroke-width="7" stroke-linecap="round" fill="none"/>
+      <path d="M222 128 L208 34 Q204 26 198 32 L154 100 Z" fill="#D9893F"/><path d="M210 116 L201 52 L168 100 Z" fill="#FFB9A8"/>
+      <path d="M203 34 Q206 14 212 4" stroke="#2A1A10" stroke-width="7" stroke-linecap="round" fill="none"/>
+      <path d="M56 168 L26 214 L70 210 L52 250 L104 230 L150 256 L196 230 L248 250 L230 210 L274 214 L244 168 Z" fill="#F4CC97"/>
+      <ellipse cx="150" cy="166" rx="96" ry="84" fill="#EBA35A"/>
+      <path d="M138 96 L141 116 M150 92 L150 114 M162 96 L159 116" stroke="#9A5524" stroke-width="5" stroke-linecap="round"/>
+      <ellipse cx="150" cy="204" rx="54" ry="38" fill="#FFF3E2"/>
+      <circle cx="86" cy="186" r="4" fill="#9A5524"/><circle cx="76" cy="172" r="3.2" fill="#9A5524"/><circle cx="214" cy="186" r="4" fill="#9A5524"/><circle cx="224" cy="172" r="3.2" fill="#9A5524"/>
+      <ellipse cx="96" cy="206" rx="15" ry="9" fill="#FF8C8C" opacity=".45"/><ellipse cx="204" cy="206" rx="15" ry="9" fill="#FF8C8C" opacity=".45"/>
+      <g class="eyes"><ellipse cx="116" cy="162" rx="22" ry="25" fill="#fff" stroke="#2A1A10" stroke-width="4"/><ellipse cx="184" cy="162" rx="22" ry="25" fill="#fff" stroke="#2A1A10" stroke-width="4"/>
+      <circle cx="120" cy="166" r="12" fill="#2A1A10"/><circle cx="188" cy="166" r="12" fill="#2A1A10"/><circle cx="124" cy="161" r="4.5" fill="#fff"/><circle cx="192" cy="161" r="4.5" fill="#fff"/></g>
+      <path d="M137 188 Q150 180 163 188 Q157 199 150 201 Q143 199 137 188 Z" fill="#E0605C"/>
+      <path d="M150 201 L150 209 M150 209 Q140 220 129 211 M150 209 Q160 220 171 211" stroke="#2A1A10" stroke-width="4" stroke-linecap="round" fill="none"/>
+      <path d="M118 84 L182 84 L180 100 Q150 108 120 100 Z" fill="#1E2A6B"/>
+      <path d="M150 52 L214 76 L150 98 L86 76 Z" fill="#2D3FA0" stroke="#1E2A6B" stroke-width="3"/>
+      <g class="tassel"><path d="M150 76 L200 82 L202 112" stroke="#FFC72C" stroke-width="4" fill="none" stroke-linecap="round"/><circle cx="202" cy="116" r="7" fill="#FFC72C"/></g>
+      <circle cx="150" cy="76" r="5" fill="#FFC72C"/>
+    </svg>
