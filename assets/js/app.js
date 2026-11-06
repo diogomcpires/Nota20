@@ -119,6 +119,7 @@
       const { data } = await sb.from("perfis").select("plano,email").eq("id", user.id).maybeSingle();
       perfil = data || null;
       if (perfil && perfil.plano === "completo" && !st.unlocked) { st.unlocked = true; store.set("unlocked", true); store.set("unlockedConta", true); }
+      if (perfil && perfil.plano !== "completo") retirarAcessoConta(); /* reembolso ou plano grátis */
     }
     /* devolve true se trouxe da nuvem um progresso maior (a página tem de recarregar) */
     async function sincronizar() {
@@ -135,13 +136,16 @@
       const recarregar = await sincronizar();
       return recarregar;
     }
+    function retirarAcessoConta() { const tinha = st.unlocked; if (store.get("unlockedConta", false)) { st.unlocked = false; store.set("unlocked", false); store.set("unlockedConta", false); } return tinha && !st.unlocked; }
     async function arranque() {
-      if (!on || !temSessao()) return;
+      if (!on) return;
+      /* o acesso pago vive na conta: sem sessão válida, este aparelho deixa de o ter */
+      if (!temSessao()) { if (retirarAcessoConta()) route(); return; }
       try {
         await cliente();
         const { data } = await sb.auth.getSession();
         user = data && data.session ? data.session.user : null;
-        if (!user) return;
+        if (!user) { if (retirarAcessoConta()) route(); return; }
         const antes = unlocked();
         if (await depoisDeEntrar()) { location.reload(); return; }
         if (unlocked() !== antes) route(); else { chipConta(); refreshReviews(); }
@@ -210,6 +214,7 @@
       get user() { return user; }, get perfil() { return perfil; }, get ultima() { return ultima; } };
   })();
   { const set0 = store.set; store.set = (k, v) => { set0(k, v); CONTA.agendar(k); }; }
+  if (CONTA.on && st.unlocked && !store.get("unlockedConta", false) && !(C.ACCESS_CODE_HASHES || []).length) { st.unlocked = false; store.set("unlocked", false); }
   AI.usar(async (mode, messages) => { if (!CONTA.user) throw { code: "login" }; return CONTA.ia(mode, messages); });
   /* IA no site precisa de conta: devolve true se teve de pedir login */
   const precisaLoginIA = (depois) => { if (aiMode === "conta" && !CONTA.user) { openLogin("ia", depois); return true; } return false; };
