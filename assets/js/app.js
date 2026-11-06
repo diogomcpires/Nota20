@@ -339,6 +339,7 @@
             <p><b>Plano</b><span>${p && p.plano === "completo" ? '<span class="chip free">Completo</span>' : `Grátis · <a href="#precos">ver o plano Completo</a>`}</span></p>
             <p><b>Progresso</b><span>${CONTA.ultima ? `guardado às ${esc(fmtData(CONTA.ultima))}` : "guardado automaticamente"} · ${st.xp} XP</span></p>
             <div class="row mt"><button class="btn btn-ghost btn-sm" type="button" data-act="conta-guardar">Guardar agora</button><button class="btn btn-soft btn-sm" type="button" data-act="conta-sair">Sair</button></div>
+            <div class="row mt"><button class="btn btn-yellow btn-sm" type="button" data-act="ir-avaliar">⭐ Avaliar a Nota20</button></div>
           </div>
           <details class="card mt"><summary style="font-weight:800;cursor:pointer">Apagar a conta</summary>
             <p class="small muted" style="font-weight:600">Apaga o teu email, o progresso guardado e o acesso ligado à conta. Os registos de compras são guardados durante o prazo legal das faturas. Não dá para desfazer.</p>
@@ -784,7 +785,16 @@
   const sameSet = (a, b) => a.length === b.length && [...a].sort().join() === [...b].sort().join();
 
   /* depois de cada resposta: erros corrigidos, treino rápido */
+
+  /* pedido de avaliação: uma só vez, quando o aluno já viu valor */
+  function pedirAvaliacao() {
+    if (store.get("avalPedido", false)) return;
+    store.set("avalPedido", true); GC.event("avaliar-pedido");
+    setTimeout(() => toast(`<span class="tl">${lince()}</span><div><b>Estás a gostar da Nota20?</b><span>Deixa uma avaliação, ajuda outros alunos a encontrar-nos. <button type="button" class="linklike" data-act="ir-avaliar">Avaliar ⭐</button></span></div>`, 12000), 1800);
+  }
+
   function afterAnswer(key, ok) {
+    if (Object.keys(st.res).length >= 20) pedirAvaliacao();
     if (ok && wasWrong.has(key)) {
       wasWrong.delete(key); st.fixed += 1; store.set("fixed", st.fixed);
       const el = document.getElementById("q-" + key);
@@ -2481,6 +2491,8 @@
       case "login": openLogin(a.dataset.m || ""); break;
       case "login-reenviar": { const f = document.getElementById("login-form"); const em = f && $("#login-email", f).value.trim().toLowerCase(); if (!em) break; a.disabled = true; CONTA.pedirCodigo(em).then(() => { a.textContent = "Enviado!"; }).catch((e) => { a.textContent = erroConta(e); }); break; }
       case "conta-guardar": CONTA.enviar().then(() => { a.textContent = "Guardado!"; }).catch(() => { a.textContent = "Sem ligação"; }); break;
+      case "ir-avaliar": { const tt = document.getElementById("toast"); if (tt) tt.remove(); GC.event("avaliar-abrir"); const ir = () => { const a = document.getElementById("avaliacoes"); if (a) window.scrollTo({ top: a.getBoundingClientRect().top + scrollY - 70, behavior: "smooth" }); };
+        if (currentView === "inicio") ir(); else { location.hash = "inicio"; setTimeout(ir, 800); } break; }
       case "conta-sair": CONTA.sair().then(() => { chipConta(); toast(`<span class="tl">${lince()}</span><div><b>Sessão terminada</b><span>O teu progresso continua guardado na conta.</span></div>`); route(); }); break;
       case "conta-apagar": if (confirm("Apagar a conta e o progresso guardado? Não dá para desfazer.")) { a.disabled = true; CONTA.apagar().then(() => { chipConta(); toast(`<span class="tl">${lince()}</span><div><b>Conta apagada</b><span>Os teus dados foram removidos.</span></div>`); location.hash = "#inicio"; }).catch(() => { a.disabled = false; a.textContent = "Não foi possível. Tenta mais tarde."; }); } break;
       case "convidar": convidar(); break;
@@ -2602,6 +2614,7 @@
       store.set("plano", st.plano);
       renderPlano(); enhance(app);
       if (novo) GC.event("plano-criado");
+      if (novo && Object.keys(st.res).length >= 5) setTimeout(pedirAvaliacao, 4000);
       if (novo) { window.scrollTo({ top: 0, behavior: "instant" }); const c = $(".today"); if (c) { const [x, y] = centerOf(c); confetti(x, Math.min(y, 300), 30); addXP(20, "plano", x, Math.min(y, 300)); } }
     }
     if (f.id === "login-form") { ev.preventDefault(); submitLogin(f); }
