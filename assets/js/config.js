@@ -34,6 +34,9 @@ window.N20_CONFIG = {
   GARANTIA_DIAS: 14,
 
   /* Link de pagamento (ex.: Stripe Payment Link). Vazio = botão mostra "brevemente". */
+  /* Pack IA: +100 perguntas e +20 correções por unidade (quantidade ajustável no Stripe) */
+  PACK_LINK: "https://buy.stripe.com/14A28qeoa5O42339LS4c801",
+  PACK_PRECO: "2,99 €",
   PAYMENT_LINK: "https://buy.stripe.com/dRmbJ06VIdgw2334ry4c800",
 
   /* Códigos de acesso (hash SHA-256 em hexadecimal). Ver README para gerar. */
