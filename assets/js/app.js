@@ -185,9 +185,9 @@
       await cliente();
       const { data, error } = await sb.functions.invoke("ia", { body: { mode, messages } });
       if (error) {
-        let code = "indisponivel";
-        try { const j = await error.context.json(); code = j.error || code; } catch (e) { /* sem corpo */ }
-        throw { code };
+        let code = "indisponivel", lim = null;
+        try { const j = await error.context.json(); code = j.error || code; lim = j.limite || null; } catch (e) { /* sem corpo */ }
+        throw { code, lim };
       }
       return (data && data.text) || "";
     }
@@ -222,7 +222,7 @@
     if (e && e.code === "login") { openLogin("ia"); return "Entra com o teu email para usar a IA. É grátis."; }
     if (e && e.code === "limite") {
       if (!unlocked()) { openPaywall(tipo); return "Chegaste ao limite do plano grátis."; }
-      return tipo === "correcao" ? "Chegaste às 10 correções de hoje. Amanhã há mais." : "Chegaste às 40 perguntas de hoje. Amanhã há mais.";
+      return tipo === "correcao" ? `Chegaste às ${e.lim || 10} correções de hoje. Amanhã há mais.` : `Chegaste às ${e.lim || 40} perguntas de hoje. Amanhã há mais.`;
     }
     if (e && e.code === "rate_limited") return "Muitos pedidos seguidos. Tenta dentro de um minuto.";
     return null;
