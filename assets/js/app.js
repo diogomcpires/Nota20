@@ -240,8 +240,8 @@
   function openPack(tipo, lim) {
     GC.event("pack-oferta");
     openModal(`<div class="pw-head">${lince()}<div><h3>Queres continuar hoje?</h3><p class="muted" style="margin:6px 0 0;font-weight:600">Usaste ${tipo === "correcao" ? `as ${lim || ""} correções` : `as ${lim || ""} perguntas`} de hoje. Amanhã o limite volta a zero, ou continuas já com um pack de IA.</p></div></div>
-      <div class="card" style="margin:14px 0"><b>Pack de IA · ${esc(C.PACK_PRECO || "2,99 €")}</b><p class="muted" style="margin:6px 0 0;font-weight:600">+100 perguntas ao explicador e +20 correções, sem prazo. Podes escolher mais do que um pack no pagamento.</p></div>
-      <a class="btn btn-primary btn-shine" href="${esc(packHref())}" rel="noopener" data-pack>Comprar pack de IA · ${esc(C.PACK_PRECO || "2,99 €")}</a>`);
+      <div class="card" style="margin:14px 0"><b>Pack de IA · ${esc(C.PACK_PRECO || "4,99 €")}</b><p class="muted" style="margin:6px 0 0;font-weight:600">+100 perguntas ao explicador e +20 correções, sem prazo. Podes escolher mais do que um pack no pagamento.</p></div>
+      <a class="btn btn-primary btn-shine" href="${esc(packHref())}" rel="noopener" data-pack>Comprar pack de IA · ${esc(C.PACK_PRECO || "4,99 €")}</a>`);
   }
   /* link de pagamento com a conta: a Stripe devolve o id e o email no webhook */
   function payHref() {
