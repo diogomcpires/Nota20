@@ -2204,7 +2204,9 @@
   function instalarTopo() {
     GC.event("instalar-clique");
     if (installEvt) { installEvt.prompt(); installEvt.userChoice.finally(() => { installEvt = null; chipInstalar(); }); return; }
+    const naApp = /Instagram|FBAN|FBAV|TikTok|musical_ly|Bytedance|Line\//i.test(navigator.userAgent);
     openModal(`<h3>Instala a Nota20 no iPhone</h3>
+      ${naApp ? `<p style="font-weight:700;margin:0">Estás a abrir o site dentro de outra app. Carrega nos <b>⋯</b> e escolhe <b>Abrir no browser</b> (Safari) primeiro.</p>` : ""}
       <ol class="inst-passos"><li>Abre este site no <b>Safari</b>.</li><li>Carrega em <b>Partilhar</b> (o quadrado com a seta para cima), em baixo.</li><li>Escolhe <b>Adicionar ao ecrã principal</b> e depois <b>Adicionar</b>.</li></ol>
       <p class="small muted" style="font-weight:600;margin:0">A Nota20 fica com o ícone do lince no ecrã principal e abre como uma app.</p>
       <button class="btn btn-soft btn-sm" type="button" data-act="modal-close">Percebi</button>`);

@@ -580,8 +580,10 @@ details p { margin: 12px 0 0; color: var(--muted); font-weight: 600; }
 .cta-band .lince { width: 150px; height: 150px; justify-self: center; animation: floaty 4.5s ease-in-out infinite; }
 
 /* ---------- modal ---------- */
-.modal-bg { position: fixed; inset: 0; background: rgba(14, 18, 44, 0.55); z-index: 80; display: grid; place-items: center; padding: 20px; animation: fadeUp .2s both; }
-.modal { background: var(--surface); border-radius: 26px; max-width: 460px; width: 100%; padding: 28px; display: grid; gap: 14px; box-shadow: var(--shadow-lg); animation: pop .3s both; }
+.modal-bg { position: fixed; top: 0; right: 0; bottom: 0; left: 0; -webkit-overflow-scrolling: touch; background: rgba(14, 18, 44, 0.55); z-index: 80; display: grid; place-items: center; padding: 20px; animation: fadeUp .2s both; }
+.modal { background: var(--surface); border-radius: 26px; max-width: 460px; width: 100%; padding: 28px; display: grid; gap: 14px; box-shadow: var(--shadow-lg); animation: pop .3s; opacity: 1; position: relative; z-index: 1; }
+/* Safari no iPhone: sem animação, para o conteúdo do modal nunca ficar invisível */
+@supports (-webkit-touch-callout: none) { .modal, .modal-bg { animation: none !important; } }
 .modal h3 { font-size: 1.5rem; }
 
 /* ---------- rodapé ---------- */
