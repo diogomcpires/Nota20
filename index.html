@@ -27,6 +27,7 @@
   ]}
   </script>
   <meta name="theme-color" content="#2d6bff">
+  <script>try{var t=localStorage.getItem("n20:tema")||"auto";if(t==="escuro"||(t==="auto"&&matchMedia("(prefers-color-scheme: dark)").matches))document.documentElement.dataset.theme="dark"}catch(e){}</script>
   <link rel="icon" href="/favicon.ico" sizes="48x48">
   <link rel="icon" href="assets/favicon-48.png" type="image/png" sizes="48x48">
   <link rel="icon" href="assets/icon-192.png" type="image/png" sizes="192x192">
@@ -37,7 +38,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700;12..96,800&family=Figtree:ital,wght@0,400;0,500;0,600;0,700;0,800;1,500&family=Newsreader:ital,opsz,wght@0,6..72,400;1,6..72,400&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/css/app.css?v=a458a5e3">
+  <link rel="stylesheet" href="assets/css/app.css?v=be1fff4a">
 </head>
 <body>
   <div id="demo-bar" class="demo-bar" hidden>Versão de demonstração: todo o conteúdo está desbloqueado.</div>
@@ -57,6 +58,7 @@
         <a href="#duvidas" data-nav="duvidas">Dúvidas</a>
         <a href="#precos" data-nav="precos">Preços</a>
       </nav>
+      <button class="acc-chip srch-chip" id="srch-chip" type="button" data-act="search" aria-label="Pesquisar na matéria" title="Pesquisar ( / )"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></button>
       <a class="xp-chip" id="xp-chip" href="#estudar" aria-label="O teu progresso"></a>
       <button class="acc-chip inst-chip" id="inst-chip" type="button" data-act="install-top" aria-label="Instalar a app" hidden></button>
       <a class="acc-chip" id="acc-chip" href="#conta" aria-label="Entrar ou criar conta" hidden></a>
@@ -110,6 +112,6 @@
   <script src="assets/js/data/simulado.js?v=f7e38ef4"></script>
   <script src="assets/js/data/simulados-extra.js?v=5a816378"></script>
   <script src="assets/js/ai.js?v=ee150abd"></script>
-  <script src="assets/js/app.js?v=6ebdcb1f"></script>
+  <script src="assets/js/app.js?v=8881b411"></script>
 </body>
 </html>

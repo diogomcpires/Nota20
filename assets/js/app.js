@@ -90,7 +90,7 @@
   const CONTA = (() => {
     const on = !!(C.SUPABASE_URL && C.SUPABASE_KEY);
     const REF = on ? ((String(C.SUPABASE_URL).match(/https:\/\/([^.]+)/) || [])[1] || "") : "";
-    const NAO_SINC = new Set(["unlocked", "unlockedConta", "previewFree", "used", "counted"]);
+    const NAO_SINC = new Set(["unlocked", "unlockedConta", "previewFree", "used", "counted", "tema"]);
     let sb = null, user = null, perfil = null, carregar = null, timer = null, ultima = null;
     const temSessao = () => { try { return !!localStorage.getItem(`sb-${REF}-auth-token`); } catch (e) { return false; } };
     const lib = () => window.supabase && window.supabase.createClient ? Promise.resolve() : (carregar = carregar || new Promise((ok, falha) => {
@@ -373,6 +373,7 @@
             <button class="btn btn-ghost btn-sm" type="button" data-act="conta-apagar" style="color:var(--coral-d)">Apagar a minha conta</button></details>`
         : `<div class="card"><button class="btn btn-primary" type="button" data-act="login" data-m="guardar">${ic("user")} Entrar ou criar conta</button>
             <p class="small muted" style="font-weight:600;margin:12px 0 0">Já compraste? Entra com o mesmo email da compra e o plano Completo abre logo.</p></div>`}
+      <div class="card mt conta-tema"><span><b>Aparência</b><span class="small muted" style="font-weight:600">Tema escuro para estudar à noite.</span></span><button class="btn btn-soft btn-sm" type="button" data-act="tema">${ic("moon")}<span data-tema-lab>${temaEscuro() ? "Tema claro" : "Tema escuro"}</span></button></div>
     </div>`;
   }
 
@@ -463,7 +464,10 @@
     phone: '<rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/>',
     print: '<path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/>',
     mail: '<rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/>',
-    calendar: '<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>'
+    calendar: '<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',
+    search: '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
+    moon: '<path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/>',
+    volume: '<path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/>'
   };
   const ic = (name, extra = "") => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" ${extra}>${P[name] || ""}</svg>`;
   const icFill = (name) => `<svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" aria-hidden="true">${P[name] || ""}</svg>`;
@@ -513,6 +517,7 @@
     st.xp += n; store.set("xp", st.xp);
     if (!st.days.includes(today())) { st.days.push(today()); st.days = st.days.slice(-120); store.set("days", st.days); }
     renderXpChip(true);
+    checkBadges();
     if (x != null && !REDUCED) {
       const s = document.createElement("div");
       s.className = "xp-pop"; s.textContent = `+${n} XP`;
@@ -548,7 +553,7 @@
   const FREE_IDS = new Set(TOPICS.filter((t) => t.free).map((t) => t.id));
   const isFreeKey = (key) => { const m = /^t-(.+)-\d+$/.exec(key || ""); return !!(m && (FREE_IDS.has(m[1]) || isExtra(m[1]))); };
   function gateEx(key) {
-    if (unlocked() || counted.has(key) || isFreeKey(key)) return true;
+    if (unlocked() || counted.has(key) || isFreeKey(key) || /^zq-/.test(key || "")) return true;
     if (left("exercicios") <= 0) { openPaywall("exercicios"); return false; }
     counted.add(key); store.set("counted", [...counted]); consume("exercicios");
     if (left("exercicios") === 0) setTimeout(() => openPaywall("ultimo"), 1700);
@@ -821,6 +826,8 @@
   }
 
   function afterAnswer(key, ok) {
+    if (QZ && key === qzKey()) { qzAnswered(key, ok); return; }
+    srsUpdate(key, ok);
     if (Object.keys(st.res).length >= 20) pedirAvaliacao();
     if (ok && wasWrong.has(key)) {
       wasWrong.delete(key); st.fixed += 1; store.set("fixed", st.fixed);
@@ -954,12 +961,14 @@
     if (["precos", "avaliacoes", "faq", "como-funciona", "comecar", "previsao"].includes(h)) { view = "inicio"; scrollTo = h; }
     if (view.includes("/")) { anchor = view.slice(view.indexOf("/") + 1); view = view.slice(0, view.indexOf("/")); }
     currentView = (view.startsWith("t-") || view.startsWith("m-")) ? "estudar" : view.startsWith("e-") ? "exames" : view;
-    const navOf = { treino: "estudar", erros: "estudar", cabula: "estudar", simulado: "exames" };
+    const navOf = { treino: "estudar", erros: "estudar", cabula: "estudar", simulado: "exames", desafio: "estudar", revisao: "estudar" };
+    ttsStop();
+    if (QZ && currentView !== QZ.kind) QZ = null;
     setNav(h === "precos" ? "precos" : (navOf[currentView] || currentView));
     if (view.startsWith("m-")) renderMateria(view.slice(2));
     else if (view.startsWith("t-")) renderTopic(view.slice(2));
     else if (view.startsWith("e-")) renderExam(view.slice(2));
-    else ({ inicio: renderHome, estudar: renderStudy, exames: renderExams, provaveis: renderProvaveis, simulado: renderSim, duvidas: renderTutor, plano: renderPlano, treino: renderTreino, erros: renderErros, cabula: renderCabula, pais: renderPais, termos: renderTermos, conta: renderConta }[view] || renderHome)();
+    else ({ inicio: renderHome, estudar: renderStudy, exames: renderExams, provaveis: renderProvaveis, simulado: renderSim, duvidas: renderTutor, plano: renderPlano, treino: renderTreino, erros: renderErros, cabula: renderCabula, pais: renderPais, termos: renderTermos, conta: renderConta, desafio: renderDesafio, revisao: renderRevisao }[view] || renderHome)();
     enhance(app);
     renderPromo();
     if (anchor) {
@@ -1079,7 +1088,9 @@
             ["bg-pink", "flame", "Tópicos prováveis 2027", `O que saiu nas últimas ${H.provas.length} provas, o que falta sair e um Exame Previsto feito com isso.`],
             ["bg-yellow", "timer", "Simulado cronometrado", "120 minutos + 30 de tolerância e nota final com a regra dos 3 melhores opcionais."],
             ["bg-blue", "chat", "Explicador a qualquer hora", "Pergunta o que não percebeste e recebe uma explicação com exemplos, na hora."],
-            ["bg-violet", "sparkle", "Correção das tuas respostas", "Escreve, carrega em «Corrigir com IA» e vê a cotação estimada e o que falta."]
+            ["bg-violet", "sparkle", "Correção das tuas respostas", "Escreve, carrega em «Corrigir com IA» e vê a cotação estimada e o que falta."],
+            ["bg-yellow", "bolt", "Desafio do dia", "5 perguntas novas todos os dias, iguais para todos. Dois minutos para manter a matéria fresca e desafiar os amigos."],
+            ["bg-mint", "layers", "Revisão inteligente", "Cada pergunta volta no dia certo, mesmo antes de a esqueceres. As que erras voltam mais cedo."]
           ].map(([c, i, t, d]) => `<div class="card feat rv"><div class="tile ${c}">${ic(i)}</div><h3>${t}</h3><p class="muted" style="font-weight:600">${d}</p></div>`).join("")}
         </div>
       </div>
@@ -1237,6 +1248,7 @@
       ["Tópicos prováveis 2027", `Top ${FREE_PREV}`, `Todos (${H.previsao.length})`],
       ["Exame Previsto 2027", N, Y],
       ["Plano de estudo dia a dia", Y, Y],
+      ["Desafio do dia e revisão inteligente", Y, Y],
       ["Os meus erros e nota prevista", Y, Y],
       ["Simulados cronometrados", N, String(SIMS.length)],
       ["Cábula para imprimir", "Tópicos grátis", "Completa"],
@@ -1354,12 +1366,12 @@
     ${streak() > 0 && !st.days.includes(today()) ? `<a class="streak-warn rv" href="#treino">${icFill("flame")}<span>Ainda não estudaste hoje. A tua sequência de ${streak()} ${streak() === 1 ? "dia" : "dias"} acaba à meia-noite. <b>Faz um treino de 5 minutos</b></span>${ic("arrow")}</a>` : ""}`;
   }
   function hubHTML() {
-    const ne = errosKeys().length;
+    const ne = errosKeys().length, nr = srsDue().length;
     let hoje = "Cria o teu em 30 segundos";
     if (st.plano) { const P = planSchedule(st.plano); hoje = P.sessions[0] ? `${dkey(P.sessions[0].date) === dkey(new Date()) ? "Hoje" : "Próxima sessão"}: ${P.sessions[0].tasks.length} ${P.sessions[0].tasks.length === 1 ? "tarefa" : "tarefas"}` : "Plano concluído"; }
     return `<div class="hub">
-      ${[["bg-blue", "compass", "Plano de estudo", hoje, "#plano"], ["bg-yellow", "bolt", "Treino rápido", "10 perguntas ao acaso", "#treino"], ["bg-coral", "target", "Os meus erros", ne ? `${ne} por corrigir` : "Ainda sem erros", "#erros"], ["bg-violet", "layers", "Cábula", "Pontos-chave para imprimir", "#cabula"], ["bg-mint", "timer", "Simulados", `${SIMS.length} provas com tempo`, "#simulado"]]
-        .map(([c, i, t, d, h]) => `<a class="hub-card rv" href="${h}"><span class="tile ${c}">${i === "bolt" ? icFill(i) : ic(i)}</span><span><b>${t}</b><span>${d}</span></span></a>`).join("")}
+      ${[["bg-yellow", "bolt", "Desafio do dia", desFeito() ? `Feito: ${desHoje().res.filter(Boolean).length}/${DES_N} · volta amanhã` : "5 perguntas · 2 minutos", "#desafio", desFeito() ? "" : "novo"], ["bg-violet", "layers", "Revisão de hoje", nr ? `${nr} ${nr === 1 ? "pergunta" : "perguntas"} para rever` : "Tudo em dia", "#revisao", nr ? "novo" : ""], ["bg-blue", "compass", "Plano de estudo", hoje, "#plano"], ["bg-pink", "bolt", "Treino rápido", "10 perguntas ao acaso", "#treino"], ["bg-coral", "target", "Os meus erros", ne ? `${ne} por corrigir` : "Ainda sem erros", "#erros"], ["bg-violet", "layers", "Cábula", "Pontos-chave para imprimir", "#cabula"], ["bg-mint", "timer", "Simulados", `${SIMS.length} provas com tempo`, "#simulado"]]
+        .map(([c, i, t, d, h, f]) => `<a class="hub-card rv ${f ? "hub-novo" : ""}" href="${h}"><span class="tile ${c}">${i === "bolt" ? icFill(i) : ic(i)}</span><span><b>${t}</b><span>${d}</span></span></a>`).join("")}
     </div>`;
   }
   function renderStudy() {
@@ -1370,6 +1382,8 @@
       <p>Organizados pelos grupos da prova ${C.PROVA}. Marca cada tópico como estudado e ganha XP.</p></div>
       ${dashHTML()}
       ${hubHTML()}
+      ${fracoHTML()}
+      ${badgesHTML()}
       <div data-meters class="mt">${meterHTML()}</div>
       ${conviteHTML()}
       <div class="filters" role="group" aria-label="Filtrar por grupo">
@@ -1396,7 +1410,7 @@
       ${canOpen(t) ? "" : `<span class="lock" title="Plano Completo">${ic("lock", 'width="18" height="18"')}</span>`}
       <span class="ti">${ic(GRUPOS[t.grupo].icon)}</span>
       <span><h3>${esc(t.titulo)}</h3><span class="sub">${esc(t.subtitulo)}</span>
-      <span class="meta">${hotChip(t)}${t.free ? '<span class="chip free">Grátis</span>' : (canOpen(t) ? "" : '<span class="chip pro">Pré-visualização</span>')}<span class="chip">${t.exercicios.length} exercícios</span></span></span>
+      <span class="meta">${hotChip(t)}${t.free ? '<span class="chip free">Grátis</span>' : (canOpen(t) ? "" : '<span class="chip pro">Pré-visualização</span>')}<span class="chip">${t.exercicios.length} exercícios</span></span>${domHTML(t)}</span>
     </a>`;
   }
 
@@ -1464,7 +1478,7 @@
       <span class="crumbs"><a href="#estudar">Estudar</a> / ${g.nome} · ${g.desc}${t.ano ? " · " + t.ano + " ano" : ""}</span>
       <h1>${esc(t.titulo)}</h1><p>${esc(t.subtitulo)}</p>
       <div class="toc">${t.free ? '<span class="chip free">Grátis</span>' : ""}${hotChip(t)}<a href="#t-${t.id}" data-jump="resumo">Resumo</a><a href="#t-${t.id}" data-jump="pontos">Pontos-chave</a><a href="#t-${t.id}" data-jump="no-exame">No exame</a><a href="#t-${t.id}" data-jump="exercicios">${t.exercicios.length} exercícios</a></div>
-      ${MAT(t) ? `<a class="btn btn-yellow btn-sm mat-btn" href="#m-${t.id}">📚 Matéria completa</a>` : ""}
+      <div class="banner-btns">${MAT(t) ? `<a class="btn btn-yellow btn-sm mat-btn" href="#m-${t.id}">📚 Matéria completa</a>` : ""}${TTS_OK && canOpen(t) ? `<button class="btn btn-glass btn-sm tts-btn" type="button" data-act="tts" data-id="${t.id}">${ic("volume")}<span>Ouvir o resumo</span></button>` : ""}</div>
     </div>`;
     const full = canOpen(t);
     const done = st.studied.has(t.id);
@@ -2460,6 +2474,452 @@
   }
 
   /* ============================================================
+     REVISÃO INTELIGENTE, DESAFIO DO DIA, DOMÍNIO, CONQUISTAS,
+     PESQUISA, OUVIR O RESUMO E TEMA ESCURO
+     ============================================================ */
+  const addDias = (iso, n) => { const d = new Date(iso + "T12:00:00Z"); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
+  const dataCurta = (iso) => { const d = new Date(iso + "T12:00:00Z"); return `${d.getUTCDate()} ${MESES[d.getUTCMonth()]}`; };
+
+  /* ---------- revisão espaçada: cada pergunta volta ao fim de 1, 3, 7, 14, 30 e 60 dias ---------- */
+  const SRS_INT = [1, 3, 7, 14, 30, 60];
+  st.srs = store.get("srs", null);
+  if (!st.srs) {
+    /* quem já tinha respostas: os erros ficam para hoje, as certas para daqui a 3 dias */
+    st.srs = {};
+    const idx0 = itemIndex();
+    Object.entries(st.res).forEach(([k, r]) => { const e = idx0.get(k); if (e && r && typeof r.ok === "boolean" && AUTO.includes(e.item.tipo)) st.srs[k] = r.ok ? [1, addDias(today(), 3)] : [0, today()]; });
+    if (Object.keys(st.srs).length) store.set("srs", st.srs);
+  }
+  function srsUpdate(key, ok) {
+    const e = itemIndex().get(key);
+    if (!e || !AUTO.includes(e.item.tipo)) return;
+    const prev = st.srs[key];
+    const stage = ok ? Math.min(SRS_INT.length - 1, prev ? prev[0] + 1 : 1) : 0;
+    st.srs[key] = [stage, addDias(today(), SRS_INT[stage])];
+    store.set("srs", st.srs);
+  }
+  function srsDue() {
+    const t = today(), idx = itemIndex();
+    return Object.keys(st.srs).filter((k) => st.srs[k][1] <= t && idx.has(k)).sort((a, b) => (st.srs[a][1] < st.srs[b][1] ? -1 : st.srs[a][1] > st.srs[b][1] ? 1 : 0));
+  }
+  function srsProximas() {
+    const t = today(), prox = {};
+    Object.values(st.srs).forEach(([, d]) => { if (d > t) prox[d] = (prox[d] || 0) + 1; });
+    return Object.entries(prox).sort((a, b) => (a[0] < b[0] ? -1 : 1)).slice(0, 4);
+  }
+
+  /* ---------- domínio de cada tópico ---------- */
+  function dominio(t) {
+    let n = 0, ok = 0, tot = 0;
+    t.exercicios.forEach((ex, i) => {
+      if (!AUTO.includes(ex.tipo)) return;
+      tot += 1;
+      const r = st.res[`t-${t.id}-${i}`];
+      if (r && typeof r.ok === "boolean") { n += 1; if (r.ok) ok += 1; }
+    });
+    return { n, ok, tot };
+  }
+  function domHTML(t) {
+    const d = dominio(t);
+    if (!d.n || !d.tot) return "";
+    const p = Math.round((d.ok / d.tot) * 100);
+    return `<span class="dom" title="${d.ok} de ${d.tot} perguntas certas"><span class="dom-bar"><i style="width:${p}%"></i></span><span class="dom-n">${d.ok}/${d.tot} certas</span></span>`;
+  }
+  function pontoFraco() {
+    let pior = null;
+    TOPICS.forEach((t) => {
+      const d = dominio(t);
+      if (d.n < 3) return;
+      const a = d.ok / d.n;
+      if (a < 0.7 && (!pior || a < pior.a)) pior = { t, a, d };
+    });
+    return pior;
+  }
+  function fracoHTML() {
+    const f = pontoFraco();
+    if (!f) return "";
+    return `<a class="fraco rv" href="#t-${f.t.id}"><span class="tile bg-coral">${ic("target")}</span><span><b>O teu ponto fraco: ${esc(f.t.titulo)}</b><span>Acertaste ${f.d.ok} de ${f.d.n} perguntas (${Math.round(f.a * 100)}%). Revê o resumo e repete os exercícios.</span></span>${ic("arrow")}</a>`;
+  }
+
+  /* ---------- desafio do dia: 5 perguntas, iguais para todos ---------- */
+  const DES_N = 5;
+  function rng(seed) { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+  function desafioKeys(d) {
+    const r = rng(+d.replace(/-/g, "")), idx = itemIndex();
+    const todas = [...idx.keys()].filter((k) => k.startsWith("t-") && idx.get(k).item.tipo === "mc" && !idx.get(k).item.texto);
+    const pick = (arr, n) => { const a = arr.slice(), out = []; while (out.length < n && a.length) out.push(a.splice(Math.floor(r() * a.length), 1)[0]); return out; };
+    const g = (x) => todas.filter((k) => idx.get(k).grupo === x);
+    let ks = [...pick(g("I"), 2), ...pick(g("II"), 2), ...pick(g("III"), 1)];
+    if (ks.length < DES_N) ks = ks.concat(pick(todas.filter((k) => !ks.includes(k)), DES_N - ks.length));
+    return ks;
+  }
+  const desHist = () => store.get("desafioHist", {});
+  function desStreak() {
+    const h = desHist();
+    let n = 0, d = today();
+    if (h[d] == null) d = addDias(d, -1);
+    while (h[d] != null) { n += 1; d = addDias(d, -1); }
+    return n;
+  }
+  function desHoje() { const s = store.get("desafio", null); return s && s.d === today() ? s : null; }
+  const desFeito = () => { const s = desHoje(); return !!(s && s.res.length >= DES_N); };
+  const quad = (res) => res.map((x) => (x ? "🟩" : "🟥")).join("");
+  const fmtSeg = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+  function desTexto() {
+    const s = desHoje(); if (!s) return "";
+    const ok = s.res.filter(Boolean).length, sk = desStreak();
+    return `Nota20 · Desafio do dia (${dataCurta(s.d)})\n${ok}/${DES_N} ${quad(s.res)}${s.seg ? ` em ${fmtSeg(s.seg)}` : ""}${sk > 1 ? `\n🔥 ${sk} dias seguidos` : ""}\nConsegues melhor? ${SITE()}#desafio`;
+  }
+
+  /* ---------- leitor de perguntas, uma de cada vez (desafio e revisão) ---------- */
+  let QZ = null;
+  const qzKey = () => `zq-${QZ.kind}-${QZ.i}`;
+  function qzStart(kind) {
+    if (kind === "desafio") {
+      const s = desHoje() || { d: today(), res: [], t0: Date.now() };
+      store.set("desafio", s);
+      QZ = { kind, d: s.d, keys: desafioKeys(s.d), i: s.res.length, res: s.res.slice(), t0: s.t0 };
+      GC.event("desafio-comecar");
+    } else {
+      const keys = srsDue().slice(0, 10);
+      if (!keys.length) return;
+      QZ = { kind, keys, i: 0, res: [], t0: Date.now() };
+      GC.event("revisao-comecar");
+    }
+    QZ.answered = false;
+    qzRender();
+  }
+  function qzRender() {
+    ITEMS.clear();
+    const idx = itemIndex(), n = QZ.keys.length, orig = QZ.keys[QZ.i], e = idx.get(orig), key = qzKey();
+    delete st.res[key];
+    reg(key, e.item, {});
+    const isD = QZ.kind === "desafio";
+    const dots = QZ.keys.map((_, i) => `<i class="${i < QZ.res.length ? (QZ.res[i] ? "ok" : "no") : (i === QZ.i ? "cur" : "")}"></i>`).join("");
+    app.innerHTML = `<div class="wrap qz" style="max-width:820px;padding-bottom:60px">
+      <div class="qz-top"><a class="qz-x" href="#estudar" aria-label="Sair">${ic("x")}</a>
+        <div class="qz-dots" role="img" aria-label="Pergunta ${QZ.i + 1} de ${n}">${dots}</div>
+        <span class="qz-n">${QZ.i + 1}/${n}</span></div>
+      <div class="qz-lab"><span class="eyebrow">${isD ? icFill("bolt") + " Desafio do dia" : ic("layers", 'width="18" height="18"') + " Revisão"}</span><span class="chip">${isD ? `${GRUPOS[e.grupo].nome} · ${GRUPOS[e.grupo].desc}` : esc(e.label)}</span></div>
+      ${renderItem(e.item, key, String(QZ.i + 1), {})}
+      <div id="qz-next" class="qz-next"></div>
+    </div>`;
+    enhance(app);
+    window.scrollTo({ top: 0, behavior: "instant" });
+  }
+  function qzAnswered(key, ok) {
+    const orig = QZ.keys[QZ.i], r = st.res[key];
+    const antes = st.res[orig];
+    /* a resposta conta para o tópico de origem: erros, domínio e nota prevista */
+    if (r) { st.res[orig] = { sel: r.sel, ok }; }
+    delete st.res[key]; saveRes();
+    st.awarded.delete("ok:" + key); store.set("awarded", [...st.awarded]);
+    if (ok && antes && antes.ok === false) { st.fixed += 1; store.set("fixed", st.fixed); }
+    srsUpdate(orig, ok);
+    QZ.res.push(ok); QZ.answered = true;
+    if (QZ.kind === "desafio") { const s = desHoje(); if (s) { s.res = QZ.res.slice(); store.set("desafio", s); } }
+    const last = QZ.i === QZ.keys.length - 1;
+    const nx = document.getElementById("qz-next");
+    if (nx) { nx.innerHTML = `<button class="btn btn-primary" type="button" data-act="qz-next">${last ? "Ver resultado" : "Seguinte"} ${ic("arrow")}</button>`; const b = $("button", nx); if (b) b.focus({ preventScroll: true }); }
+  }
+  function qzNext() {
+    if (!QZ || !QZ.answered) return;
+    if (QZ.i < QZ.keys.length - 1) { QZ.i += 1; QZ.answered = false; qzRender(); return; }
+    const kind = QZ.kind, res = QZ.res.slice(), seg = Math.max(1, Math.round((Date.now() - QZ.t0) / 1000));
+    QZ = null;
+    if (kind === "desafio") {
+      const s = desHoje();
+      if (s) { s.seg = Math.min(seg, 3599); store.set("desafio", s); const h = desHist(); h[s.d] = res.filter(Boolean).length; const ks = Object.keys(h).sort().slice(-90); const h2 = {}; ks.forEach((k) => { h2[k] = h[k]; }); store.set("desafioHist", h2); }
+      GC.event("desafio-fim");
+      renderDesafio(true);
+    } else {
+      GC.event("revisao-fim");
+      renderRevisao(res);
+    }
+    enhance(app); window.scrollTo({ top: 0, behavior: "instant" });
+  }
+
+  function renderDesafio(agora) {
+    const s = desHoje(), sk = desStreak();
+    if (QZ && QZ.kind === "desafio" && QZ.d === today() && !desFeito()) { QZ.answered = false; QZ.i = QZ.res.length; return qzRender(); }
+    if (QZ && QZ.kind === "desafio") QZ = null;
+    const head = `<div class="page-head"><span class="eyebrow">${icFill("bolt")} Desafio do dia</span><h1>${dataCurta(today())}: 5 perguntas</h1>
+      <p>Todos os dias há um desafio novo, igual para todos os alunos. Demora 2 minutos e mantém a matéria fresca.</p></div>`;
+    if (!s || s.res.length < DES_N) {
+      const meio = s && s.res.length;
+      app.innerHTML = `<div class="wrap" style="max-width:820px;padding-bottom:60px">${head}
+        <div class="card des-intro rv">${lince("des-l")}
+          <div class="des-facts"><div><b>${DES_N}</b><span>perguntas</span></div><div><b>2 min</b><span>em média</span></div><div><b>${sk}</b><span>${sk === 1 ? "dia seguido" : "dias seguidos"}</span></div></div>
+          <p class="muted" style="font-weight:700;margin:0">2 de Educação Literária, 2 de Gramática e 1 de Escrita. As que errares entram na tua revisão.</p>
+          <button class="btn btn-primary btn-shine" type="button" data-act="qz-start" data-k="desafio">${icFill("bolt")} ${meio ? "Continuar o desafio" : "Começar o desafio"}</button>
+        </div>
+        ${desSemanaHTML()}</div>`;
+      return;
+    }
+    const ok = s.res.filter(Boolean).length, idx = itemIndex(), keys = desafioKeys(s.d);
+    const frase = ok === DES_N ? "Perfeito. Nem uma falhou." : ok >= 4 ? "Muito bom. Quase perfeito." : ok >= 3 ? "Bom ritmo. Amanhã há mais." : "Hoje custou. As que erraste já estão na tua revisão.";
+    const amanha = new Date(); amanha.setHours(24, 0, 0, 0);
+    const falta = Math.max(0, amanha - Date.now()), fh = Math.floor(falta / 36e5), fm = Math.floor((falta % 36e5) / 6e4);
+    app.innerHTML = `<div class="wrap" style="max-width:820px;padding-bottom:60px">${head}
+      <div class="card des-res rv" id="des-res">
+        <span class="eyebrow">${icFill("trophy")} Desafio concluído</span>
+        <div class="des-score"><b>${ok}</b><span>/${DES_N}</span></div>
+        <div class="des-quad" aria-hidden="true">${s.res.map((x) => `<i class="${x ? "ok" : "no"}"></i>`).join("")}</div>
+        <p class="des-frase">${frase}</p>
+        <div class="des-facts"><div><b>${s.seg ? fmtSeg(s.seg) : "—"}</b><span>tempo</span></div><div><b>${sk}</b><span>${sk === 1 ? "dia seguido" : "dias seguidos"}</span></div><div><b>${fh}h ${String(fm).padStart(2, "0")}m</b><span>para o próximo</span></div></div>
+        <div class="row" style="justify-content:center"><button class="btn btn-primary" type="button" data-act="des-share">${ic("chat")} Desafiar um amigo</button><button class="btn btn-ghost" type="button" data-act="des-img">Guardar imagem</button></div>
+      </div>
+      <h2 class="des-h">As perguntas de hoje</h2>
+      <div class="des-list">${keys.map((k, i) => { const e = idx.get(k); if (!e) return ""; return `<div class="des-it ${s.res[i] ? "ok" : "no"}"><span class="fi">${ic(s.res[i] ? "check" : "x")}</span><div><b>${esc(strip(e.item.enunciado))}</b><span>Resposta certa: ${esc(strip(e.item.opcoes[e.item.certa]))}</span><a href="${e.href}">Rever a matéria: ${esc(e.label)} ${ic("arrow")}</a></div></div>`; }).join("")}</div>
+      ${desSemanaHTML()}
+      <div class="row mt"><a class="btn btn-soft btn-sm" href="#revisao">${ic("layers")} Fazer a revisão de hoje</a><a class="btn btn-ghost btn-sm" href="#treino">${icFill("bolt")} Treino rápido</a></div>
+    </div>`;
+    if (agora) {
+      const el = document.getElementById("des-res"), [x, y] = centerOf(el);
+      addXP(20, "desafio:" + s.d, x, Math.min(y, 300));
+      if (ok >= 4) confetti(x, Math.min(y, 320), ok === DES_N ? 40 : 22);
+    }
+  }
+  function desSemanaHTML() {
+    const h = desHist(), hoje = today(), dias = [];
+    for (let i = 6; i >= 0; i--) dias.push(addDias(hoje, -i));
+    return `<div class="card des-week rv"><h3>Os teus últimos 7 dias</h3><div class="des-days">${dias.map((d) => { const v = h[d]; const dd = new Date(d + "T12:00:00Z"); return `<div class="${v != null ? "on" : ""} ${d === hoje ? "hoje" : ""}"><span>${DIAS[dd.getUTCDay()]}</span><b>${v != null ? v : "·"}</b></div>`; }).join("")}</div></div>`;
+  }
+  async function desPartilhar() {
+    GC.event("desafio-partilha");
+    const txt = desTexto();
+    if (navigator.share && !inFrame) { try { await navigator.share({ text: txt }); return; } catch (e) { if (e && e.name === "AbortError") return; } }
+    openModal(`<h3>Desafiar um amigo</h3><pre class="share-pre">${esc(txt)}</pre>
+      <div class="row"><a class="btn btn-primary btn-sm" href="https://wa.me/?text=${encodeURIComponent(txt)}" target="_blank" rel="noopener">${ic("chat")} Enviar por WhatsApp</a>
+      <button class="btn btn-ghost btn-sm" type="button" data-act="des-copy">Copiar texto</button></div>
+      <button class="btn btn-soft btn-sm" type="button" data-act="modal-close">Fechar</button>`);
+  }
+
+  /* imagem para partilhar (1080 x 1350), desenhada no navegador */
+  function cartao({ etiqueta, grande, pequeno, frase, quadrados, rodape }) {
+    return new Promise((done) => {
+      const W = 1080, Hh = 1350, c = document.createElement("canvas");
+      c.width = W; c.height = Hh;
+      const x = c.getContext("2d");
+      const g = x.createLinearGradient(0, 0, W, Hh); g.addColorStop(0, "#2d6bff"); g.addColorStop(1, "#8a5cff");
+      x.fillStyle = g; x.fillRect(0, 0, W, Hh);
+      x.globalAlpha = 0.1; x.fillStyle = "#fff";
+      [[930, 170, 260], [120, 1210, 300], [1010, 980, 140]].forEach(([cx, cy, r]) => { x.beginPath(); x.arc(cx, cy, r, 0, Math.PI * 2); x.fill(); });
+      x.globalAlpha = 1;
+      const rr = (px, py, w, h, r) => { x.beginPath(); x.moveTo(px + r, py); x.arcTo(px + w, py, px + w, py + h, r); x.arcTo(px + w, py + h, px, py + h, r); x.arcTo(px, py + h, px, py, r); x.arcTo(px, py, px + w, py, r); x.closePath(); };
+      x.fillStyle = "#fff"; rr(90, 330, 900, 800, 56); x.fill();
+      const D = '"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif', B = '"Figtree", "Segoe UI", system-ui, sans-serif';
+      x.textAlign = "center";
+      x.fillStyle = "#fff"; x.font = `800 76px ${D}`; x.fillText("Nota20", W / 2 + 60, 215);
+      x.font = `700 34px ${B}`; x.globalAlpha = 0.9; x.fillText("Exame Nacional de Português", W / 2, 285); x.globalAlpha = 1;
+      x.fillStyle = "#2d6bff"; x.font = `800 40px ${B}`; x.fillText(etiqueta.toUpperCase(), W / 2, 440);
+      x.fillStyle = "#141a3c"; x.font = `800 300px ${D}`;
+      const wg = x.measureText(grande).width; x.font = `700 110px ${D}`; const wp = pequeno ? x.measureText(pequeno).width : 0;
+      const x0 = W / 2 - (wg + wp) / 2;
+      x.textAlign = "left"; x.font = `800 300px ${D}`; x.fillText(grande, x0, 730);
+      if (pequeno) { x.fillStyle = "#5c6489"; x.font = `700 110px ${D}`; x.fillText(pequeno, x0 + wg + 6, 730); }
+      x.textAlign = "center";
+      if (quadrados && quadrados.length) {
+        const s = 96, gap = 22, tw = quadrados.length * s + (quadrados.length - 1) * gap; let qx = W / 2 - tw / 2;
+        quadrados.forEach((okq) => { x.fillStyle = okq ? "#14b877" : "#ff6b5b"; rr(qx, 800, s, s, 24); x.fill(); qx += s + gap; });
+      }
+      x.fillStyle = "#141a3c"; x.font = `700 46px ${B}`; x.fillText(frase, W / 2, quadrados && quadrados.length ? 990 : 880);
+      if (rodape) { x.fillStyle = "#5c6489"; x.font = `700 36px ${B}`; x.fillText(rodape, W / 2, 1060); }
+      x.fillStyle = "#fff"; x.font = `800 50px ${D}`; x.fillText("nota20app.pt", W / 2, 1245);
+      const img = new Image();
+      const fim = () => c.toBlob((b) => done(b), "image/png");
+      img.onload = () => { try { x.drawImage(img, W / 2 - 250, 110, 140, 140); } catch (e) { /* sem mascote */ } fim(); };
+      img.onerror = fim;
+      img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(lince().replace("<svg ", '<svg width="300" height="300" '));
+    });
+  }
+  async function partilharImagem(dados, nome, texto) {
+    try { if (document.fonts && document.fonts.load) await Promise.all([document.fonts.load('800 80px "Bricolage Grotesque"'), document.fonts.load('700 40px "Figtree"')]); } catch (e) { /* segue com a fonte do sistema */ }
+    const blob = await cartao(dados);
+    if (!blob) return;
+    const file = new File([blob], nome, { type: "image/png" });
+    if (!inFrame && navigator.canShare && navigator.canShare({ files: [file] })) { try { await navigator.share({ files: [file], text: texto || "" }); return; } catch (e) { if (e && e.name === "AbortError") return; } }
+    const a = document.createElement("a"), u = URL.createObjectURL(blob);
+    a.href = u; a.download = nome; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(u), 4000);
+  }
+  function desImagem() {
+    const s = desHoje(); if (!s) return;
+    GC.event("desafio-imagem");
+    const ok = s.res.filter(Boolean).length, sk = desStreak();
+    return partilharImagem({ etiqueta: `Desafio do dia · ${dataCurta(s.d)}`, grande: String(ok), pequeno: `/${DES_N}`, quadrados: s.res, frase: s.seg ? `em ${fmtSeg(s.seg)}${sk > 1 ? ` · ${sk} dias seguidos` : ""}` : "Consegues melhor?", rodape: "Consegues melhor? Faz o desafio de hoje." }, `nota20-desafio-${s.d}.png`, desTexto());
+  }
+
+  function renderRevisao(res) {
+    if (QZ && QZ.kind === "revisao" && !res) { if (QZ.answered) { return qzNext(); } return qzRender(); }
+    const due = srsDue(), prox = srsProximas(), total = Object.keys(st.srs).length;
+    const head = `<div class="page-head"><span class="eyebrow">${ic("layers", 'width="18" height="18"')} Revisão inteligente</span><h1>Rever no dia certo</h1>
+      <p>A Nota20 guarda cada pergunta que respondes e trá-la de volta mesmo antes de a esqueceres: ao fim de 1, 3, 7, 14, 30 e 60 dias. Se errares, volta no dia seguinte.</p></div>`;
+    let body;
+    if (res) {
+      const ok = res.filter(Boolean).length;
+      body = `<div class="card des-res rv" id="rev-res"><span class="eyebrow">${icFill("trophy")} Revisão feita</span>
+        <div class="des-score"><b>${ok}</b><span>/${res.length}</span></div>
+        <div class="des-quad" aria-hidden="true">${res.map((x) => `<i class="${x ? "ok" : "no"}"></i>`).join("")}</div>
+        <p class="des-frase">${due.length ? `Ainda tens ${due.length} ${due.length === 1 ? "pergunta" : "perguntas"} para hoje.` : "Está tudo em dia. Volta amanhã."}</p>
+        <div class="row" style="justify-content:center">${due.length ? `<button class="btn btn-primary" type="button" data-act="qz-start" data-k="revisao">Continuar a rever</button>` : `<a class="btn btn-primary" href="#estudar">Voltar ao estudo</a>`}<a class="btn btn-ghost" href="#erros">Ver os meus erros</a></div></div>`;
+    } else if (due.length) {
+      body = `<div class="card des-intro rv">${lince("des-l")}
+        <div class="des-facts"><div><b>${due.length}</b><span>para rever hoje</span></div><div><b>${total}</b><span>perguntas guardadas</span></div><div><b>${Math.min(10, due.length)}</b><span>nesta sessão</span></div></div>
+        <button class="btn btn-primary btn-shine" type="button" data-act="qz-start" data-k="revisao">${ic("layers")} Começar a revisão</button></div>`;
+    } else {
+      body = `<div class="empty">${lince()}<span>${total ? "Está tudo em dia. Não tens perguntas para rever hoje." : "Ainda não tens perguntas guardadas. Responde a exercícios ou faz o desafio do dia: a revisão começa sozinha."}</span><a class="btn btn-primary btn-sm" href="#desafio">${icFill("bolt")} Fazer o desafio do dia</a></div>`;
+    }
+    app.innerHTML = `<div class="wrap" style="max-width:820px;padding-bottom:60px">${head}${body}
+      ${prox.length ? `<div class="card des-week rv"><h3>Próximas revisões</h3><div class="rev-prox">${prox.map(([d, n]) => `<div><b>${n}</b><span>${d === addDias(today(), 1) ? "amanhã" : dataCurta(d)}</span></div>`).join("")}</div></div>` : ""}
+    </div>`;
+    if (res) { const el = document.getElementById("rev-res"), [x, y] = centerOf(el); addXP(15, null, x, Math.min(y, 300)); if (res.every(Boolean)) confetti(x, Math.min(y, 320), 24); }
+  }
+
+  /* ---------- conquistas ---------- */
+  const nCertas = () => Object.values(st.res).filter((r) => r && r.ok).length;
+  const melhorSeq = () => { const ds = [...new Set(st.days)].sort(); let best = 0, cur = 0, prev = null; ds.forEach((d) => { cur = prev && addDias(prev, 1) === d ? cur + 1 : 1; best = Math.max(best, cur); prev = d; }); return best; };
+  const BADGES = [
+    ["primeira", "check", "Primeira certa", "Acerta numa pergunta", () => nCertas() >= 1],
+    ["c25", "target", "Pontaria", "25 respostas certas", () => nCertas() >= 25],
+    ["c100", "star", "Centena", "100 respostas certas", () => nCertas() >= 100],
+    ["c200", "crown", "Imparável", "200 respostas certas", () => nCertas() >= 200],
+    ["s3", "flame", "A aquecer", "3 dias seguidos", () => melhorSeq() >= 3],
+    ["s7", "flame", "Semana completa", "7 dias seguidos", () => melhorSeq() >= 7],
+    ["s30", "flame", "Um mês a fundo", "30 dias seguidos", () => melhorSeq() >= 30],
+    ["t5", "book", "Bom começo", "5 tópicos estudados", () => st.studied.size >= 5],
+    ["t15", "book", "Meio caminho", "15 tópicos estudados", () => st.studied.size >= 15],
+    ["tall", "grad", "Programa completo", "Todos os tópicos estudados", () => st.studied.size >= TOPICS.length],
+    ["d1", "bolt", "Desafiado", "Faz um desafio do dia", () => Object.keys(desHist()).length >= 1],
+    ["d5", "trophy", "5 em 5", "Desafio do dia perfeito", () => Object.values(desHist()).some((v) => v >= DES_N)],
+    ["d7", "bolt", "Hábito", "7 desafios do dia", () => Object.keys(desHist()).length >= 7],
+    ["e10", "shield", "Corretor", "Corrige 10 erros", () => st.fixed >= 10],
+    ["sim", "timer", "Prova de fogo", "Termina um simulado", () => Object.keys(st.simHist).length >= 1],
+    ["g3", "pen", "Escritor", "Texto corrigido com IA", () => st.g3.length >= 1]
+  ];
+  const badgesGanhas = () => BADGES.filter((b) => { try { return b[4](); } catch (e) { return false; } }).map((b) => b[0]);
+  let badgesVistas = store.get("badges", null);
+  if (!badgesVistas) { badgesVistas = badgesGanhas(); store.set("badges", badgesVistas); }
+  let badgeT = null;
+  function checkBadges() {
+    clearTimeout(badgeT);
+    badgeT = setTimeout(() => {
+      const novas = badgesGanhas().filter((id) => !badgesVistas.includes(id));
+      if (!novas.length) return;
+      badgesVistas = badgesVistas.concat(novas); store.set("badges", badgesVistas);
+      const b = BADGES.find((z) => z[0] === novas[0]);
+      GC.event("conquista");
+      toast(`<span class="tl badge-t">${icFill(b[1])}</span><div><b>Conquista: ${esc(b[2])}</b><span>${esc(b[3])}${novas.length > 1 ? ` · e mais ${novas.length - 1}` : ""}. <a href="#estudar/conquistas">Ver todas</a></span></div>`, 6000);
+    }, 1600);
+  }
+  function badgesHTML() {
+    const g = new Set(badgesGanhas());
+    return `<section class="badges rv" id="conquistas"><div class="badges-h"><h2>Conquistas</h2><span>${g.size}/${BADGES.length}</span></div>
+      <div class="badges-row">${BADGES.map(([id, i, n, d]) => `<div class="badge ${g.has(id) ? "on" : ""}" title="${esc(d)}"><span class="bi">${g.has(id) ? (["bolt", "flame", "star", "trophy", "crown"].includes(i) ? icFill(i) : ic(i)) : ic("lock")}</span><b>${esc(n)}</b><span>${esc(d)}</span></div>`).join("")}</div></section>`;
+  }
+
+  /* ---------- pesquisa em toda a matéria ---------- */
+  const semAcento = (s) => String(s).normalize("NFC").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+  let SIDX = null;
+  function searchIndex() {
+    if (SIDX) return SIDX;
+    SIDX = [];
+    const add = (t, s, href, raw, topico, peso) => { const r = String(raw || "").replace(/\s+/g, " ").normalize("NFC"); SIDX.push({ t, s, href, raw: r, nt: semAcento(t + " " + s), nb: semAcento(r), topico, peso: peso || 0 }); };
+    [["Plano de estudo", "O teu plano dia a dia até ao exame", "#plano"], ["Desafio do dia", "5 perguntas novas todos os dias", "#desafio"], ["Revisão inteligente", "Rever cada pergunta no dia certo", "#revisao"], ["Treino rápido", "Perguntas ao acaso corrigidas na hora", "#treino"], ["Os meus erros", "As perguntas que erraste", "#erros"], ["Cábula", "Pontos-chave para imprimir", "#cabula"], ["Simulados", "Provas completas com tempo", "#simulado"], ["Tópicos prováveis 2027", "O que tem mais probabilidade de sair", "#provaveis"], ["Explicador", "Tira dúvidas com IA", "#duvidas"], ["Exames nacionais resolvidos", "Provas do IAVE de 2020 a 2026", "#exames"]]
+      .forEach(([t, s, h]) => add(t, s, h, "", null, 2));
+    TOPICS.forEach((t) => {
+      add(t.titulo, t.subtitulo, `#t-${t.id}`, strip(t.resumo) + " " + t.pontos.map(strip).join(" "), t, 3);
+      (MAT(t) || []).forEach((sec) => add(sec.titulo, `${t.titulo} · matéria completa`, `#m-${t.id}`, strip(sec.html), t, 1));
+    });
+    EXAMS.forEach((e) => add(e.titulo, e.previsto ? "Exame previsto" : "Exame nacional resolvido", `#e-${e.id}`, "", null, 1));
+    return SIDX;
+  }
+  function searchRun(q) {
+    const toks = semAcento(q).split(/\s+/).filter((x) => x.length > 1).slice(0, 5);
+    if (!toks.length) return [];
+    const out = [];
+    searchIndex().forEach((e) => {
+      const aberto = !e.topico || canOpen(e.topico);
+      let sc = e.peso, pos = -1;
+      for (const tk of toks) {
+        const it = e.nt.indexOf(tk), ib = aberto ? e.nb.indexOf(tk) : -1;
+        if (it < 0 && ib < 0) return;
+        if (it >= 0) sc += it === 0 ? 30 : 20; else sc += 4;
+        if (ib >= 0 && pos < 0) pos = ib;
+      }
+      out.push({ e, sc, pos, aberto });
+    });
+    out.sort((a, b) => b.sc - a.sc);
+    const marca = (txt) => { const n = semAcento(txt); const marks = []; toks.forEach((tk) => { let i = n.indexOf(tk); while (i >= 0 && marks.length < 12) { marks.push([i, i + tk.length]); i = n.indexOf(tk, i + tk.length); } }); marks.sort((a, b) => a[0] - b[0]); let r = "", p = 0; marks.forEach(([a, b]) => { if (a < p) return; r += esc(txt.slice(p, a)) + "<mark>" + esc(txt.slice(a, b)) + "</mark>"; p = b; }); return r + esc(txt.slice(p)); };
+    return out.slice(0, 12).map(({ e, pos, aberto }) => {
+      let snip = "";
+      if (aberto && pos >= 0 && e.nb.length === e.raw.length) { const a = Math.max(0, pos - 50), b = Math.min(e.raw.length, pos + 110); snip = (a > 0 ? "…" : "") + e.raw.slice(a, b).trim() + (b < e.raw.length ? "…" : ""); }
+      return `<a class="sr-it" href="${e.href}" data-act="modal-close"><b>${marca(e.t)}${aberto ? "" : ` <span class="chip pro">${ic("lock")} Completo</span>`}</b><span class="sr-s">${marca(e.s)}</span>${snip ? `<span class="sr-snip">${marca(snip)}</span>` : ""}</a>`;
+    });
+  }
+  function openSearch() {
+    GC.event("pesquisa");
+    const sug = ["Mensagem", "predicativo", "Ricardo Reis", "texto de opinião", "deíticos", "Os Maias"];
+    openModal(`<div class="srch"><label class="sr" for="srch-in">Pesquisar na matéria</label>
+      <div class="srch-box">${ic("search")}<input type="search" id="srch-in" placeholder="Pesquisar: obra, autor, conceito…" autocomplete="off" enterkeyhint="search"><button type="button" class="srch-x" data-act="modal-close" aria-label="Fechar">${ic("x")}</button></div>
+      <div id="srch-res" class="srch-res"><p class="small muted" style="font-weight:700;margin:4px 0">Experimenta:</p><div class="filters">${sug.map((x) => `<button type="button" data-act="srch-sug" data-v="${esc(x)}">${esc(x)}</button>`).join("")}</div></div></div>`);
+    const m = $(".modal", modalRoot); if (m) m.classList.add("modal-search");
+    const i = document.getElementById("srch-in"); if (i) i.focus();
+  }
+  function searchUpdate(v) {
+    const box = document.getElementById("srch-res"); if (!box) return;
+    if (v.trim().length < 2) { box.innerHTML = `<p class="small muted" style="font-weight:700;margin:4px 0">Escreve pelo menos 2 letras.</p>`; return; }
+    const r = searchRun(v);
+    box.innerHTML = r.length ? r.join("") : `<p class="muted" style="font-weight:700;margin:8px 0">Sem resultados para «${esc(v.trim())}». Tenta outra palavra ou <a href="#duvidas" data-act="modal-close">pergunta ao explicador</a>.</p>`;
+  }
+
+  /* ---------- ouvir o resumo (voz do próprio dispositivo) ---------- */
+  const TTS_OK = "speechSynthesis" in window && "SpeechSynthesisUtterance" in window;
+  let ttsId = 0;
+  function ttsStop() { ttsId += 1; if (TTS_OK) { try { speechSynthesis.cancel(); } catch (e) { /* nada */ } } $$('[data-act="tts"]').forEach((b) => { b.classList.remove("on"); const s = $("span", b); if (s) s.textContent = "Ouvir o resumo"; }); }
+  function ttsToggle(btn) {
+    if (!TTS_OK) return;
+    if (btn.classList.contains("on")) { ttsStop(); return; }
+    const t = topicById(btn.dataset.id); if (!t || !canOpen(t)) return;
+    ttsStop();
+    GC.event("ouvir-resumo");
+    const texto = `${t.titulo}. ${strip(t.resumo)} Pontos-chave. ${t.pontos.map(strip).join(". ")}`;
+    const partes = (texto.replace(/\s+/g, " ").match(/[^.!?;:]+[.!?;:]*/g) || [texto]).map((x) => x.trim()).filter(Boolean);
+    const vozes = speechSynthesis.getVoices();
+    const voz = vozes.find((v) => /^pt[-_]PT/i.test(v.lang)) || vozes.find((v) => /^pt/i.test(v.lang)) || null;
+    const meu = ttsId;
+    btn.classList.add("on"); const s = $("span", btn); if (s) s.textContent = "Parar";
+    let i = 0;
+    const seg = () => {
+      if (meu !== ttsId) return;
+      if (i >= partes.length) { ttsStop(); return; }
+      const u = new SpeechSynthesisUtterance(partes[i]); i += 1;
+      u.lang = voz ? voz.lang : "pt-PT"; if (voz) u.voice = voz; u.rate = 1;
+      u.onend = seg; u.onerror = () => { if (meu === ttsId) ttsStop(); };
+      speechSynthesis.speak(u);
+    };
+    seg();
+  }
+  if (TTS_OK) { try { speechSynthesis.getVoices(); } catch (e) { /* nada */ } window.addEventListener("pagehide", () => { try { speechSynthesis.cancel(); } catch (e) { /* nada */ } }); }
+
+  /* ---------- tema claro / escuro ---------- */
+  const temaPref = () => { try { return localStorage.getItem("n20:tema") || "auto"; } catch (e) { return "auto"; } };
+  const temaEscuro = () => { const p = temaPref(); return p === "escuro" || (p === "auto" && !!(window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches)); };
+  function aplicarTema() {
+    const dark = temaEscuro();
+    document.documentElement.dataset.theme = dark ? "dark" : "light";
+    const m = document.querySelector('meta[name="theme-color"]'); if (m) m.content = dark ? "#0f1226" : "#2d6bff";
+    $$("[data-tema-lab]").forEach((el) => { el.textContent = dark ? "Tema claro" : "Tema escuro"; });
+  }
+  function trocarTema() {
+    const novo = temaEscuro() ? "claro" : "escuro";
+    try { localStorage.setItem("n20:tema", novo); } catch (e) { /* sem armazenamento */ }
+    GC.event("tema-" + novo);
+    aplicarTema();
+  }
+  if (window.matchMedia) { try { window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", aplicarTema); } catch (e) { /* navegadores antigos */ } }
+
+  /* ============================================================
      EVENTOS
      ============================================================ */
   document.addEventListener("click", (ev) => {
@@ -2611,6 +3071,15 @@
       case "sim-ai": simAI(a.dataset.key); break;
       case "code": abrirCodigo(); break;
       case "modal-close": closeModal(); break;
+      case "qz-start": qzStart(a.dataset.k); break;
+      case "qz-next": qzNext(); break;
+      case "des-share": desPartilhar(); break;
+      case "des-img": a.disabled = true; Promise.resolve(desImagem()).finally(() => { a.disabled = false; }); break;
+      case "des-copy": { const t = desTexto(); (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(() => { a.textContent = "Copiado!"; }).catch(() => { a.textContent = "Seleciona e copia o texto"; }); break; }
+      case "search": openSearch(); break;
+      case "srch-sug": { const i = document.getElementById("srch-in"); if (i) { i.value = a.dataset.v; searchUpdate(i.value); i.focus(); } break; }
+      case "tts": ttsToggle(a); break;
+      case "tema": trocarTema(); break;
       case "modal-close-bg": if (ev.target === a) closeModal(); break;
       case "del-review": if (RV.isOwner && RV.db) RV.db.doc("reviews/" + a.dataset.id).delete().catch(() => {}); break;
     }
@@ -2630,10 +3099,14 @@
       const v = document.getElementById("scv-" + key); if (v) v.innerHTML = `<b>${t.value}</b>/${t.max}`;
       updateSimTotal();
     }
+    if (t.id === "srch-in") searchUpdate(t.value);
     if (t.id === "ask") { t.style.height = "auto"; t.style.height = Math.min(160, t.scrollHeight) + "px"; }
   });
   document.addEventListener("keydown", (ev) => {
     if (ev.key === "Escape" && modalRoot.innerHTML) closeModal();
+    if (((ev.key === "k" && (ev.ctrlKey || ev.metaKey)) || (ev.key === "/" && !/^(INPUT|TEXTAREA|SELECT)$/.test(ev.target.tagName))) && !modalRoot.innerHTML) { ev.preventDefault(); openSearch(); }
+    if (ev.target.id === "srch-in" && ev.key === "Enter") { const f = $("#srch-res a"); if (f) { ev.preventDefault(); f.click(); } }
+    if (ev.key === "Enter" && QZ && QZ.answered && !modalRoot.innerHTML && !/^(INPUT|TEXTAREA|BUTTON|A)$/.test(ev.target.tagName)) qzNext();
     if (ev.target.id === "ask" && ev.key === "Enter" && !ev.shiftKey) { ev.preventDefault(); const f = ev.target.form; if (f) f.requestSubmit(); }
   });
   document.addEventListener("submit", async (ev) => {
@@ -2678,11 +3151,14 @@
   renderDemoBar();
   $$("[data-lince]").forEach((el) => { el.outerHTML = lince(); });
   renderXpChip(false);
+  aplicarTema();
   document.getElementById("foot").innerHTML = `
     <div class="row" style="justify-content:space-between"><a class="logo" href="#inicio">${lince()}<span>Nota<b>20</b></span></a>
-      <span class="row small"><a href="#plano">Plano</a><a href="#estudar">Estudar</a><a href="#treino">Treino</a><a href="#exames">Exames</a><a href="#simulado">Simulados</a><a href="#cabula">Cábula</a><a href="#pais">Para pais</a><a href="#duvidas">Dúvidas</a><a href="#precos">Preços</a><a href="resumos/">Resumos</a><a href="#termos">Termos e privacidade</a><a href="${LRE}" target="_blank" rel="noopener">Livro de Reclamações</a></span></div>
+      <span class="row small"><a href="#plano">Plano</a><a href="#estudar">Estudar</a><a href="#desafio">Desafio do dia</a><a href="#revisao">Revisão</a><a href="#treino">Treino</a><a href="#exames">Exames</a><a href="#simulado">Simulados</a><a href="#cabula">Cábula</a><a href="#pais">Para pais</a><a href="#duvidas">Dúvidas</a><a href="#precos">Preços</a><a href="resumos/">Resumos</a><a href="#termos">Termos e privacidade</a><a href="${LRE}" target="_blank" rel="noopener">Livro de Reclamações</a></span></div>
     <p class="small" style="margin:0">A Nota20 não tem ligação ao EduQA (antigo IAVE), ao Ministério da Educação${CRIADOR ? " nem ao Instituto Superior Técnico" : ""}. Os enunciados e critérios oficiais pertencem ao EduQA (antigo IAVE) e são apresentados por ligação; as resoluções são propostas da Nota20.</p>
-    ${contactosHTML()}`;
+    ${contactosHTML()}
+    <button class="tema-btn" type="button" data-act="tema">${ic("moon")}<span data-tema-lab>Tema escuro</span></button>`;
+  aplicarTema();
   HIST.iniciar();
   window.addEventListener("hashchange", route);
   route();
