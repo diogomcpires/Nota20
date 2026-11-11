@@ -71,7 +71,7 @@ window.N20_CONFIG = {
 
   /* Entrar com Google. Põe true só depois de criares o cliente OAuth na Google Cloud
      e de ativares o fornecedor Google no Supabase (Authentication > Sign In / Providers). */
-  GOOGLE_LOGIN: false,
+  GOOGLE_LOGIN: true,
 
   /* Parcerias (página #parcerias; os parceiros estão em assets/js/data/parceiros.js).
      DESCONTO = o que o código dá ao aluno; COMISSAO = o que o parceiro recebe ("" = não mostrar o valor). */
