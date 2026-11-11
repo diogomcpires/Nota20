@@ -12,5 +12,6 @@
 */
 window.N20_PARCEIROS = [
   { nome: "Beatriz Ribeiro", tiktok: "@bea..ribeiro", instagram: "@beaatriz.ribeiroo", codigo: "BR20" },
-  { nome: "Eduardo Serrano", tiktok: "@_eduardo.serrano_", instagram: "@edu.serrano_", codigo: "EDU20" }
+  { nome: "Eduardo Serrano", tiktok: "@_eduardo.serrano_", instagram: "@edu.serrano_", codigo: "EDU20" },
+  { nome: "Sara Silva", tiktok: "@studywith_saraa", instagram: "@studywith_saraa", codigo: "SARA20" }
 ];
