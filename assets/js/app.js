@@ -2904,7 +2904,7 @@
 
   /* ---------- tema claro / escuro ---------- */
   const temaPref = () => { try { return localStorage.getItem("n20:tema") || "auto"; } catch (e) { return "auto"; } };
-  const temaEscuro = () => { const p = temaPref(); return p === "escuro" || (p === "auto" && !!(window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches)); };
+  const temaEscuro = () => temaPref() === "escuro";
   function aplicarTema() {
     const dark = temaEscuro();
     document.documentElement.dataset.theme = dark ? "dark" : "light";
@@ -2917,7 +2917,6 @@
     GC.event("tema-" + novo);
     aplicarTema();
   }
-  if (window.matchMedia) { try { window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", aplicarTema); } catch (e) { /* navegadores antigos */ } }
 
   /* ============================================================
      EVENTOS
