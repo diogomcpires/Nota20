@@ -1368,3 +1368,8 @@ h2 { font-weight: 700; }
 .ou { display: flex; align-items: center; gap: 10px; color: var(--muted); font-weight: 700; font-size: 0.85rem; margin: 2px 0; }
 .ou::before, .ou::after { content: ""; flex: 1; height: 2px; background: var(--line); }
 [data-theme="dark"] :is(.parc-ok, .parc-on) { color: #4fdba3; }
+.tabbar { grid-template-columns: repeat(6, 1fr); }
+@media (max-width: 420px) { .tabbar a { font-size: 0.68rem; letter-spacing: -0.01em; } }
+.top .cta { display: none !important; }
+@media (min-width: 900px) and (max-width: 1159px) { .nav a { padding: 7px 6px !important; font-size: 0.86rem !important; } .logo span:last-child { display: none; } }
+@media (min-width: 900px) and (max-width: 999px) { .hist { display: none; } }
