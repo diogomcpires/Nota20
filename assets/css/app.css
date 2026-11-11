@@ -1328,3 +1328,43 @@ h2 { font-weight: 700; }
 .conta-tema > span { display: grid; }
 .conta-tema .btn svg { width: 18px; height: 18px; }
 @media (max-width: 420px) { .top:has(#inst-chip:not([hidden])) .hist { display: none; } }
+
+/* ============================================================
+   Parcerias e entrar com Google
+   ============================================================ */
+.parc-grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); margin-top: 8px; }
+.parc { display: grid; gap: 14px; align-content: start; padding: 20px; border-radius: 24px; background: var(--surface); border: 2px solid var(--line); box-shadow: var(--shadow); }
+.parc.ativo { border-color: var(--mint); }
+.parc-top { display: flex; gap: 14px; align-items: center; }
+.parc-av { width: 72px; height: 72px; border-radius: 50%; flex: none; display: grid; place-items: center; color: #fff; font-family: var(--f-display); font-weight: 800; font-size: 1.7rem; object-fit: cover; box-shadow: 0 0 0 4px var(--bg-2); }
+.parc-top h3 { margin: 0; font-size: 1.35rem; line-height: 1.15; }
+.parc-top p { margin: 4px 0 0; color: var(--muted); font-weight: 600; font-size: 0.95rem; line-height: 1.35; }
+.parc-redes { display: flex; flex-wrap: wrap; gap: 8px; }
+.parc-redes a { display: grid; padding: 8px 14px; border-radius: 14px; background: var(--bg); border: 2px solid var(--line); text-decoration: none; color: var(--ink); font-weight: 700; font-size: 0.92rem; line-height: 1.25; transition: border-color .2s, transform .2s; }
+.parc-redes a:hover { border-color: var(--blue); transform: translateY(-2px); }
+.parc-redes b { font-size: 0.72rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 800; }
+.parc-cod { display: grid; gap: 6px; padding: 12px 14px; border-radius: 16px; background: var(--yellow-50); border: 2px dashed var(--yellow-d); }
+.parc-cod .lab { font-size: 0.78rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.parc-cod .cx { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.parc-cod .cx b { font-family: var(--f-display); font-weight: 800; font-size: 1.6rem; letter-spacing: .04em; overflow-wrap: anywhere; }
+.parc-ok, .parc-on { display: flex; align-items: center; gap: 8px; font-weight: 700; color: var(--mint-d); }
+.parc-ok svg, .parc-on svg { width: 20px; height: 20px; flex: none; }
+.parc-ok .linklike { margin-left: auto; }
+.parc-on { margin: 12px 0; padding: 10px 14px; border-radius: 14px; background: var(--mint-50); font-size: 0.95rem; }
+.parc-on b { color: inherit; }
+.parc-nota { margin: 14px 2px 0; font-weight: 600; }
+.parc-vazio { margin-top: 8px; }
+.parc-ser { margin-top: 28px; display: grid; gap: 18px; padding: 28px 24px; border-radius: 28px; color: #fff; background: linear-gradient(120deg, var(--blue) 0%, var(--violet) 100%); box-shadow: var(--shadow-lg); }
+.parc-ser h2 { margin: 8px 0; font-size: clamp(1.6rem, 4vw, 2.2rem); color: #fff; }
+.parc-ser p { margin: 0; font-weight: 600; max-width: 40em; }
+.parc-ser ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+@media (min-width: 760px) { .parc-ser ul { grid-template-columns: 1fr 1fr; } .parc-ser { padding: 36px; } }
+.parc-ser li { display: flex; gap: 10px; align-items: flex-start; background: rgba(255, 255, 255, 0.14); border-radius: 16px; padding: 12px 14px; font-weight: 600; line-height: 1.4; }
+.parc-ser li svg { width: 20px; height: 20px; flex: none; margin-top: 2px; color: var(--yellow); }
+.parc-ser .btn { justify-self: start; }
+.btn-google { width: 100%; justify-content: center; gap: 10px; background: var(--surface); color: var(--ink); border: 2px solid var(--line); box-shadow: 0 4px 0 var(--line); }
+.btn-google:hover { border-color: var(--blue); }
+.btn-google .gg { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; background: var(--blue); color: #fff; font-family: var(--f-display); font-weight: 800; font-size: 0.95rem; }
+.ou { display: flex; align-items: center; gap: 10px; color: var(--muted); font-weight: 700; font-size: 0.85rem; margin: 2px 0; }
+.ou::before, .ou::after { content: ""; flex: 1; height: 2px; background: var(--line); }
+[data-theme="dark"] :is(.parc-ok, .parc-on) { color: #4fdba3; }

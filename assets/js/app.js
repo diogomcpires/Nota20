@@ -91,7 +91,7 @@
     const on = !!(C.SUPABASE_URL && C.SUPABASE_KEY);
     const REF = on ? ((String(C.SUPABASE_URL).match(/https:\/\/([^.]+)/) || [])[1] || "") : "";
     const NAO_SINC = new Set(["unlocked", "unlockedConta", "previewFree", "used", "counted", "tema"]);
-    let sb = null, user = null, perfil = null, carregar = null, timer = null, ultima = null;
+    let sb = null, user = null, perfil = null, carregar = null, timer = null, ultima = null, voltouGoogle = false;
     const temSessao = () => { try { return !!localStorage.getItem(`sb-${REF}-auth-token`); } catch (e) { return false; } };
     const lib = () => window.supabase && window.supabase.createClient ? Promise.resolve() : (carregar = carregar || new Promise((ok, falha) => {
       const s = document.createElement("script"); s.src = "assets/js/vendor/supabase.js"; s.onload = ok; s.onerror = () => { carregar = null; falha(new Error("lib")); }; document.head.appendChild(s);
@@ -100,7 +100,7 @@
       if (!on) throw new Error("off");
       if (sb) return sb;
       await lib();
-      sb = window.supabase.createClient(C.SUPABASE_URL, C.SUPABASE_KEY, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false } });
+      sb = window.supabase.createClient(C.SUPABASE_URL, C.SUPABASE_KEY, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: !!C.GOOGLE_LOGIN, flowType: C.GOOGLE_LOGIN ? "pkce" : "implicit" } });
       return sb;
     }
     function local() {
@@ -140,14 +140,21 @@
     async function arranque() {
       if (!on) return;
       /* o acesso pago vive na conta: sem sessão válida, este aparelho deixa de o ter */
-      if (!temSessao()) { if (retirarAcessoConta()) route(); return; }
+      const q = new URLSearchParams(location.search), doGoogle = !!C.GOOGLE_LOGIN && (q.has("code") || q.has("error_description"));
+      if (!temSessao() && !doGoogle) { if (retirarAcessoConta()) route(); return; }
       try {
         await cliente();
         const { data } = await sb.auth.getSession();
         user = data && data.session ? data.session.user : null;
+        if (doGoogle) {
+          const falhou = q.has("error_description");
+          ["code", "error", "error_code", "error_description"].forEach((k) => q.delete(k));
+          history.replaceState(history.state, "", location.pathname + (q.toString() ? "?" + q : "") + location.hash);
+          if (user) { GC.event("conta-entrou-google"); voltouGoogle = true; } else if (falhou) voltouGoogle = "erro";
+        }
         if (!user) { if (retirarAcessoConta()) route(); return; }
         const antes = unlocked();
-        if (await depoisDeEntrar()) { location.reload(); return; }
+        if (await depoisDeEntrar()) { if (voltouGoogle === true) ssSet("n20:google-ok", "1"); location.reload(); return; }
         if (unlocked() !== antes) route(); else { chipConta(); refreshReviews(); }
       } catch (e) { /* sem rede: continua com o que está no navegador */ }
     }
@@ -156,6 +163,12 @@
       const { error } = await sb.auth.signInWithOtp({ email, options: { shouldCreateUser: true } });
       if (error) throw error;
       GC.event("conta-codigo-pedido");
+    }
+    async function entrarGoogle() {
+      await cliente();
+      GC.event("conta-google-clique");
+      const { error } = await sb.auth.signInWithOAuth({ provider: "google", options: { redirectTo: location.origin + location.pathname } });
+      if (error) throw error;
     }
     async function confirmarCodigo(email, token) {
       await cliente();
@@ -210,7 +223,8 @@
       if (store.get("unlockedConta", false)) { st.unlocked = false; store.set("unlocked", false); store.set("unlockedConta", false); }
     }
     window.addEventListener("pagehide", () => { if (user) enviar().catch(() => {}); });
-    return { on, ia, lead, avaliar, arranque, verificarPagamento, pedirCodigo, confirmarCodigo, sair, apagar, agendar, enviar,
+    return { on, ia, lead, avaliar, arranque, verificarPagamento, pedirCodigo, confirmarCodigo, entrarGoogle, sair, apagar, agendar, enviar,
+      get voltouGoogle() { return voltouGoogle; },
       get user() { return user; }, get perfil() { return perfil; }, get ultima() { return ultima; } };
   })();
   { const set0 = store.set; store.set = (k, v) => { set0(k, v); CONTA.agendar(k); }; }
@@ -249,6 +263,7 @@
     try {
       const u = new URL(C.PAYMENT_LINK);
       if (CONTA.user) { u.searchParams.set("client_reference_id", CONTA.user.id); if (CONTA.user.email) u.searchParams.set("prefilled_email", CONTA.user.email); }
+      const pc = parceiroAtivo(); if (pc) u.searchParams.set("prefilled_promo_code", pc.codigo);
       return u.toString();
     } catch (e) { return C.PAYMENT_LINK; }
   }
@@ -275,8 +290,12 @@
       ia: "Para usares o explicador e a correção com IA. É grátis e não precisa de palavra-passe.",
       comprei: "Entra com o email que usaste na compra e o plano Completo abre logo."
     }[motivo] || "Guarda o teu progresso e usa a Nota20 em qualquer dispositivo.";
+    const emApp = /Instagram|FBAN|FBAV|TikTok|musical_ly|Bytedance|Line\//i.test(navigator.userAgent);
+    const g = C.GOOGLE_LOGIN && !emApp && !inFrame;
+    if (motivo === "comprar") ssSet("n20:pos-login", "comprar"); else ssSet("n20:pos-login", "");
     openModal(`<h3>Entrar ou criar conta</h3>
-      <p class="small muted" style="font-weight:600;margin:0 0 12px">${txt} Não precisas de palavra-passe: enviamos-te um código por email.</p>
+      <p class="small muted" style="font-weight:600;margin:0 0 12px">${txt} Não precisas de palavra-passe${g ? "." : ": enviamos-te um código por email."}</p>
+      ${g ? `<button class="btn btn-google" type="button" data-act="login-google"><span class="gg" aria-hidden="true">G</span>Continuar com Google</button><div class="ou"><span>ou com um código por email</span></div>` : ""}
       <form id="login-form" class="form">
         <label class="lbl" for="login-email">Email</label>
         <input type="email" id="login-email" autocomplete="email" inputmode="email" required maxlength="120" placeholder="o.teu@email.pt">
@@ -632,7 +651,7 @@
 
   function priceLine() {
     const pd = porDia();
-    return `<div class="pw-price">${promoOn() ? `<span><b>${esc(C.PRECO)}</b> até ao fim do lançamento (depois ${esc(C.PRECO_DEPOIS)}) · acaba em <b data-cd>${cdText()}</b></span>` : `<span><b>${esc(C.PRECO)}</b> · pagamento único</span>`}${pd ? `<span class="small">Menos de ${pd} por dia até ao exame.</span>` : ""}</div>`;
+    return `<div class="pw-price">${promoOn() ? `<span><b>${esc(C.PRECO)}</b> até ao fim do lançamento (depois ${esc(C.PRECO_DEPOIS)}) · acaba em <b data-cd>${cdText()}</b></span>` : `<span><b>${esc(C.PRECO)}</b> · pagamento único</span>`}${pd ? `<span class="small">Menos de ${pd} por dia até ao exame.</span>` : ""}</div>${parcAvisoHTML()}`;
   }
 
   /* ---------- incentivos: faixa de lançamento e aviso de embalo ---------- */
@@ -968,7 +987,7 @@
     if (view.startsWith("m-")) renderMateria(view.slice(2));
     else if (view.startsWith("t-")) renderTopic(view.slice(2));
     else if (view.startsWith("e-")) renderExam(view.slice(2));
-    else ({ inicio: renderHome, estudar: renderStudy, exames: renderExams, provaveis: renderProvaveis, simulado: renderSim, duvidas: renderTutor, plano: renderPlano, treino: renderTreino, erros: renderErros, cabula: renderCabula, pais: renderPais, termos: renderTermos, conta: renderConta, desafio: renderDesafio, revisao: renderRevisao }[view] || renderHome)();
+    else ({ inicio: renderHome, estudar: renderStudy, exames: renderExams, provaveis: renderProvaveis, simulado: renderSim, duvidas: renderTutor, plano: renderPlano, treino: renderTreino, erros: renderErros, cabula: renderCabula, pais: renderPais, termos: renderTermos, conta: renderConta, desafio: renderDesafio, revisao: renderRevisao, parcerias: renderParcerias }[view] || renderHome)();
     enhance(app);
     renderPromo();
     if (anchor) {
@@ -2919,6 +2938,69 @@
   }
 
   /* ============================================================
+     PARCERIAS: criadores e explicadores com código de desconto
+     ============================================================ */
+  const PARC = (window.N20_PARCEIROS || []).filter((p) => p && p.nome && p.codigo).map((p) => Object.assign({}, p, { codigo: String(p.codigo).trim().toUpperCase() }));
+  const PARC_DESC = C.PARCEIROS_DESCONTO || "";
+  const arroba = (h) => String(h || "").trim().replace(/^@/, "");
+  function parceiroAtivo() { const c = store.get("parceiro", ""); return (c && PARC.find((p) => p.codigo === c)) || null; }
+  function usarParceiro(cod, avisar) {
+    const c = String(cod || "").trim().toUpperCase(), p = PARC.find((x) => x.codigo === c);
+    if (!c) { store.set("parceiro", ""); if (currentView === "parcerias") { renderParcerias(); enhance(app); } return; }
+    if (!p) return;
+    store.set("parceiro", p.codigo); GC.event("parceiro-usar");
+    toast(`<span class="tl">${lince()}</span><div><b>Código ${esc(p.codigo)} guardado</b><span>${PARC_DESC ? `Tens ${esc(PARC_DESC)} de desconto no plano Completo. ` : ""}Fica aplicado no pagamento.</span></div>${unlocked() ? "" : `<a class="btn btn-primary btn-sm" href="#precos">Ver plano</a>`}`, avisar ? 7000 : 9000);
+    if (currentView === "parcerias") { renderParcerias(); enhance(app); }
+  }
+  function parcAvisoHTML() {
+    const p = parceiroAtivo();
+    return p ? `<div class="parc-on">${ic("check")}<span>Código <b>${esc(p.codigo)}</b> de ${esc(p.nome)} aplicado no pagamento${PARC_DESC ? ` (−${esc(PARC_DESC)})` : ""}.</span></div>` : "";
+  }
+  const PARC_COR = ["bg-blue", "bg-violet", "bg-coral", "bg-mint", "bg-pink"];
+  function parceiroCard(p, i) {
+    const ini = p.nome.split(/\s+/).filter(Boolean).slice(0, 2).map((x) => x[0]).join("").toUpperCase();
+    const ativo = (parceiroAtivo() || {}).codigo === p.codigo;
+    const redes = [
+      p.tiktok ? `<a href="https://www.tiktok.com/@${encodeURIComponent(arroba(p.tiktok))}" target="_blank" rel="noopener"><b>TikTok</b>@${esc(arroba(p.tiktok))}</a>` : "",
+      p.instagram ? `<a href="https://www.instagram.com/${encodeURIComponent(arroba(p.instagram))}/" target="_blank" rel="noopener"><b>Instagram</b>@${esc(arroba(p.instagram))}</a>` : "",
+      p.youtube && /^https:\/\//.test(p.youtube) ? `<a href="${esc(p.youtube)}" target="_blank" rel="noopener"><b>YouTube</b>Ver canal</a>` : ""
+    ].join("");
+    return `<article class="parc rv ${ativo ? "ativo" : ""}">
+      <div class="parc-top">${p.foto ? `<img class="parc-av" src="${esc(p.foto)}" alt="" loading="lazy" width="72" height="72">` : `<span class="parc-av ${PARC_COR[i % PARC_COR.length]}" aria-hidden="true">${esc(ini)}</span>`}
+        <div><h3>${esc(p.nome)}</h3>${p.descricao ? `<p>${esc(p.descricao)}</p>` : ""}</div></div>
+      ${redes ? `<div class="parc-redes">${redes}</div>` : ""}
+      <div class="parc-cod"><span class="lab">Código de desconto${PARC_DESC ? ` · −${esc(PARC_DESC)}` : ""}</span>
+        <div class="cx"><b>${esc(p.codigo)}</b><button type="button" class="btn btn-soft btn-sm" data-act="parc-copiar" data-c="${esc(p.codigo)}">Copiar</button></div></div>
+      ${ativo ? `<div class="parc-ok">${ic("check")}<span>Código aplicado no pagamento</span><button type="button" class="linklike" data-act="parc-tirar">Tirar</button></div>` : `<button type="button" class="btn btn-primary btn-sm" data-act="parc-usar" data-c="${esc(p.codigo)}">Usar este código</button>`}
+    </article>`;
+  }
+  function renderParcerias() {
+    const com = C.PARCEIROS_COMISSAO || "";
+    const mail = C.CONTACTO_EMAIL ? `mailto:${C.CONTACTO_EMAIL}?subject=${encodeURIComponent("Parceria Nota20")}&body=${encodeURIComponent("Olá! Quero ser parceiro da Nota20.\n\nNome:\nTikTok / Instagram:\nCódigo que gostava de ter:\n")}` : "";
+    app.innerHTML = `<div class="wrap" style="padding-bottom:60px">
+      <div class="page-head"><span class="eyebrow">${ic("star", 'width="18" height="18"')} Parcerias</span><h1>Parceiros da Nota20</h1>
+        <p>Criadores e explicadores que recomendam a Nota20. ${PARC.length ? `Usa o código de um deles${PARC_DESC ? ` e poupas ${esc(PARC_DESC)} no plano Completo` : " no pagamento do plano Completo"}.` : "Cada um tem um código de desconto para o plano Completo."}</p></div>
+      ${parcAvisoHTML()}
+      ${PARC.length ? `<div class="parc-grid">${PARC.map(parceiroCard).join("")}</div>
+        <p class="small muted parc-nota">Os parceiros recebem uma comissão por cada compra feita com o seu código. O preço para ti nunca sobe: o código só dá desconto.</p>`
+        : `<div class="empty parc-vazio">${lince()}<span>Os primeiros parceiros aparecem aqui em breve, cada um com o seu código de desconto.</span></div>`}
+      <section class="parc-ser rv">
+        <div><span class="eyebrow" style="color:#fff;opacity:.9">${ic("sparkle", 'width="18" height="18"')} Para criadores e explicadores</span>
+          <h2>Queres ser parceiro?</h2>
+          <p>Se fazes conteúdo de estudo ou dás explicações a alunos do secundário, a Nota20 pode ser um rendimento extra sem trabalho adicional.</p></div>
+        <ul>
+          <li>${ic("check")}<span><b>${com ? `${esc(com)} de cada compra` : "Comissão por cada compra"}</b> feita com o teu código, sem limite.</span></li>
+          <li>${ic("check")}<span><b>Código de desconto só teu</b>${PARC_DESC ? `, que dá ${esc(PARC_DESC)} aos teus seguidores` : ""}, e um link direto com o código aplicado.</span></li>
+          <li>${ic("check")}<span><b>Acesso Completo grátis</b>, para conheceres a app por dentro.</span></li>
+          <li>${ic("check")}<span><b>O teu perfil nesta página</b>, com as tuas redes.</span></li>
+        </ul>
+        ${mail ? `<a class="btn btn-yellow" href="${esc(mail)}">${ic("mail")} Quero ser parceiro</a>` : ""}
+        ${C.CONTACTO_INSTAGRAM ? `<p class="small" style="margin:0;opacity:.9">Ou envia mensagem para ${esc(C.CONTACTO_INSTAGRAM)} no Instagram.</p>` : ""}
+      </section>
+    </div>`;
+  }
+
+  /* ============================================================
      EVENTOS
      ============================================================ */
   document.addEventListener("click", (ev) => {
@@ -2984,6 +3066,10 @@
       case "ics": downloadICS(); break;
       case "share-progress": shareProgress(); break;
       case "login": openLogin(a.dataset.m || ""); break;
+      case "login-google": a.disabled = true; CONTA.entrarGoogle().catch(() => { a.disabled = false; const m = document.getElementById("login-msg"); if (m) m.textContent = "Não foi possível abrir a Google agora. Usa o código por email."; }); break;
+      case "parc-copiar": { const cod = a.dataset.c; (navigator.clipboard ? navigator.clipboard.writeText(cod) : Promise.reject()).then(() => { a.textContent = "Copiado!"; setTimeout(() => { a.textContent = "Copiar"; }, 1800); }).catch(() => { a.textContent = cod; }); GC.event("parceiro-copiar"); break; }
+      case "parc-usar": usarParceiro(a.dataset.c, true); break;
+      case "parc-tirar": usarParceiro("", true); break;
       case "login-reenviar": { const f = document.getElementById("login-form"); const em = f && $("#login-email", f).value.trim().toLowerCase(); if (!em) break; a.disabled = true; CONTA.pedirCodigo(em).then(() => { a.textContent = "Enviado!"; }).catch((e) => { a.textContent = erroConta(e); }); break; }
       case "conta-guardar": CONTA.enviar().then(() => { a.textContent = "Guardado!"; }).catch(() => { a.textContent = "Sem ligação"; }); break;
       case "ir-avaliar": { const tt = document.getElementById("toast"); if (tt) tt.remove(); GC.event("avaliar-abrir"); const ir = () => { const a = document.getElementById("avaliacoes"); if (a) window.scrollTo({ top: a.getBoundingClientRect().top + scrollY - 70, behavior: "smooth" }); };
@@ -3153,7 +3239,7 @@
   aplicarTema();
   document.getElementById("foot").innerHTML = `
     <div class="row" style="justify-content:space-between"><a class="logo" href="#inicio">${lince()}<span>Nota<b>20</b></span></a>
-      <span class="row small"><a href="#plano">Plano</a><a href="#estudar">Estudar</a><a href="#desafio">Desafio do dia</a><a href="#revisao">Revisão</a><a href="#treino">Treino</a><a href="#exames">Exames</a><a href="#simulado">Simulados</a><a href="#cabula">Cábula</a><a href="#pais">Para pais</a><a href="#duvidas">Dúvidas</a><a href="#precos">Preços</a><a href="resumos/">Resumos</a><a href="#termos">Termos e privacidade</a><a href="${LRE}" target="_blank" rel="noopener">Livro de Reclamações</a></span></div>
+      <span class="row small"><a href="#plano">Plano</a><a href="#estudar">Estudar</a><a href="#desafio">Desafio do dia</a><a href="#revisao">Revisão</a><a href="#treino">Treino</a><a href="#exames">Exames</a><a href="#simulado">Simulados</a><a href="#cabula">Cábula</a><a href="#pais">Para pais</a><a href="#parcerias">Parcerias</a><a href="#duvidas">Dúvidas</a><a href="#precos">Preços</a><a href="resumos/">Resumos</a><a href="#termos">Termos e privacidade</a><a href="${LRE}" target="_blank" rel="noopener">Livro de Reclamações</a></span></div>
     <p class="small" style="margin:0">A Nota20 não tem ligação ao EduQA (antigo IAVE), ao Ministério da Educação${CRIADOR ? " nem ao Instituto Superior Técnico" : ""}. Os enunciados e critérios oficiais pertencem ao EduQA (antigo IAVE) e são apresentados por ligação; as resoluções são propostas da Nota20.</p>
     ${contactosHTML()}
     <button class="tema-btn" type="button" data-act="tema">${ic("moon")}<span data-tema-lab>Tema escuro</span></button>`;
@@ -3163,7 +3249,15 @@
   route();
   chipConta();
   chipInstalar();
-  CONTA.arranque().then(regressoPagamento);
+  CONTA.arranque().then(() => {
+    const ok = CONTA.voltouGoogle === true || ssGet("n20:google-ok") === "1";
+    if (ok) {
+      ssSet("n20:google-ok", "");
+      if (ssGet("n20:pos-login") === "comprar" && C.PAYMENT_LINK && !unlocked()) { ssSet("n20:pos-login", ""); location.href = payHref(); return; }
+      toast(`<span class="tl">${lince()}</span><div><b>Sessão iniciada</b><span>O teu progresso fica guardado na conta.</span></div>`, 5000);
+    } else if (CONTA.voltouGoogle === "erro") toast(`<span class="tl">${lince()}</span><div><b>Não foi possível entrar com a Google</b><span>Tenta outra vez ou usa o código por email.</span></div>`);
+  }).then(regressoPagamento);
+  { const pp = new URLSearchParams(location.search).get("p"); if (pp) usarParceiro(pp.slice(0, 40), false); }
   { const cod = new URLSearchParams(location.search).get("codigo"); if (cod) abrirCodigo(cod.slice(0, 40)); }
   initReviews();
 })();

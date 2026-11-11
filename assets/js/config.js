@@ -69,6 +69,15 @@ window.N20_CONFIG = {
      Liga (true) depois de pores a chave ANTHROPIC_API_KEY nos segredos das Edge Functions. */
   IA_CONTA: true,
 
+  /* Entrar com Google. Põe true só depois de criares o cliente OAuth na Google Cloud
+     e de ativares o fornecedor Google no Supabase (Authentication > Sign In / Providers). */
+  GOOGLE_LOGIN: false,
+
+  /* Parcerias (página #parcerias; os parceiros estão em assets/js/data/parceiros.js).
+     DESCONTO = o que o código dá ao aluno; COMISSAO = o que o parceiro recebe ("" = não mostrar o valor). */
+  PARCEIROS_DESCONTO: "3 €",
+  PARCEIROS_COMISSAO: "25%",
+
   /* Partilhas precisas para o aluno escolher 1 tópico do plano Completo grátis. */
   CONVITES_PARA_TOPICO: 3,
 
