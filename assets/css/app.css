@@ -1391,3 +1391,5 @@ h2 { font-weight: 700; }
 .pa-list { display: grid; gap: 6px; }
 .pa-list > div { display: grid; grid-template-columns: 1.2fr 1fr 1fr 1fr; gap: 8px; padding: 10px 14px; background: var(--surface); border: 2px solid var(--line); border-radius: 14px; font-weight: 600; font-size: 0.95rem; }
 .pa-list > div.off { opacity: .55; text-decoration: line-through; }
+.pa-assoc { display: grid; gap: 8px; padding: 12px; border-radius: 14px; background: var(--yellow-50); border: 2px dashed var(--yellow-d); }
+.pa-assoc select { flex: 1; min-width: 0; padding: 8px 10px; border-radius: 10px; border: 2px solid var(--line); font: 700 0.95rem var(--f-body); background: var(--surface); color: var(--ink); }
