@@ -1373,3 +1373,5 @@ h2 { font-weight: 700; }
 .top .cta { display: none !important; }
 @media (min-width: 900px) and (max-width: 1159px) { .nav a { padding: 7px 6px !important; font-size: 0.86rem !important; } .logo span:last-child { display: none; } }
 @media (min-width: 900px) and (max-width: 999px) { .hist { display: none; } }
+.btn-google svg.gg { width: 22px; height: 22px; background: none; border-radius: 0; flex: none; }
+.btn-google { background: #fff; color: #1f1f1f; border-color: #dadce0; font-family: var(--f-body); }
