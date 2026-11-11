@@ -2108,6 +2108,7 @@
           <li><b>Perguntas ao explicador</b>: são enviadas a um fornecedor de inteligência artificial só para gerar a resposta.</li>
           ${C.GOATCOUNTER ? `<li><b>Estatísticas de visitas</b>: contamos as visitas e algumas ações (por exemplo, criar um plano) de forma anónima, com o GoatCounter. Não usamos cookies nem guardamos o teu IP.</li>` : ""}
         </ul>
+        <p>Versão completa e atualizada: <a href="privacidade/">nota20app.pt/privacidade</a>. Se entrares com a Google, recebemos só o teu nome, email e fotografia de perfil.</p>
         <p>Não usamos cookies de publicidade nem de análise. Não vendemos nem partilhamos os teus dados para marketing. Podes pedir acesso, correção ou apagamento dos teus dados por email, e apresentar queixa à <a href="https://www.cnpd.pt" target="_blank" rel="noopener">CNPD</a>.</p></section>
     </div>`;
   }
