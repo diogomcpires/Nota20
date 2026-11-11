@@ -209,6 +209,7 @@
       const { error } = await sb.from("leads").insert({ email: d.email, origem: String(d.origem || "").slice(0, 40), tester: !!d.tester });
       if (error) throw error;
     }
+    async function rpc(nome, args) { await cliente(); const { data, error } = await sb.rpc(nome, args || {}); if (error) throw error; return data; }
     async function avaliar(a) {
       await cliente();
       const { error } = await sb.from("avaliacoes").upsert({ user_id: user.id, estrelas: a.estrelas, texto: a.texto, nome: a.nome || null }, { onConflict: "user_id" });
@@ -223,7 +224,7 @@
       if (store.get("unlockedConta", false)) { st.unlocked = false; store.set("unlocked", false); store.set("unlockedConta", false); }
     }
     window.addEventListener("pagehide", () => { if (user) enviar().catch(() => {}); });
-    return { on, ia, lead, avaliar, arranque, verificarPagamento, pedirCodigo, confirmarCodigo, entrarGoogle, sair, apagar, agendar, enviar,
+    return { on, ia, lead, avaliar, rpc, arranque, verificarPagamento, pedirCodigo, confirmarCodigo, entrarGoogle, sair, apagar, agendar, enviar,
       get voltouGoogle() { return voltouGoogle; },
       get user() { return user; }, get perfil() { return perfil; }, get ultima() { return ultima; } };
   })();
@@ -262,8 +263,8 @@
     if (!C.PAYMENT_LINK) return "#precos";
     try {
       const u = new URL(C.PAYMENT_LINK);
-      if (CONTA.user) { u.searchParams.set("client_reference_id", CONTA.user.id); if (CONTA.user.email) u.searchParams.set("prefilled_email", CONTA.user.email); }
       const pc = parceiroAtivo(); if (pc) u.searchParams.set("prefilled_promo_code", pc.codigo);
+      if (CONTA.user) { u.searchParams.set("client_reference_id", CONTA.user.id + (pc ? "_" + pc.codigo : "")); if (CONTA.user.email) u.searchParams.set("prefilled_email", CONTA.user.email); }
       return u.toString();
     } catch (e) { return C.PAYMENT_LINK; }
   }
@@ -392,6 +393,7 @@
             <button class="btn btn-ghost btn-sm" type="button" data-act="conta-apagar" style="color:var(--coral-d)">Apagar a minha conta</button></details>`
         : `<div class="card"><button class="btn btn-primary" type="button" data-act="login" data-m="guardar">${ic("user")} Entrar ou criar conta</button>
             <p class="small muted" style="font-weight:600;margin:12px 0 0">Já compraste? Entra com o mesmo email da compra e o plano Completo abre logo.</p></div>`}
+      ${CONTA.user && ["diogomcpires2007@gmail.com", "nota20en@gmail.com"].includes(String(CONTA.user.email || "").toLowerCase()) ? `<a class="btn btn-soft mt" href="#parcerias-admin">${ic("star")} Comissões dos parceiros</a>` : ""}
       <div class="card mt conta-tema"><span><b>Aparência</b><span class="small muted" style="font-weight:600">Tema escuro para estudar à noite.</span></span><button class="btn btn-soft btn-sm" type="button" data-act="tema">${ic("moon")}<span data-tema-lab>${temaEscuro() ? "Tema claro" : "Tema escuro"}</span></button></div>
     </div>`;
   }
@@ -987,7 +989,7 @@
     if (view.startsWith("m-")) renderMateria(view.slice(2));
     else if (view.startsWith("t-")) renderTopic(view.slice(2));
     else if (view.startsWith("e-")) renderExam(view.slice(2));
-    else ({ inicio: renderHome, estudar: renderStudy, exames: renderExams, provaveis: renderProvaveis, simulado: renderSim, duvidas: renderTutor, plano: renderPlano, treino: renderTreino, erros: renderErros, cabula: renderCabula, pais: renderPais, termos: renderTermos, conta: renderConta, desafio: renderDesafio, revisao: renderRevisao, parcerias: renderParcerias }[view] || renderHome)();
+    else ({ inicio: renderHome, estudar: renderStudy, exames: renderExams, provaveis: renderProvaveis, simulado: renderSim, duvidas: renderTutor, plano: renderPlano, treino: renderTreino, erros: renderErros, cabula: renderCabula, pais: renderPais, termos: renderTermos, conta: renderConta, desafio: renderDesafio, revisao: renderRevisao, parcerias: renderParcerias, "parcerias-admin": renderParcAdmin }[view] || renderHome)();
     enhance(app);
     renderPromo();
     if (anchor) {
@@ -3001,6 +3003,39 @@
     </div>`;
   }
 
+  /* ---------- painel privado das comissões (só para o dono) ---------- */
+  const eur = (c) => (c / 100).toFixed(2).replace(".", ",") + " €";
+  const PA_DONOS = ["diogomcpires2007@gmail.com", "nota20en@gmail.com"];
+  async function renderParcAdmin() {
+    const dono = CONTA.user && PA_DONOS.includes(String(CONTA.user.email || "").toLowerCase());
+    if (!dono) { app.innerHTML = `<div class="wrap" style="max-width:820px;padding-bottom:60px"><div class="page-head"><h1>Página reservada</h1><p>Entra com a conta de administração para veres as comissões.</p></div>${CONTA.user ? "" : `<button class="btn btn-primary" type="button" data-act="login">Entrar</button>`}</div>`; return; }
+    app.innerHTML = `<div class="wrap" style="padding-bottom:60px"><div class="page-head"><span class="eyebrow">${ic("star", 'width="18" height="18"')} Só tu vês isto</span><h1>Comissões dos parceiros</h1><p id="pa-sub">A carregar…</p></div><div id="pa-body"></div></div>`;
+    let d;
+    try { d = await CONTA.rpc("parcerias_admin"); } catch (e) { const s = document.getElementById("pa-sub"); if (s) s.textContent = "Não foi possível carregar. Recarrega a página."; return; }
+    if (currentView !== "parcerias-admin") return;
+    const taxa = (parseFloat(C.PARCEIROS_COMISSAO) || 25) / 100, G14 = 14 * 864e5, agora = Date.now();
+    const cods = [...new Set([...PARC.map((p) => p.codigo), ...d.vendas.map((v) => v.codigo), ...d.pagamentos.map((p) => p.codigo)])];
+    const dataPt = (iso) => { const x = new Date(iso); return `${x.getDate()} ${MESES[x.getMonth()]} ${x.getFullYear()}`; };
+    let devido = 0;
+    const linhas = cods.map((c) => {
+      const p = PARC.find((x) => x.codigo === c), vs = d.vendas.filter((v) => v.codigo === c), ok = vs.filter((v) => v.estado === "pago");
+      const firmes = ok.filter((v) => agora - new Date(v.data).getTime() >= G14), garantia = ok.filter((v) => agora - new Date(v.data).getTime() < G14);
+      const com = (arr) => Math.round(arr.reduce((s, v) => s + (v.valor || 0), 0) * taxa);
+      const pago = d.pagamentos.filter((x) => x.codigo === c).reduce((s, x) => s + x.valor, 0);
+      const aPagar = Math.max(0, com(firmes) - pago); devido += aPagar;
+      return { c, nome: p ? p.nome : "Código sem parceiro na app", n: ok.length, reemb: vs.length - ok.length, total: ok.reduce((s, v) => s + (v.valor || 0), 0), garantia: com(garantia), pago, aPagar };
+    });
+    document.getElementById("pa-sub").textContent = `Comissão de ${Math.round(taxa * 100)}% sobre o valor pago. Só entram em «A pagar» as vendas com mais de 14 dias (fim da garantia). Atualizado agora.`;
+    document.getElementById("pa-body").innerHTML = `
+      <div class="pa-kpis"><div><b>${eur(devido)}</b><span>a pagar agora</span></div><div><b>${d.vendas.filter((v) => v.estado === "pago").length}</b><span>vendas com código</span></div><div><b>${eur(linhas.reduce((s, l) => s + l.garantia, 0))}</b><span>comissão ainda na garantia</span></div></div>
+      <div class="pa-grid">${linhas.map((l) => `<article class="card pa-card"><div class="pa-h"><h3>${esc(l.nome)}</h3><span class="chip">${esc(l.c)}</span></div>
+        <dl><div><dt>Vendas</dt><dd>${l.n}${l.reemb ? ` <small>(+${l.reemb} reembolsada${l.reemb > 1 ? "s" : ""})</small>` : ""}</dd></div><div><dt>Total vendido</dt><dd>${eur(l.total)}</dd></div><div><dt>Na garantia (ainda não pagar)</dt><dd>${eur(l.garantia)}</dd></div><div><dt>Já pago</dt><dd>${eur(l.pago)}</dd></div><div class="tot"><dt>A pagar agora</dt><dd>${eur(l.aPagar)}</dd></div></dl>
+        ${l.aPagar > 0 ? `<button class="btn btn-primary btn-sm" type="button" data-act="pa-pagar" data-c="${esc(l.c)}" data-n="${esc(l.nome)}" data-v="${l.aPagar}">Marcar ${eur(l.aPagar)} como pago</button>` : ""}</article>`).join("")}</div>
+      <h2 class="des-h">Vendas com código</h2>
+      ${d.vendas.length ? `<div class="pa-list">${d.vendas.map((v) => `<div class="${v.estado === "pago" ? "" : "off"}"><span>${dataPt(v.data)}</span><b>${esc(v.codigo)}</b><span>${eur(v.valor || 0)}</span><span>${v.estado !== "pago" ? "reembolsada" : agora - new Date(v.data).getTime() < G14 ? "na garantia" : "firme"}</span></div>`).join("")}</div>` : `<div class="empty">${lince()}<span>Ainda não há compras com código de parceiro. Aparecem aqui sozinhas, segundos depois de cada pagamento.</span></div>`}
+      ${d.pagamentos.length ? `<h2 class="des-h">Pagamentos que fizeste</h2><div class="pa-list">${d.pagamentos.map((x) => `<div><span>${dataPt(x.data)}</span><b>${esc(x.codigo)}</b><span>${eur(x.valor)}</span><span>pago</span></div>`).join("")}</div>` : ""}`;
+  }
+
   /* ============================================================
      EVENTOS
      ============================================================ */
@@ -3071,6 +3106,7 @@
       case "parc-copiar": { const cod = a.dataset.c; (navigator.clipboard ? navigator.clipboard.writeText(cod) : Promise.reject()).then(() => { a.textContent = "Copiado!"; setTimeout(() => { a.textContent = "Copiar"; }, 1800); }).catch(() => { a.textContent = cod; }); GC.event("parceiro-copiar"); break; }
       case "parc-usar": usarParceiro(a.dataset.c, true); break;
       case "parc-tirar": usarParceiro("", true); break;
+      case "pa-pagar": { const v = Math.round(parseFloat(String(a.dataset.v))); if (!(v > 0)) break; if (!window.confirm(`Registar que pagaste ${eur(v)} a ${a.dataset.n}?`)) break; a.disabled = true; CONTA.rpc("parceria_registar_pagamento", { p_codigo: a.dataset.c, p_valor: v, p_nota: null }).then(() => { renderParcAdmin(); }).catch(() => { a.disabled = false; a.textContent = "Erro, tenta outra vez"; }); break; }
       case "login-reenviar": { const f = document.getElementById("login-form"); const em = f && $("#login-email", f).value.trim().toLowerCase(); if (!em) break; a.disabled = true; CONTA.pedirCodigo(em).then(() => { a.textContent = "Enviado!"; }).catch((e) => { a.textContent = erroConta(e); }); break; }
       case "conta-guardar": CONTA.enviar().then(() => { a.textContent = "Guardado!"; }).catch(() => { a.textContent = "Sem ligação"; }); break;
       case "ir-avaliar": { const tt = document.getElementById("toast"); if (tt) tt.remove(); GC.event("avaliar-abrir"); const ir = () => { const a = document.getElementById("avaliacoes"); if (a) window.scrollTo({ top: a.getBoundingClientRect().top + scrollY - 70, behavior: "smooth" }); };
