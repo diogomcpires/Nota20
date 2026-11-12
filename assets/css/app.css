@@ -1520,3 +1520,12 @@ details.cmp-det { background: none; border: 0; padding: 0; }
 .topic-card { min-width: 0; }
 .topic-card > span { min-width: 0; }
 .topic-card h3, .topic-card .sub { overflow-wrap: anywhere; }
+.tabbar { grid-template-columns: repeat(6, 1fr); }
+.tabbar a.tb-parc:not([aria-current="page"]) svg { color: var(--yellow-d); fill: var(--yellow); }
+.parc-band { display: flex; align-items: center; gap: 12px; margin: 0 0 18px; padding: 12px 14px; border-radius: 18px; background: var(--violet-50); border: 2px solid var(--violet); text-decoration: none; color: var(--ink); }
+.parc-band .tile { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; color: #fff; flex: none; }
+.parc-band .tile svg { width: 20px; height: 20px; }
+.parc-band > span:nth-child(2) { flex: 1; display: grid; min-width: 0; }
+.parc-band b { font-family: var(--f-display); font-weight: 700; line-height: 1.2; }
+.parc-band > span:nth-child(2) > span { font-size: 0.86rem; font-weight: 600; color: var(--muted); }
+.parc-band > svg { width: 18px; height: 18px; flex: none; color: var(--violet-d); }
