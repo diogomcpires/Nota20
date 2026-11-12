@@ -661,7 +661,12 @@
   function tickCd() { const t = cdText(); $$("[data-cd]").forEach((el) => { el.textContent = t; }); if (!promoOn()) renderPromo(); }
   function renderPromo() {
     let bar = document.getElementById("promo-bar");
-    const show = !unlocked() && promoOn() && ssGet("n20:promo-x") !== "1";
+    const hv = (location.hash || "#inicio").slice(1).split("/")[0] || "inicio";
+    const tp = /^[tm]-/.test(hv) ? topicById(hv.slice(2)) : null;
+    const onde = hv === "inicio" || hv === "precos" || hv === "provaveis" || hv === "exames" || hv === "simulado" || /^e-/.test(hv) || (tp && !canOpen(tp));
+    const show = !unlocked() && promoOn() && ssGet("n20:promo-x") !== "1" && onde;
+    document.body.classList.toggle("promo-home", hv === "inicio" || hv === "precos");
+    document.body.classList.toggle("is-pro", unlocked());
     clearInterval(promoInt);
     if (promoOn()) promoInt = setInterval(tickCd, 1000);
     if (!show) { if (bar) bar.remove(); document.body.classList.remove("has-promo"); return; }
@@ -1053,7 +1058,7 @@
           <p>Quatro passos, pela ordem certa. Cada um leva-te diretamente ao que tens de fazer.</p></div>
         <div class="steps">
           ${[
-            ["bg-violet", "target", "Percebe o exame", "3 grupos, 200 pontos e o que vale cada item.", "#como-funciona", "Ver o exame"],
+            ["bg-violet", "target", "Percebe o exame", "3 grupos, 200 pontos e os tópicos de cada um.", "#estudar", "Ver os grupos"],
             ["bg-blue", "book", "Estuda por tópicos", `${TOPICS.length} tópicos com resumo, pontos-chave e exercícios.`, "#estudar", "Abrir os tópicos"],
             ["bg-coral", "file", "Treina com exames reais", `${REAL.length} exames (${anosTxt}) resolvidos item a item e o Exame Previsto 2027.`, "#exames", "Ver exames"],
             ["bg-yellow", "timer", "Faz o simulado", "120 minutos, como no dia, com nota no fim.", "#simulado", "Fazer simulado"]
@@ -1068,40 +1073,10 @@
       <div class="wrap">${tempoHTML()}<a class="pais-band rv" href="#pais"><span class="tile bg-violet">${ic("shield")}</span><span><b>É pai ou mãe?</b><span>O exame de Português é o único obrigatório para todos. Veja como a Nota20 ajuda o seu filho a preparar-se.</span></span>${ic("arrow")}</a></div>
     </section>
 
-    <section class="section">
-      <div class="wrap">
-        <div class="stats">
-          ${[["bg-violet", "book", TOPICS.length, "tópicos com resumo"], ["bg-mint", "check", nExercicios, "exercícios resolvidos"], ["bg-coral", "file", nItensExame, "itens de exame resolvidos"], ["bg-yellow", "target", H.provas.length, "provas analisadas para a previsão"]]
-            .map(([c, i, n, t]) => `<div class="stat rv"><div class="top-row"><span class="tile ${c}">${ic(i)}</span><b data-count="${n}">${n}</b></div><span>${t}</span></div>`).join("")}
-        </div>
-      </div>
-    </section>
-
-    <section class="section" id="como-funciona" style="padding-top:20px">
-      <div class="wrap">
-        <div class="section-head center rv"><span class="eyebrow">${ic("compass", 'width="18" height="18"')} Como é o exame</span>
-          <h2>3 grupos. 200 pontos.<br>Estudas só o que sai.</h2>
-          <p>Português é o exame com mais inscritos do país: 81 005 alunos em 2025. A Nota20 segue a estrutura da prova 639.</p></div>
-        <div class="grid grid-3">
-          ${["I", "II", "III"].map((g) => {
-            const ts = TOPICS.filter((t) => t.grupo === g);
-            const info = {
-              I: ["Excertos literários (Partes A e B) e uma exposição (Parte C). Obras do 10.º ao 12.º ano.", "7 itens · 13 pontos cada"],
-              II: ["Texto não literário com 7 itens de escolha múltipla: compreensão e gramática.", "7 itens · 13 pontos cada"],
-              III: ["Texto de opinião ou apreciação crítica, entre 200 e 350 palavras.", "1 texto · 44 pontos"]
-            }[g];
-            return `<div class="card grp g-${g} rv"><span class="roman">${ic(GRUPOS[g].icon)}</span><span class="tag">Grupo ${g} · ${GRUPOS[g].desc}</span>
-              <p style="margin:0;font-weight:600">${info[0]}</p><span class="pts">${info[1]}</span>
-              <ul>${ts.slice(0, 4).map((t) => `<li><a href="#t-${t.id}">${esc(t.titulo)}</a></li>`).join("")}${ts.length > 4 ? `<li><a href="#estudar">+ ${ts.length - 4} tópicos</a></li>` : ""}</ul></div>`;
-          }).join("")}
-        </div>
-      </div>
-    </section>
-
-    <section class="section alt">
+    <section class="section alt" id="como-funciona">
       <div class="wrap">
         <div class="section-head center rv"><span class="eyebrow">${ic("sparkle", 'width="18" height="18"')} O que tens</span><h2>Tudo para chegares ao 20.</h2></div>
-        <div class="grid grid-3">
+        <div class="grid grid-3 feats">
           ${[
             ["bg-violet", "book", "Resumos e pontos-chave", "Cada obra e cada conteúdo de gramática explicado de forma simples, com o essencial marcado."],
             ["bg-mint", "check", "Exercícios com resolução", "Acertas, ganhas XP. Erras, vês logo porquê. Respostas abertas com proposta de resolução."],
@@ -1223,7 +1198,7 @@
         <h3>Grátis</h3>
         <div class="price">0 €<small>para sempre</small></div>
         <ul>
-          <li>${nFree} tópicos completos</li>
+          <li>${nFree} ${nFree === 1 ? "tópico completo" : "tópicos completos"}</li>
           <li>Início de todos os outros tópicos</li>
           <li>${LIM.exercicios} exercícios com correção</li>
           <li>${LIM.explicador} perguntas ao explicador</li>
@@ -1250,6 +1225,7 @@
           <li>Acesso até ${esc(C.ACESSO_ATE)}</li>
         </ul>
         ${pay}
+        ${PARC.length && !parceiroAtivo() ? `<a class="tem-cod" href="#parcerias">${ic("star")}<span>Tens um código de parceiro? <b>Aplica-o aqui</b> e poupas ${esc(PARC_DESC || "no preço")}.</span></a>` : ""}
         <p class="small muted buy-terms">Pagamento único${C.IVA === "incluido" ? ", IVA incluído" : ""}. Ao comprar, aceitas os <a href="#termos">Termos e condições</a>.</p>
         ${G ? `<div class="guarantee">${ic("shield")}<span><b>Garantia de ${G} dias</b>Se não gostares, devolvemos o dinheiro.</span></div>` : ""}
         ${CONTA.on ? (CONTA.user ? "" : `<button class="btn btn-soft btn-sm" type="button" data-act="login" data-m="comprei">Já compraste? Entra com o teu email</button>`) : `<button class="btn btn-soft btn-sm" type="button" data-act="code">Já tenho um código de acesso</button>`}
@@ -1257,7 +1233,7 @@
     </div>
     ${G ? `<div class="seal-band rv"><div class="seal"><svg viewBox="0 0 120 120" aria-hidden="true"><defs><path id="sealc" d="M60 60 m-46 0 a46 46 0 1 1 92 0 a46 46 0 1 1 -92 0"/></defs><text><textPath href="#sealc" textLength="286" lengthAdjust="spacingAndGlyphs">GARANTIA · SEM RISCO · GARANTIA · SEM RISCO · </textPath></text></svg><b>${G}</b><span>dias</span></div>
       <div><h3>Experimenta sem risco</h3><p>Compra o plano Completo e usa à vontade. Se nos primeiros ${G} dias achares que não é para ti, devolvemos o teu dinheiro.</p></div></div>` : ""}
-    ${compareHTML()}`;
+    <details class="cmp-det"><summary>Comparar os dois planos em detalhe ${ic("arrow")}</summary>${compareHTML()}</details>`;
   }
   function compareHTML() {
     const Y = `<span class="yes">${ic("check")}</span>`, N = `<span class="nope">${ic("x")}</span>`;
@@ -1383,15 +1359,14 @@
         <div class="kpi"><b>${Object.values(st.res).filter((r) => r.ok).length}</b><span>respostas certas</span></div>
       </div>
       <button class="btn btn-glass btn-sm dash-share" type="button" data-act="share-progress">${ic("chat")} Enviar o progresso aos pais</button>
-    </div>
-    ${streak() > 0 && !st.days.includes(today()) ? `<a class="streak-warn rv" href="#treino">${icFill("flame")}<span>Ainda não estudaste hoje. A tua sequência de ${streak()} ${streak() === 1 ? "dia" : "dias"} acaba à meia-noite. <b>Faz um treino de 5 minutos</b></span>${ic("arrow")}</a>` : ""}`;
+    </div>`;
   }
   function hubHTML() {
     const ne = errosKeys().length, nr = srsDue().length;
     let hoje = "Cria o teu em 30 segundos";
     if (st.plano) { const P = planSchedule(st.plano); hoje = P.sessions[0] ? `${dkey(P.sessions[0].date) === dkey(new Date()) ? "Hoje" : "Próxima sessão"}: ${P.sessions[0].tasks.length} ${P.sessions[0].tasks.length === 1 ? "tarefa" : "tarefas"}` : "Plano concluído"; }
     return `<div class="hub">
-      ${[["bg-yellow", "bolt", "Desafio do dia", desFeito() ? `Feito: ${desHoje().res.filter(Boolean).length}/${DES_N} · volta amanhã` : "5 perguntas · 2 minutos", "#desafio", desFeito() ? "" : "novo"], ["bg-violet", "layers", "Revisão de hoje", nr ? `${nr} ${nr === 1 ? "pergunta" : "perguntas"} para rever` : "Tudo em dia", "#revisao", nr ? "novo" : ""], ["bg-blue", "compass", "Plano de estudo", hoje, "#plano"], ["bg-pink", "bolt", "Treino rápido", "10 perguntas ao acaso", "#treino"], ["bg-coral", "target", "Os meus erros", ne ? `${ne} por corrigir` : "Ainda sem erros", "#erros"], ["bg-violet", "layers", "Cábula", "Pontos-chave para imprimir", "#cabula"], ["bg-mint", "timer", "Simulados", `${SIMS.length} provas com tempo`, "#simulado"]]
+      ${[["bg-blue", "compass", "Plano de estudo", hoje, "#plano"], ["bg-pink", "bolt", "Treino rápido", "10 perguntas ao acaso", "#treino"], ["bg-coral", "target", "Os meus erros", ne ? `${ne} por corrigir` : "Ainda sem erros", "#erros"], ["bg-violet", "layers", "Cábula", "Pontos-chave para imprimir", "#cabula"], ["bg-mint", "timer", "Simulados", `${SIMS.length} provas com tempo`, "#simulado"]]
         .map(([c, i, t, d, h, f]) => `<a class="hub-card rv ${f ? "hub-novo" : ""}" href="${h}"><span class="tile ${c}">${i === "bolt" ? icFill(i) : ic(i)}</span><span><b>${t}</b><span>${d}</span></span></a>`).join("")}
     </div>`;
   }
@@ -1400,13 +1375,10 @@
     const groups = ["I", "II", "III"].filter((g) => f === "todos" || f === g);
     app.innerHTML = `<div class="wrap" style="padding-bottom:60px">
       <div class="page-head"><span class="eyebrow">${ic("book", 'width="18" height="18"')} Estudar</span><h1>Todos os tópicos do exame</h1>
-      <p>Organizados pelos grupos da prova ${C.PROVA}. Marca cada tópico como estudado e ganha XP.</p></div>
-      ${dashHTML()}
-      ${hubHTML()}
+      <p>Organizados pelos grupos da prova ${C.PROVA}.</p></div>
+      ${streakWarnHTML()}
+      ${continuaHTML()}
       ${fracoHTML()}
-      ${badgesHTML()}
-      <div data-meters class="mt">${meterHTML()}</div>
-      ${conviteHTML()}
       <div class="filters" role="group" aria-label="Filtrar por grupo">
         ${[["todos", "Todos"], ["I", "Grupo I · Literária"], ["II", "Grupo II · Gramática"], ["III", "Grupo III · Escrita"]].map(([v, t]) => `<button type="button" data-act="filter" data-v="${v}" aria-pressed="${f === v}">${t}</button>`).join("")}
       </div>
@@ -1420,9 +1392,48 @@
         return `<section class="group-block g-${g}">
           <div class="group-title"><div class="gt"><span class="gi">${ic(GRUPOS[g].icon)}</span><div><h2>${GRUPOS[g].nome}</h2><span class="muted" style="font-weight:700">${GRUPOS[g].desc}</span></div></div>
             <div class="ring" style="--p:${pct}" title="${done} de ${ts.length} estudados"><span>${pct}%</span></div></div>
-          ${inner}</section>`;
+          ${inner}</section>${g === "I" && f === "todos" ? upsellHTML("estudar") : ""}`;
       }).join("")}
+      <h2 class="mais-h">O teu progresso e mais ferramentas</h2>
+      ${dashHTML()}
+      ${hubHTML()}
+      ${badgesHTML()}
+      <div data-meters class="mt">${meterHTML()}</div>
+      ${conviteHTML()}
     </div>`;
+  }
+  function streakWarnHTML() {
+    return streak() > 0 && !st.days.includes(today()) ? `<a class="streak-warn rv" href="#treino">${icFill("flame")}<span>Ainda não estudaste hoje. A tua sequência de ${streak()} ${streak() === 1 ? "dia" : "dias"} acaba à meia-noite. <b>Faz um treino de 5 minutos</b></span>${ic("arrow")}</a>` : "";
+  }
+  /* o próximo passo do aluno, no topo de Estudar */
+  function continuaHTML() {
+    const ord = (t) => { const i = prevIdx(t.id); return i < 0 ? 999 : i; };
+    const abertos = TOPICS.filter(canOpen).slice().sort((a, b) => (unlocked() ? ord(a) - ord(b) : 0));
+    const prox = abertos.find((t) => !st.studied.has(t.id));
+    const nr = srsDue().length, feito = desFeito();
+    let main;
+    if (prox) main = `<a class="cont-main" href="#t-${prox.id}"><span class="lab">${st.studied.size ? "Continua aqui" : "Começa aqui"}</span><b>${esc(prox.titulo)}</b><span class="sub">${esc(prox.subtitulo)} · ${prox.exercicios.length} exercícios</span><span class="btn btn-yellow btn-sm">Estudar ${ic("arrow")}</span></a>`;
+    else if (!unlocked()) main = `<a class="cont-main" href="#precos"><span class="lab">Já fizeste os tópicos grátis</span><b>Faltam-te ${TOPICS.length - abertos.length} tópicos</b><span class="sub">Desbloqueia tudo com o plano Completo: ${esc(C.PRECO)}, pagamento único.</span><span class="btn btn-yellow btn-sm">Ver plano Completo ${ic("arrow")}</span></a>`;
+    else main = `<a class="cont-main" href="#treino"><span class="lab">Programa completo</span><b>Já estudaste todos os tópicos</b><span class="sub">Mantém a matéria fresca com um treino rápido.</span><span class="btn btn-yellow btn-sm">Treinar ${ic("arrow")}</span></a>`;
+    return `<div class="cont rv">${main}
+      <div class="cont-side">
+        <a class="${feito ? "" : "novo"}" href="#desafio"><span class="tile bg-yellow">${icFill("bolt")}</span><span><b>Desafio do dia</b><span>${feito ? `Feito: ${desHoje().res.filter(Boolean).length}/${DES_N}` : "5 perguntas · 2 min"}</span></span></a>
+        <a class="${nr ? "novo" : ""}" href="#revisao"><span class="tile bg-violet">${ic("layers")}</span><span><b>Revisão de hoje</b><span>${nr ? `${nr} para rever` : "Tudo em dia"}</span></span></a>
+      </div></div>`;
+  }
+  /* convite à compra, nos sítios onde o aluno acabou de ver valor */
+  function upsellHTML(onde) {
+    if (unlocked() || !C.PAYMENT_LINK) return "";
+    const nF = TOPICS.filter((t) => !canOpen(t)).length;
+    const txt = {
+      estudar: [`Desbloqueia os outros ${nF} tópicos`, `Todos os resumos, ${nExercicios} exercícios, ${REAL.length} exames resolvidos e os simulados.`],
+      topico: ["Gostaste deste tópico?", `Os outros ${nF} têm o mesmo: resumo, pontos-chave, como sai no exame e exercícios resolvidos.`],
+      desafio: ["Queres treinar mais do que 5 por dia?", `O plano Completo tem ${nExercicios} exercícios, treino sem limites e ${REAL.length} exames nacionais resolvidos.`],
+      plano: ["O teu plano inclui tópicos do plano Completo", `Para o seguires até ao fim precisas de todos os ${TOPICS.length} tópicos, exames e simulados.`]
+    }[onde];
+    return `<div class="upsell rv"><span class="tile bg-yellow">${icFill("crown")}</span>
+      <div><b>${txt[0]}</b><span>${txt[1]}</span><span class="up-p"><b>${esc(C.PRECO)}</b> · pagamento único${G ? ` · garantia de ${G} dias` : ""}</span></div>
+      <a class="btn btn-primary btn-sm" href="#precos" data-up="${onde}">Ver plano Completo ${ic("arrow")}</a></div>`;
   }
   function topicCard(t) {
     const done = st.studied.has(t.id);
@@ -1432,6 +1443,7 @@
       <span class="ti">${ic(GRUPOS[t.grupo].icon)}</span>
       <span><h3>${esc(t.titulo)}</h3><span class="sub">${esc(t.subtitulo)}</span>
       <span class="meta">${hotChip(t)}${t.free ? '<span class="chip free">Grátis</span>' : (canOpen(t) ? "" : '<span class="chip pro">Pré-visualização</span>')}<span class="chip">${t.exercicios.length} exercícios</span></span>${domHTML(t)}</span>
+      <span class="go" aria-hidden="true">${ic("arrow")}</span>
     </a>`;
   }
 
@@ -1532,6 +1544,7 @@
         </div>
         <aside class="aside">
           <div data-meters>${meterHTML()}</div>
+          ${full && t.free ? upsellHTML("topico") : ""}
           ${MAT(t) ? `<a class="card mat-card" href="#m-${t.id}"><span class="mi">📚</span><span><b>Matéria completa</b><span>Tudo sobre ${esc(t.titulo)}, organizado em ${MAT(t).length} secções.</span></span>${ic("arrow")}</a>` : ""}
           <div class="card">
             <h3>Já dominas este tópico?</h3>
@@ -2693,6 +2706,7 @@
       </div>
       <h2 class="des-h">As perguntas de hoje</h2>
       <div class="des-list">${keys.map((k, i) => { const e = idx.get(k); if (!e) return ""; return `<div class="des-it ${s.res[i] ? "ok" : "no"}"><span class="fi">${ic(s.res[i] ? "check" : "x")}</span><div><b>${esc(strip(e.item.enunciado))}</b><span>Resposta certa: ${esc(strip(e.item.opcoes[e.item.certa]))}</span><a href="${e.href}">Rever a matéria: ${esc(e.label)} ${ic("arrow")}</a></div></div>`; }).join("")}</div>
+      ${upsellHTML("desafio")}
       ${desSemanaHTML()}
       <div class="row mt"><a class="btn btn-soft btn-sm" href="#revisao">${ic("layers")} Fazer a revisão de hoje</a><a class="btn btn-ghost btn-sm" href="#treino">${icFill("bolt")} Treino rápido</a></div>
     </div>`;
@@ -3292,6 +3306,7 @@
   route();
   chipConta();
   chipInstalar();
+  { let pst = null; const upd = () => { pst = null; document.body.classList.toggle("promo-scrolled", window.scrollY > 520); }; window.addEventListener("scroll", () => { if (!pst) pst = requestAnimationFrame(upd); }, { passive: true }); upd(); }
   CONTA.arranque().then(() => {
     const ok = CONTA.voltouGoogle === true || ssGet("n20:google-ok") === "1";
     if (ok) {
