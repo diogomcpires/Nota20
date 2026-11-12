@@ -1379,6 +1379,7 @@
       ${streakWarnHTML()}
       ${continuaHTML()}
       ${fracoHTML()}
+      ${!unlocked() && PARC.length ? `<a class="parc-band rv" href="#parcerias"><span class="tile bg-violet">${icFill("star")}</span><span><b>Códigos de desconto dos parceiros</b><span>Poupa ${esc(PARC_DESC || "no preço")} no plano Completo com o código de um criador.</span></span>${ic("arrow")}</a>` : ""}
       <div class="filters" role="group" aria-label="Filtrar por grupo">
         ${[["todos", "Todos"], ["I", "Grupo I · Literária"], ["II", "Grupo II · Gramática"], ["III", "Grupo III · Escrita"]].map(([v, t]) => `<button type="button" data-act="filter" data-v="${v}" aria-pressed="${f === v}">${t}</button>`).join("")}
       </div>
