@@ -1393,3 +1393,30 @@ h2 { font-weight: 700; }
 .pa-list > div.off { opacity: .55; text-decoration: line-through; }
 .pa-assoc { display: grid; gap: 8px; padding: 12px; border-radius: 14px; background: var(--yellow-50); border: 2px dashed var(--yellow-d); }
 .pa-assoc select { flex: 1; min-width: 0; padding: 8px 10px; border-radius: 10px; border: 2px solid var(--line); font: 700 0.95rem var(--f-body); background: var(--surface); color: var(--ink); }
+
+/* cupão dos parceiros */
+.cupao { position: relative; display: grid; grid-template-columns: auto 1fr; border-radius: 18px; background: linear-gradient(120deg, var(--blue) 0%, var(--violet) 100%); color: #fff; box-shadow: 0 10px 24px rgba(45, 107, 255, 0.28); overflow: hidden; }
+.cupao.on { background: linear-gradient(120deg, #0ea66b 0%, #14b8a6 100%); box-shadow: 0 10px 24px rgba(20, 184, 119, 0.28); }
+.cupao-l { display: grid; align-content: center; justify-items: center; gap: 2px; padding: 14px 16px; text-align: center; border-right: 2px dashed rgba(255, 255, 255, 0.55); position: relative; }
+.cupao-l::before, .cupao-l::after { content: ""; position: absolute; right: -10px; width: 18px; height: 18px; border-radius: 50%; background: var(--surface); }
+.cupao-l::before { top: -10px; } .cupao-l::after { bottom: -10px; }
+.cupao-v { font-family: var(--f-display); font-weight: 800; font-size: 1.75rem; line-height: 1; white-space: nowrap; }
+.cupao-s { font-size: 0.7rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; line-height: 1.25; opacity: .92; }
+.cupao-r { display: grid; gap: 6px; align-content: center; padding: 12px 14px; min-width: 0; }
+.cupao-r .lab { font-size: 0.7rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; opacity: .9; }
+.cupao-cod { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; padding: 8px 8px 8px 14px; border: 0; border-radius: 12px; background: #fff; color: #141a3c; cursor: pointer; font: inherit; text-align: left; box-shadow: 0 3px 0 rgba(0, 0, 0, 0.18); transition: transform .12s; }
+.cupao-cod:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(0, 0, 0, 0.18); }
+.cupao-cod b { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-weight: 800; font-size: 1.25rem; letter-spacing: .08em; overflow-wrap: anywhere; }
+.cupao-cp { display: inline-flex; align-items: center; gap: 6px; flex: none; padding: 7px 11px; border-radius: 9px; background: var(--blue-50); color: var(--blue-d); font-weight: 800; font-size: 0.85rem; }
+.cupao-cp i { font-style: normal; }
+.cupao-cp svg { width: 15px; height: 15px; }
+.cupao-cod.ok .cupao-cp { background: var(--mint); color: #fff; }
+.parc-usar { justify-content: center; }
+.parc-usar svg { width: 18px; height: 18px; }
+[data-theme="dark"] .cupao-cp { background: #e8efff; color: #1f4fcf; }
+.cd-line > span { flex: 1; min-width: 0; }
+.cupao-l { padding: 14px 12px; }
+.cupao-v { font-size: 1.5rem; }
+.cupao-cod { padding: 7px 7px 7px 12px; gap: 8px; }
+.cupao-cod b { font-size: 1.12rem; letter-spacing: .04em; white-space: nowrap; overflow-wrap: normal; }
+.cupao-cp { padding: 7px 9px; font-size: 0.8rem; gap: 5px; }

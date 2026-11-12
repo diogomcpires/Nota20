@@ -1915,7 +1915,7 @@
             <li><b>Sessões à medida:</b> cada dia tem só o que cabe no tempo que escolheste.</li>
             <li><b>Adapta-se:</b> se falhares um dia, o plano reorganiza-se sozinho.</li>
             <li><b>Lembretes:</b> adicionas as sessões ao calendário do telemóvel.</li></ul>
-            ${diasExame() ? `<p class="cd-line">${ic("timer")} Faltam <b>${diasExame()}</b> dias para o exame${dataEstimada}. Com 30 minutos por dia útil, cada semana adiada são menos 2,5 horas de estudo.</p>` : ""}</div>
+            ${diasExame() ? `<p class="cd-line">${ic("timer")}<span>Faltam <b>${diasExame()}</b> dias para o exame${dataEstimada}. Com 30 minutos por dia útil, cada semana adiada são menos 2,5 horas de estudo.</span></p>` : ""}</div>
         </div></div>`;
       return;
     }
@@ -2972,9 +2972,12 @@
       <div class="parc-top">${p.foto ? `<img class="parc-av" src="${esc(p.foto)}" alt="" loading="lazy" width="72" height="72">` : `<span class="parc-av ${PARC_COR[i % PARC_COR.length]}" aria-hidden="true">${esc(ini)}</span>`}
         <div><h3>${esc(p.nome)}</h3>${p.descricao ? `<p>${esc(p.descricao)}</p>` : ""}</div></div>
       ${redes ? `<div class="parc-redes">${redes}</div>` : ""}
-      <div class="parc-cod"><span class="lab">Código de desconto${PARC_DESC ? ` · −${esc(PARC_DESC)}` : ""}</span>
-        <div class="cx"><b>${esc(p.codigo)}</b><button type="button" class="btn btn-soft btn-sm" data-act="parc-copiar" data-c="${esc(p.codigo)}">Copiar</button></div></div>
-      ${ativo ? `<div class="parc-ok">${ic("check")}<span>Código aplicado no pagamento</span><button type="button" class="linklike" data-act="parc-tirar">Tirar</button></div>` : `<button type="button" class="btn btn-primary btn-sm" data-act="parc-usar" data-c="${esc(p.codigo)}">Usar este código</button>`}
+      <div class="cupao ${ativo ? "on" : ""}">
+        <div class="cupao-l"><span class="cupao-v">${PARC_DESC ? `−${esc(PARC_DESC)}` : "%"}</span><span class="cupao-s">no plano<br>Completo</span></div>
+        <div class="cupao-r"><span class="lab">Código de desconto</span>
+          <button type="button" class="cupao-cod" data-act="parc-copiar" data-c="${esc(p.codigo)}" aria-label="Copiar o código ${esc(p.codigo)}"><b>${esc(p.codigo)}</b><span class="cupao-cp">${ic("layers")}<i>Copiar</i></span></button></div>
+      </div>
+      ${ativo ? `<div class="parc-ok">${ic("check")}<span>Código aplicado no pagamento</span><button type="button" class="linklike" data-act="parc-tirar">Tirar</button></div>` : `<button type="button" class="btn btn-primary btn-sm parc-usar" data-act="parc-usar" data-c="${esc(p.codigo)}">Usar este código ${ic("arrow")}</button>`}
     </article>`;
   }
   function renderParcerias() {
@@ -3105,7 +3108,7 @@
       case "share-progress": shareProgress(); break;
       case "login": openLogin(a.dataset.m || ""); break;
       case "login-google": a.disabled = true; CONTA.entrarGoogle().catch(() => { a.disabled = false; const m = document.getElementById("login-msg"); if (m) m.textContent = "Não foi possível abrir a Google agora. Usa o código por email."; }); break;
-      case "parc-copiar": { const cod = a.dataset.c; (navigator.clipboard ? navigator.clipboard.writeText(cod) : Promise.reject()).then(() => { a.textContent = "Copiado!"; setTimeout(() => { a.textContent = "Copiar"; }, 1800); }).catch(() => { a.textContent = cod; }); GC.event("parceiro-copiar"); break; }
+      case "parc-copiar": { const cod = a.dataset.c, lab = $("i", a); (navigator.clipboard ? navigator.clipboard.writeText(cod) : Promise.reject()).then(() => { a.classList.add("ok"); if (lab) lab.textContent = "Copiado!"; setTimeout(() => { a.classList.remove("ok"); if (lab) lab.textContent = "Copiar"; }, 1800); }).catch(() => { if (lab) lab.textContent = "Seleciona e copia"; }); GC.event("parceiro-copiar"); break; }
       case "parc-usar": usarParceiro(a.dataset.c, true); break;
       case "parc-tirar": usarParceiro("", true); break;
       case "pa-assoc": { const sel = $("select", a.closest(".pa-assoc")); if (!sel) break; a.disabled = true; CONTA.rpc("parceria_associar", { p_promo: a.dataset.p, p_codigo: sel.value }).then(() => { renderParcAdmin(); }).catch(() => { a.disabled = false; a.textContent = "Erro, tenta outra vez"; }); break; }
