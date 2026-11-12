@@ -11,7 +11,7 @@
      foto: "assets/parceiros/eduardo.jpg" }           // opcional (quadrada); sem foto, aparecem as iniciais
 */
 window.N20_PARCEIROS = [
-  { nome: "Beatriz Ribeiro", tiktok: "@bea..ribeiro", instagram: "@beaatriz.ribeiroo", codigo: "BR20" },
+  { nome: "Beatriz Ribeiro", tiktok: "@bea..ribeiro", instagram: "@beaatriz.ribeiroo", codigo: "BR20", foto: "assets/parceiros/beatriz-ribeiro.jpg" },
   { nome: "Eduardo Serrano", tiktok: "@_eduardo.serrano_", instagram: "@edu.serrano_", codigo: "EDU20" },
   { nome: "Sara Silva", tiktok: "@studywith_saraa", instagram: "@studywith_saraa", codigo: "SARA20" }
 ];
