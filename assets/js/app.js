@@ -209,6 +209,7 @@
       const { error } = await sb.from("leads").insert({ email: d.email, origem: String(d.origem || "").slice(0, 40), tester: !!d.tester });
       if (error) throw error;
     }
+    async function contador() { await cliente(); const { data } = await sb.rpc("contador_alunos"); return data; }
     async function rpc(nome, args) { await cliente(); const { data, error } = await sb.rpc(nome, args || {}); if (error) throw error; return data; }
     async function avaliar(a) {
       await cliente();
@@ -224,7 +225,7 @@
       if (store.get("unlockedConta", false)) { st.unlocked = false; store.set("unlocked", false); store.set("unlockedConta", false); }
     }
     window.addEventListener("pagehide", () => { if (user) enviar().catch(() => {}); });
-    return { on, ia, lead, avaliar, rpc, arranque, verificarPagamento, pedirCodigo, confirmarCodigo, entrarGoogle, sair, apagar, agendar, enviar,
+    return { on, ia, lead, avaliar, rpc, contador, arranque, verificarPagamento, pedirCodigo, confirmarCodigo, entrarGoogle, sair, apagar, agendar, enviar,
       get voltouGoogle() { return voltouGoogle; },
       get user() { return user; }, get perfil() { return perfil; }, get ultima() { return ultima; } };
   })();
@@ -422,7 +423,7 @@
   const FREE_PREV = 3;
   /* nos exames saem por vezes outras obras do mesmo autor: no mapa, estas linhas mostram o autor */
   const CRIADOR = C.CRIADOR || "";
-  const madeBy = (cls = "") => CRIADOR ? `<p class="made-by ${cls}">${ic("grad")}<span>${esc(CRIADOR).replace(/(19,5|\b18\b)/, "<b>$1</b>")}</span></p>` : "";
+  const madeBy = (cls = "") => `<div data-contador>${window.__n20cont || ""}</div>` + (CRIADOR ? `<p class="made-by ${cls}">${ic("grad")}<span>${esc(CRIADOR).replace(/(19,5|\b18\b)/, "<b>$1</b>")}</span></p>` : "");
   const AUTOR = { "os-maias": "Eça de Queirós", "amor-perdicao": "Camilo Castelo Branco", "frei-luis": "Almeida Garrett" };
   const prevIdx = (id) => H.previsao.findIndex((p) => p.topico === id);
   const saiuEm = (id) => H.provas.filter((p) => (p.lit && p.lit[id]) || (p.gram || []).includes(id) || (G3[id] && p.g3 === G3[id]));
@@ -1103,6 +1104,23 @@
       </div>
     </section>
 
+    <section class="section" id="custo">
+      <div class="wrap">
+        <div class="section-head center rv"><span class="eyebrow">${ic("target", 'width="18" height="18"')} Quanto custa preparar o exame</span>
+          <h2>Menos do que uma hora e meia de explicação.</h2>
+          <p>Uma explicação custa, em média, ${C.EXPLICACAO_HORA} € por hora em Portugal. A Nota20 custa ${esc(C.PRECO)} uma vez e dá-te o ano inteiro.</p></div>
+        <div class="custo-grid">
+          <div class="custo-c rv"><span class="k">Explicações</span><b>${C.EXPLICACAO_HORA * C.EXPLICACAO_SEMANAS} €</b><span class="d">1 hora por semana, de agora até ao exame (cerca de ${C.EXPLICACAO_SEMANAS} semanas)</span>
+            <ul><li>${ic("x")}Uma hora por semana, à hora marcada</li><li>${ic("x")}Dúvidas só na próxima aula</li><li>${ic("check")}Atenção individual</li></ul></div>
+          <div class="custo-c rv"><span class="k">Apps de IA genéricas</span><b>${C.APP_IA_MES * C.APP_IA_MESES} €</b><span class="d">assinatura de cerca de ${C.APP_IA_MES} € por mês durante ${C.APP_IA_MESES} meses</span>
+            <ul><li>${ic("x")}Não seguem o programa português</li><li>${ic("x")}Sem exames do IAVE nem critérios de correção</li><li>${ic("check")}Disponíveis a qualquer hora</li></ul></div>
+          <div class="custo-c main rv"><span class="flag">A escolha certa</span><span class="k">Nota20 Completo</span><b>${esc(C.PRECO)}</b><span class="d">pagamento único, sem mensalidades, até ao fim da 2.ª fase</span>
+            <ul><li>${ic("check")}Todo o programa do 10.º ao 12.º do exame 639</li><li>${ic("check")}${REAL.length} exames do IAVE resolvidos e os critérios oficiais</li><li>${ic("check")}Explicador e correção com IA a qualquer hora</li><li>${ic("check")}Garantia de ${G || 14} dias</li></ul>
+            ${unlocked() ? "" : `<a class="btn btn-primary" href="#precos">Ver o plano Completo ${ic("arrow")}</a>`}</div>
+        </div>
+        <p class="small muted custo-fonte">Preço médio de uma explicação: ${C.EXPLICACAO_HORA} €/hora (Fixando, 2026). As explicações continuam a ser ótimas; a Nota20 serve para estudares todos os dias, entre aulas.</p>
+      </div>
+    </section>
     <section class="section alt" id="avaliacoes">
       <div class="wrap">
         <div class="section-head rv"><span class="eyebrow">${icFill("star")} Avaliações</span><h2>O que dizem os alunos</h2></div>
@@ -3308,6 +3326,14 @@
   chipConta();
   chipInstalar();
   { let pst = null; const upd = () => { pst = null; document.body.classList.toggle("promo-scrolled", window.scrollY > 520); }; window.addEventListener("scroll", () => { if (!pst) pst = requestAnimationFrame(upd); }, { passive: true }); upd(); }
+  CONTA.contador().then((c) => {
+    const min = C.CONTADOR_MIN || 100;
+    if (!c || c.alunos < min) return;
+    const fmt = (n) => n.toLocaleString("pt-PT");
+    const html = `<div class="contador">${icFill("star")}<span>Já <b>${fmt(c.alunos)} alunos</b> estudam com a Nota20${c.respostas >= 1000 ? ` · <b>${fmt(c.respostas)}</b> respostas dadas` : ""}</span></div>`;
+    $$("[data-contador]").forEach((el) => { el.innerHTML = html; });
+    window.__n20cont = html;
+  }).catch(() => {});
   CONTA.arranque().then(() => {
     const ok = CONTA.voltouGoogle === true || ssGet("n20:google-ok") === "1";
     if (ok) {

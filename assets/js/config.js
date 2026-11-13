@@ -73,6 +73,15 @@ window.N20_CONFIG = {
      e de ativares o fornecedor Google no Supabase (Authentication > Sign In / Providers). */
   GOOGLE_LOGIN: true,
 
+  /* Comparação de preços na página inicial (secção «Quanto custa preparar o exame»).
+     Explicação: preço médio por hora em Portugal (Fixando, 2026). Semanas: de novembro ao exame. */
+  EXPLICACAO_HORA: 16,
+  EXPLICACAO_SEMANAS: 30,
+  APP_IA_MES: 24,
+  APP_IA_MESES: 8,
+  /* O contador «Já X alunos estudam com a Nota20» só aparece a partir deste número (contas reais). */
+  CONTADOR_MIN: 100,
+
   /* Parcerias (página #parcerias; os parceiros estão em assets/js/data/parceiros.js).
      DESCONTO = o que o código dá ao aluno; COMISSAO = o que o parceiro recebe ("" = não mostrar o valor). */
   PARCEIROS_DESCONTO: "3 €",
