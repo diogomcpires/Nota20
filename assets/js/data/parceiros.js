@@ -15,5 +15,6 @@ window.N20_PARCEIROS = [
   { nome: "Eduardo Serrano", tiktok: "@_eduardo.serrano_", instagram: "@edu.serrano_", codigo: "EDU20" },
   { nome: "Sara Silva", tiktok: "@studywith_saraa", instagram: "@studywith_saraa", codigo: "SARA20" },
   { nome: "Beatriz Fonseca", tiktok: "@beatriz26fonseca", instagram: "@learn.with.bia", codigo: "BIA26F20", foto: "assets/parceiros/beatriz-fonseca.jpg" },
-  { nome: "Letícia Parra", tiktok: "@leticiaa.parraa", instagram: "@leticia.parraa", codigo: "PARRA20" }
+  { nome: "Letícia Parra", tiktok: "@leticiaa.parraa", instagram: "@leticia.parraa", codigo: "PARRA20" },
+  { nome: "Mary Afonso", descricao: "Vida de estudante", tiktok: "@maryybtww", instagram: "@maryy__btww", codigo: "MARY20", foto: "assets/parceiros/mary-afonso.jpg" }
 ];
