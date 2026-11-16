@@ -3235,15 +3235,24 @@
       const promo = (vs.find((v) => v.promo) || {}).promo || "";
       return { c, promo: p ? "" : promo, nome: p ? p.nome : "Código por identificar", n: ok.length, reemb: vs.length - ok.length, total: ok.reduce((s, v) => s + (v.valor || 0), 0), garantia: com(garantia), pago, aPagar };
     });
+    /* vendas sem código de parceiro (plano e packs de IA; acessos manuais ficam de fora) */
+    const sc = d.sem_codigo || [], scOk = sc.filter((v) => v.estado === "pago");
+    const scPl = scOk.filter((v) => v.tipo === "plano"), scPk = scOk.filter((v) => v.tipo !== "plano");
+    const soma = (arr) => arr.reduce((s, v) => s + (v.valor || 0), 0);
+    const semCardHTML = `<article class="card pa-card pa-sem"><div class="pa-h"><h3>Sem código</h3><span class="chip">Diretas</span></div>
+      <dl><div><dt>Planos vendidos</dt><dd>${scPl.length}</dd></div><div><dt>Total dos planos</dt><dd>${eur(soma(scPl))}</dd></div><div><dt>Packs de IA</dt><dd>${scPk.length} · ${eur(soma(scPk))}</dd></div><div><dt>Reembolsadas</dt><dd>${sc.length - scOk.length}</dd></div><div class="tot"><dt>Total recebido</dt><dd>${eur(soma(scOk))}</dd></div></dl>
+      <p class="small" style="margin:8px 0 0;font-weight:600;opacity:.8">Sem comissão a pagar.</p></article>`;
     document.getElementById("pa-sub").textContent = `Comissão de ${Math.round(taxa * 100)}% sobre o valor pago. Só entram em «A pagar» as vendas com mais de 14 dias (fim da garantia). Atualizado agora.`;
     document.getElementById("pa-body").innerHTML = `
-      <div class="pa-kpis"><div><b>${eur(devido)}</b><span>a pagar agora</span></div><div><b>${d.vendas.filter((v) => v.estado === "pago").length}</b><span>vendas com código</span></div><div><b>${eur(linhas.reduce((s, l) => s + l.garantia, 0))}</b><span>comissão ainda na garantia</span></div></div>
-      <div class="pa-grid">${linhas.map((l) => `<article class="card pa-card"><div class="pa-h"><h3>${esc(l.nome)}</h3><span class="chip">${esc(l.c)}</span></div>
+      <div class="pa-kpis"><div><b>${eur(devido)}</b><span>a pagar agora</span></div><div><b>${d.vendas.filter((v) => v.estado === "pago").length}</b><span>vendas com código</span></div><div><b>${scPl.length}</b><span>vendas sem código</span></div><div><b>${eur(linhas.reduce((s, l) => s + l.garantia, 0))}</b><span>comissão ainda na garantia</span></div></div>
+      <div class="pa-grid">${semCardHTML}${linhas.map((l) => `<article class="card pa-card"><div class="pa-h"><h3>${esc(l.nome)}</h3><span class="chip">${esc(l.c)}</span></div>
         <dl><div><dt>Vendas</dt><dd>${l.n}${l.reemb ? ` <small>(+${l.reemb} reembolsada${l.reemb > 1 ? "s" : ""})</small>` : ""}</dd></div><div><dt>Total vendido</dt><dd>${eur(l.total)}</dd></div><div><dt>Na garantia (ainda não pagar)</dt><dd>${eur(l.garantia)}</dd></div><div><dt>Já pago</dt><dd>${eur(l.pago)}</dd></div><div class="tot"><dt>A pagar agora</dt><dd>${eur(l.aPagar)}</dd></div></dl>
         ${l.promo ? `<div class="pa-assoc"><p class="small" style="margin:0;font-weight:700">Alguém escreveu um código à mão no pagamento. De quem é? (Vê na Stripe, em Cupões, qual código teve uma utilização nova.)</p><div class="row"><select aria-label="Parceiro">${PARC.map((x) => `<option value="${esc(x.codigo)}">${esc(x.nome)} (${esc(x.codigo)})</option>`).join("")}</select><button class="btn btn-primary btn-sm" type="button" data-act="pa-assoc" data-p="${esc(l.promo)}">Guardar</button></div></div>` : ""}
         ${l.aPagar > 0 && !l.promo ? `<button class="btn btn-primary btn-sm" type="button" data-act="pa-pagar" data-c="${esc(l.c)}" data-n="${esc(l.nome)}" data-v="${l.aPagar}">Marcar ${eur(l.aPagar)} como pago</button>` : ""}</article>`).join("")}</div>
       <h2 class="des-h">Vendas com código</h2>
       ${d.vendas.length ? `<div class="pa-list">${d.vendas.map((v) => `<div class="${v.estado === "pago" ? "" : "off"}"><span>${dataPt(v.data)}</span><b>${esc(v.codigo)}</b><span>${eur(v.valor || 0)}</span><span>${v.estado !== "pago" ? "reembolsada" : agora - new Date(v.data).getTime() < G14 ? "na garantia" : "firme"}</span></div>`).join("")}</div>` : `<div class="empty">${lince()}<span>Ainda não há compras com código de parceiro. Aparecem aqui sozinhas, segundos depois de cada pagamento.</span></div>`}
+      <h2 class="des-h">Vendas sem código</h2>
+      ${sc.length ? `<div class="pa-list">${sc.map((v) => `<div class="${v.estado === "pago" ? "" : "off"}"><span>${dataPt(v.data)}</span><b>${v.tipo === "plano" ? "Plano Completo" : "Pack de IA"}</b><span>${eur(v.valor || 0)}</span><span>${v.estado !== "pago" ? "reembolsada" : "paga"}</span></div>`).join("")}</div>` : `<div class="empty">${lince()}<span>Ainda não há compras sem código. Aparecem aqui sozinhas depois de cada pagamento.</span></div>`}
       ${d.pagamentos.length ? `<h2 class="des-h">Pagamentos que fizeste</h2><div class="pa-list">${d.pagamentos.map((x) => `<div><span>${dataPt(x.data)}</span><b>${esc(x.codigo)}</b><span>${eur(x.valor)}</span><span>pago</span></div>`).join("")}</div>` : ""}`;
   }
 

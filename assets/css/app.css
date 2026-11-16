@@ -1919,3 +1919,8 @@ a.fcard:hover { transform: translateY(-3px) scale(1.03); box-shadow: 0 18px 40px
 .plan2 [data-lead-wrap].card { background: linear-gradient(160deg, #fff1cc, #fff 70%); }
 .plan2 .aside .card:has(.install), .plan2 .aside .inst-card { background: linear-gradient(160deg, #ffe7d4, #fff 70%); }
 .plan2 .all-weeks { background: linear-gradient(120deg, #fff, var(--blue-50)); border: 2px solid var(--blue-50); }
+.pa-sem { background: linear-gradient(150deg, #13204a, #1d3a9e); color: #fff; }
+.pa-sem h3, .pa-sem dd { color: #fff; }
+.pa-sem dt { color: #c3d0f2; }
+.pa-sem .chip { background: #ffc72c; color: #3a2a00; }
+.pa-sem dl .tot { border-color: rgba(255, 255, 255, 0.25); }
