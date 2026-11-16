@@ -586,7 +586,19 @@
     const m = (k, label) => { const max = LIM[k], u = Math.min(max, used[USE_KEY[k]]); return `<div class="meter"><div class="lab"><span>${label}</span><span class="num">${u}/${max}</span></div><div class="bar"><i style="width:${(u / max) * 100}%"></i></div></div>`; };
     return `<div class="card meters"><span class="eyebrow">${ic("lock")} Plano grátis</span>${m("exercicios", "Exercícios")}${m("explicador", "Perguntas ao explicador")}${m("correcao", "Correções com IA")}<button class="btn btn-primary btn-sm btn-shine" type="button" data-act="paywall" data-r="topico">Desbloquear tudo</button></div>`;
   }
-  function refreshMeters() { $$("[data-meters]").forEach((el) => { el.innerHTML = meterHTML(); }); }
+  function refreshMeters() {
+    $$("[data-meters]").forEach((el) => {
+      const antes = $$('[style*="width"]', el).map((b) => b.style.width);
+      el.innerHTML = meterHTML();
+      if (REDUCED) return;
+      $$('[style*="width"]', el).forEach((b, i) => {
+        const w = b.style.width;
+        if (!antes[i] || antes[i] === w) return;
+        b.style.transition = "none"; b.style.width = antes[i]; b.getBoundingClientRect();
+        b.style.transition = "width .6s cubic-bezier(.22, 1, .36, 1)"; b.style.width = w;
+      });
+    });
+  }
   function openPaywall(reason) {
     GC.event("paywall-" + reason);
     const M = {
@@ -815,7 +827,7 @@
   }
 
   function showMc(el, item, sel, key, live = true) {
-    $$(".opt", el).forEach((b, i) => { b.disabled = true; if (i === item.certa) b.classList.add("right"); if (i === sel && sel !== item.certa) b.classList.add("wrong"); });
+    $$(".opt", el).forEach((b, i) => { b.disabled = true; if (i === item.certa) b.classList.add("right", "now"); if (i === sel && sel !== item.certa) b.classList.add("wrong", "now"); });
     const ok = sel === item.certa;
     $(".fbwrap", el).innerHTML = fbHTML(ok, ok ? praise() : `A certa é a ${L[item.certa]}`, item.explicacao) + retryBtn();
     if (live) { st.res[key] = { sel, ok }; saveRes(); celebrate(el, ok, key, $(`.opt[data-i="${sel}"]`, el)); afterAnswer(key, ok); }
@@ -824,7 +836,7 @@
     const sel = $$(".opt.sel", el).map((b) => +b.dataset.i);
     const fb = $(".fbwrap", el);
     if (sel.length !== item.certas.length) { fb.innerHTML = `<div class="fb info">Escolhe exatamente ${item.certas.length} opções.</div>`; return; }
-    $$(".opt", el).forEach((b, i) => { b.disabled = true; if (item.certas.includes(i)) b.classList.add("right"); else if (b.classList.contains("sel")) b.classList.add("wrong"); b.classList.remove("sel"); });
+    $$(".opt", el).forEach((b, i) => { b.disabled = true; if (item.certas.includes(i)) b.classList.add("right", "now"); else if (b.classList.contains("sel")) b.classList.add("wrong", "now"); b.classList.remove("sel"); });
     const ok = sameSet(sel, item.certas);
     fb.innerHTML = fbHTML(ok, ok ? praise() : "Ainda não", item.explicacao) + retryBtn();
     const c = $('[data-act="check-multi"]', el); if (c) c.hidden = true;
@@ -836,7 +848,7 @@
     const fb = $(".fbwrap", el);
     if (Object.keys(sel).length !== item.sub.length) { fb.innerHTML = `<div class="fb info">Escolhe uma opção em cada alínea.</div>`; return; }
     let ok = true;
-    item.sub.forEach((s, si) => { $$(`.opt[data-s="${si}"]`, el).forEach((b) => { const i = +b.dataset.i; b.disabled = true; if (i === s.certa) b.classList.add("right"); else if (i === sel[si]) { b.classList.add("wrong"); ok = false; } b.classList.remove("sel"); }); });
+    item.sub.forEach((s, si) => { $$(`.opt[data-s="${si}"]`, el).forEach((b) => { const i = +b.dataset.i; b.disabled = true; if (i === s.certa) b.classList.add("right", "now"); else if (i === sel[si]) { b.classList.add("wrong", "now"); ok = false; } b.classList.remove("sel"); }); });
     fb.innerHTML = fbHTML(ok, ok ? praise() : "Ainda não", item.explicacao) + retryBtn();
     const c = $('[data-act="check-comp"]', el); if (c) c.hidden = true;
     if (live) { st.res[key] = { sel, ok }; saveRes(); celebrate(el, ok, key, c); afterAnswer(key, ok); }
@@ -979,7 +991,14 @@
     return { iniciar };
   })();
 
+  let routedOnce = false;
   function route() {
+    const vt = routedOnce && !REDUCED && typeof document.startViewTransition === "function" && !document.hidden;
+    routedOnce = true;
+    if (vt) { try { document.startViewTransition(routeNow); return; } catch (e) { /* segue sem transição */ } }
+    routeNow();
+  }
+  function routeNow() {
     const h = decodeURIComponent(location.hash.slice(1)) || "inicio";
     GC.page(h);
     clearInterval(timerInt);
@@ -2521,7 +2540,13 @@
     modalRoot.innerHTML = `<div class="modal-bg" data-act="modal-close-bg"><div class="modal" role="dialog" aria-modal="true">${html}</div></div>`;
     const f = $("input, button", modalRoot); if (f) f.focus();
   }
-  function closeModal() { modalRoot.innerHTML = ""; }
+  function closeModal(rapido) {
+    const bg = $(".modal-bg", modalRoot);
+    if (!bg || rapido === true || REDUCED) { modalRoot.innerHTML = ""; return; }
+    if (bg.classList.contains("closing")) return;
+    bg.classList.add("closing");
+    setTimeout(() => bg.remove(), 150);
+  }
   async function sha256(t) {
     const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(t));
     return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
@@ -3264,7 +3289,7 @@
     if (t.id === "ask") { t.style.height = "auto"; t.style.height = Math.min(160, t.scrollHeight) + "px"; }
   });
   document.addEventListener("keydown", (ev) => {
-    if (ev.key === "Escape" && modalRoot.innerHTML) closeModal();
+    if (ev.key === "Escape" && modalRoot.innerHTML) closeModal(true);
     if (((ev.key === "k" && (ev.ctrlKey || ev.metaKey)) || (ev.key === "/" && !/^(INPUT|TEXTAREA|SELECT)$/.test(ev.target.tagName))) && !modalRoot.innerHTML) { ev.preventDefault(); openSearch(); }
     if (ev.target.id === "srch-in" && ev.key === "Enter") { const f = $("#srch-res a"); if (f) { ev.preventDefault(); f.click(); } }
     if (ev.key === "Enter" && QZ && QZ.answered && !modalRoot.innerHTML && !/^(INPUT|TEXTAREA|BUTTON|A)$/.test(ev.target.tagName)) qzNext();
