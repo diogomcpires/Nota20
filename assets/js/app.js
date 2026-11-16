@@ -1045,14 +1045,14 @@
     if (["precos", "avaliacoes", "faq", "como-funciona", "comecar", "previsao"].includes(h)) { view = "inicio"; scrollTo = h; }
     if (view.includes("/")) { anchor = view.slice(view.indexOf("/") + 1); view = view.slice(0, view.indexOf("/")); }
     currentView = (view.startsWith("t-") || view.startsWith("m-")) ? "estudar" : view.startsWith("e-") ? "exames" : view;
-    const navOf = { treino: "estudar", erros: "estudar", cabula: "estudar", simulado: "exames", desafio: "estudar", revisao: "estudar" };
+    const navOf = { testes: "plano", treino: "estudar", erros: "estudar", cabula: "estudar", simulado: "exames", desafio: "estudar", revisao: "estudar" };
     ttsStop();
     if (QZ && currentView !== QZ.kind) QZ = null;
     setNav(h === "precos" ? "precos" : (navOf[currentView] || currentView));
     if (view.startsWith("m-")) renderMateria(view.slice(2));
     else if (view.startsWith("t-")) renderTopic(view.slice(2));
     else if (view.startsWith("e-")) renderExam(view.slice(2));
-    else ({ inicio: renderHome, estudar: renderStudy, exames: renderExams, provaveis: renderProvaveis, simulado: renderSim, duvidas: renderTutor, plano: renderPlano, treino: renderTreino, erros: renderErros, cabula: renderCabula, pais: renderPais, termos: renderTermos, conta: renderConta, desafio: renderDesafio, revisao: renderRevisao, parcerias: renderParcerias, "parcerias-admin": renderParcAdmin }[view] || renderHome)();
+    else ({ inicio: renderHome, estudar: renderStudy, testes: renderTestes, exames: renderExams, provaveis: renderProvaveis, simulado: renderSim, duvidas: renderTutor, plano: renderPlano, treino: renderTreino, erros: renderErros, cabula: renderCabula, pais: renderPais, termos: renderTermos, conta: renderConta, desafio: renderDesafio, revisao: renderRevisao, parcerias: renderParcerias, "parcerias-admin": renderParcAdmin }[view] || renderHome)();
     enhance(app);
     renderPromo();
     if (anchor) {
@@ -1454,6 +1454,7 @@
       <p>Organizados pelos grupos da prova ${C.PROVA}.</p></div>
       ${streakWarnHTML()}
       ${continuaHTML()}
+      ${testeBanner()}
       ${iaBand("estudar")}
       ${fracoHTML()}
       ${!unlocked() && PARC.length ? `<a class="parc-band rv" href="#parcerias"><span class="tile bg-violet">${icFill("star")}</span><span><b>Códigos de desconto dos parceiros</b><span>Poupa ${esc(PARC_DESC || "no preço")} no plano Completo com o código de um criador.</span></span>${ic("arrow")}</a>` : ""}
@@ -2019,6 +2020,179 @@
       <button type="button" class="tk" data-act="plan-done" data-id="${esc(t.id)}" aria-pressed="${taskDone(t)}" aria-label="Marcar «${esc(t.titulo)}» como feito">${ic("check")}</button>
       <a href="${t.href}"><b>${esc(t.titulo)}</b><span>${esc(t.sub || "")} · ${t.min} min</span></a>
       ${t.lock ? `<span class="tl" title="Plano Completo">${ic("lock", 'width="16" height="16"')}</span>` : ""}<span class="tt ${t.tipo}">${TIPO[t.tipo]}</span>${hoje ? "" : ""}</li>`;
+  /* ---------- Testes da escola (10.º, 11.º e 12.º) ----------
+     Ordem mais comum nas planificações das escolas (manuais e agrupamentos): 2 testes por período
+     (5 a 6 no ano). A matéria de cada teste é uma sugestão: o aluno pode escolher outros tópicos. */
+  const TESTES_MAPA = {
+    "10.º": [
+      { p: 1, mes: "outubro / novembro", tit: "Poesia trovadoresca", tops: ["trovadoresca", "palavras", "leitura"] },
+      { p: 1, mes: "novembro / dezembro", tit: "Fernão Lopes", tops: ["fernao-lopes", "funcoes-sintaticas", "exposicao"] },
+      { p: 2, mes: "fevereiro", tit: "Gil Vicente", tops: ["gil-vicente", "oracoes", "apreciacao-critica"] },
+      { p: 2, mes: "março", tit: "Camões lírico", tops: ["camoes-lirico", "recursos-expressivos", "coesao"] },
+      { p: 3, mes: "maio", tit: "Os Lusíadas", tops: ["lusiadas", "funcoes-sintaticas", "oracoes", "exposicao"] },
+    ],
+    "11.º": [
+      { p: 1, mes: "outubro / novembro", tit: "Padre António Vieira", tops: ["vieira", "recursos-expressivos", "leitura"] },
+      { p: 1, mes: "novembro / dezembro", tit: "Frei Luís de Sousa", tops: ["frei-luis", "deixis", "apreciacao-critica"] },
+      { p: 2, mes: "fevereiro", tit: "Amor de Perdição", tops: ["amor-perdicao", "viagens-minha-terra", "oracoes", "texto-opiniao"] },
+      { p: 2, mes: "março", tit: "Os Maias", tops: ["os-maias", "coesao", "texto-opiniao"] },
+      { p: 3, mes: "maio", tit: "Antero e Cesário Verde", tops: ["antero", "cesario", "aspeto-modalidade", "atos-ilocutorios"] },
+    ],
+    "12.º": [
+      { p: 1, mes: "outubro / novembro", tit: "Pessoa ortónimo", tops: ["pessoa-ortonimo", "aspeto-modalidade", "exposicao"] },
+      { p: 1, mes: "novembro / dezembro", tit: "Os heterónimos", tops: ["heteronimos", "deixis", "texto-opiniao"] },
+      { p: 2, mes: "fevereiro", tit: "Mensagem", tops: ["mensagem", "oracoes", "apreciacao-critica"] },
+      { p: 2, mes: "março", tit: "Contos e poetas contemporâneos", tops: ["contos", "poetas-contemporaneos", "coesao", "texto-opiniao"] },
+      { p: 3, mes: "maio", tit: "José Saramago", tops: ["saramago", "funcoes-sintaticas", "recursos-expressivos", "texto-opiniao"] },
+    ],
+  };
+  const PER_NOME = { 1: "1.º período · set. a dez.", 2: "2.º período · jan. a mar.", 3: "3.º período · abr. a jun." };
+  const SEM_NOME = { 1: "1.º semestre · set. a jan.", 2: "2.º semestre · fev. a jun." };
+  const testeTarefas = (T) => {
+    const out = [];
+    T.tops.map(topicById).filter(Boolean).forEach((t) => {
+      if (t.grupo === "III") out.push({ id: "w:" + t.id, tipo: "escrita", t, titulo: `Treinar a escrita: ${t.titulo}`, href: `#t-${t.id}`, min: 30 });
+      else {
+        out.push({ id: "r:" + t.id, tipo: "topico", t, titulo: `Ler o resumo de «${t.titulo}»`, href: `#t-${t.id}/resumo`, min: minLeitura(t) + 10 });
+        out.push({ id: "x:" + t.id, tipo: "treino", t, titulo: `Exercícios de «${t.titulo}»`, href: `#t-${t.id}/exercicios`, min: 20 });
+      }
+    });
+    out.push({ id: "q:mix", tipo: "exame", titulo: "Treino misto com tempo", href: "#treino", min: 15 });
+    out.push({ id: "v:final", tipo: "revisao", titulo: "Véspera: rever os pontos-chave e os teus erros", href: "#erros", min: 25 });
+    return out;
+  };
+  /* plano à medida: cabe no tempo por dia que o aluno escolheu; se não houver tempo, corta o menos importante
+     (primeiro o treino misto, depois a escrita, depois os exercícios extra), mas guarda sempre a revisão da véspera */
+  function testePlano(T) {
+    const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+    const alvo = new Date(T.data + "T00:00:00");
+    const dias = Math.round((alvo - hoje) / 864e5);
+    const min = T.min || 45, n = Math.max(1, Math.min(dias, 30));
+    let tarefas = testeTarefas(T);
+    const cap = n * min, soma = (a) => a.reduce((s, x) => s + x.min, 0);
+    const ordemCorte = ["q:mix", ...tarefas.filter((x) => x.tipo === "escrita").map((x) => x.id), ...tarefas.filter((x) => x.id.startsWith("x:")).map((x) => x.id).reverse()];
+    const cortadas = [];
+    for (const id of ordemCorte) { if (soma(tarefas) <= cap) break; const t = tarefas.find((x) => x.id === id); if (t) { tarefas = tarefas.filter((x) => x.id !== id); cortadas.push(t); } }
+    const finais = tarefas.filter((x) => x.id === "v:final"), resto = tarefas.filter((x) => x.id !== "v:final");
+    const sessoes = Array.from({ length: n }, (_, i) => { const d = new Date(hoje); d.setDate(hoje.getDate() + i); return { date: d, tasks: [], min: 0 }; });
+    /* distribui por igual: cada dia recebe mais ou menos o mesmo tempo, sem passar o limite quando der */
+    const alvoDia = Math.max(min * 0.6, soma(resto) / Math.max(1, n - (n > 1 ? 1 : 0)));
+    let di = 0;
+    resto.forEach((t) => {
+      while (di < n - 1 && sessoes[di].min > 0 && sessoes[di].min + t.min > Math.max(alvoDia, min)) di++;
+      sessoes[di].tasks.push(t); sessoes[di].min += t.min;
+      if (sessoes[di].min >= alvoDia && di < n - 1) di++;
+    });
+    sessoes[n - 1].tasks.push(...finais); sessoes[n - 1].min += soma(finais);
+    return { dias, tarefas, cortadas, min, sessoes: sessoes.filter((s) => s.tasks.length) };
+  }
+  function testeBanner() {
+    const T = store.get("teste", null), d = T ? Math.round((new Date(T.data + "T00:00:00") - new Date(dkey(new Date()) + "T00:00:00")) / 864e5) : null;
+    const tem = T && d >= 0;
+    let falta = "";
+    if (tem) { const P = testePlano(T), feitas = P.tarefas.filter((x) => (T.done || {})[x.id]).length; falta = `${feitas}/${P.tarefas.length} tarefas feitas · vê o que te falta até lá.`; }
+    return `<a class="tst-banner rv" href="#testes"><span class="tb-ic">${ic("calendar")}</span><span><b>${tem ? `Teste de «${esc(T.tit)}» ${d === 0 ? "hoje" : d === 1 ? "amanhã" : `daqui a ${d} dias`}` : "Tens teste de Português na escola?"}</b><small>${tem ? falta : "Diz-nos o que sai e quando, e tens um plano de estudo só para esse teste."}</small></span><span class="hi-btn">${tem ? "Ver plano do teste" : "Criar plano do teste"} ${ic("arrow")}</span></a>`;
+  }
+  /* separadores no topo do Plano: plano até ao exame / plano para o teste da escola */
+  function planTabs(ativo) {
+    const T = store.get("teste", null);
+    const d = T ? Math.round((new Date(T.data + "T00:00:00") - new Date(dkey(new Date()) + "T00:00:00")) / 864e5) : null;
+    const sub = T && d >= 0 ? (d === 0 ? "teste hoje" : d === 1 ? "teste amanhã" : `teste daqui a ${d} dias`) : "10.º, 11.º e 12.º";
+    return `<nav class="pl-tabs" aria-label="Tipo de plano">
+      <a href="#plano" ${ativo === "exame" ? 'aria-current="page"' : ""}><span class="pt-ic">${ic("target")}</span><span><b>Plano até ao exame</b><small>Exame Nacional 639</small></span></a>
+      <a href="#testes" ${ativo === "teste" ? 'aria-current="page"' : ""}><span class="pt-ic">${ic("calendar")}</span><span><b>Plano para o teste da escola</b><small>${sub}</small></span>${T && d >= 0 && ativo !== "teste" ? `<i class="pt-dot">${d}</i>` : ""}</a>
+    </nav>`;
+  }
+  /* assistente «Diz-me o que vai sair no teu teste» */
+  const WZ_DIAS = [[1, "Amanhã"], [3, "Daqui a 3 dias"], [7, "Daqui a 1 semana"], [14, "Daqui a 2 semanas"]];
+  const WZ_MIN = [15, 30, 45, 60, 90];
+  const wzState = () => { st.wiz = st.wiz || { step: 1, tops: [], dias: null, data: "", min: 45 }; return st.wiz; };
+  const wzData = (w) => { if (w.data) return w.data; if (w.dias == null) return ""; const d = new Date(); d.setDate(d.getDate() + w.dias); return dkey(d); };
+  function wizHTML(ano) {
+    const w = wzState(), sugs = TESTES_MAPA[ano];
+    const lista = TOPICS.filter((t) => (!t.ano || t.ano === ano) && t.id !== "correcao-linguistica");
+    const grupo = (g, nome, icn) => { const ts = lista.filter((t) => t.grupo === g); return ts.length ? `<div class="wz-g"><span class="wz-gl">${ic(icn)} ${nome}</span><div class="tf-tops">${ts.map((t) => `<button type="button" class="tf-t g-${t.grupo}" data-act="wiz-top" data-id="${t.id}" aria-pressed="${w.tops.includes(t.id)}"><span>${esc(t.titulo)}</span></button>`).join("")}</div></div>` : ""; };
+    const data = wzData(w), nDias = data ? Math.round((new Date(data + "T00:00:00") - new Date(dkey(new Date()) + "T00:00:00")) / 864e5) : null;
+    const prev = w.tops.length && data ? testePlano({ tops: w.tops, data, min: w.min }) : null;
+    const passos = ["O que sai", "Quando", "Tempo"];
+    return `<section class="tst-novo wiz" id="tst-form">
+      <div class="wz-head"><span class="lbl2">${lince()} Preparação à tua medida</span><h2>Diz-me o que vai sair no teu teste</h2>
+        <ol class="wz-steps">${passos.map((p, i) => `<li class="${w.step === i + 1 ? "on" : w.step > i + 1 ? "ok" : ""}"><b>${w.step > i + 1 ? ic("check") : i + 1}</b>${p}</li>`).join("")}</ol></div>
+      ${w.step === 1 ? `<div class="wz-body">
+          <p class="wz-q">Que matéria entra no teste? <small>Toca em tudo o que o professor disse que sai.</small></p>
+          <div class="wz-sug"><span>Atalhos:</span>${sugs.map((x, i) => `<button type="button" data-act="wiz-sug" data-i="${i}">Teste ${i + 1} · ${esc(x.tit)}</button>`).join("")}</div>
+          ${grupo("I", "Obras e autores", "book")}${grupo("II", "Gramática e leitura", "layers")}${grupo("III", "Escrita", "pen")}
+        </div>
+        <div class="wz-nav"><span class="wz-count">${w.tops.length ? `<b>${w.tops.length}</b> ${w.tops.length === 1 ? "tópico escolhido" : "tópicos escolhidos"}` : "Escolhe pelo menos 1 tópico"}</span><button type="button" class="btn btn-primary" data-act="wiz-next" ${w.tops.length ? "" : "disabled"}>Seguinte ${ic("arrow")}</button></div>`
+      : w.step === 2 ? `<div class="wz-body">
+          <p class="wz-q">Quanto tempo falta para o teste?</p>
+          <div class="wz-opts">${WZ_DIAS.map(([d, l]) => `<button type="button" data-act="wiz-dias" data-v="${d}" aria-pressed="${!w.data && w.dias === d}"><b>${d}</b><span>${l}</span></button>`).join("")}</div>
+          <label class="wz-date">Ou escolhe o dia: <input id="wz-data" type="date" min="${dkey(new Date())}" value="${esc(w.data)}"></label>
+          ${nDias != null ? `<p class="wz-info">${nDias <= 0 ? "O teste é <b>hoje</b>: vamos ao essencial." : `Faltam <b>${nDias} ${nDias === 1 ? "dia" : "dias"}</b> · ${cap(fdata(new Date(data + "T12:00:00")))}`}</p>` : ""}
+        </div>
+        <div class="wz-nav"><button type="button" class="btn btn-ghost" data-act="wiz-back">Voltar</button><button type="button" class="btn btn-primary" data-act="wiz-next" ${data ? "" : "disabled"}>Seguinte ${ic("arrow")}</button></div>`
+      : `<div class="wz-body">
+          <p class="wz-q">Quanto tempo consegues estudar por dia?</p>
+          <div class="wz-opts">${WZ_MIN.map((m) => `<button type="button" data-act="wiz-min" data-v="${m}" aria-pressed="${w.min === m}"><b>${m}</b><span>minutos</span></button>`).join("")}</div>
+          ${prev ? `<div class="wz-prev"><div><b>${prev.sessoes.length}</b><span>${prev.sessoes.length === 1 ? "sessão" : "sessões"}</span></div><div><b>${prev.tarefas.length}</b><span>tarefas</span></div><div><b>${Math.round(prev.tarefas.reduce((s, x) => s + x.min, 0) / 6) / 10} h</b><span>de estudo</span></div></div>
+            ${prev.cortadas.length ? `<p class="wz-warn">${ic("timer")} Com este tempo não cabe tudo: deixámos de fora ${prev.cortadas.map((x) => `«${esc(x.titulo)}»`).join(", ")}. Aumenta os minutos por dia para incluir.</p>` : `<p class="wz-info">${ic("check")} Cabe tudo: resumos, exercícios, treino e revisão na véspera.</p>`}` : ""}
+        </div>
+        <div class="wz-nav"><button type="button" class="btn btn-ghost" data-act="wiz-back">Voltar</button><button type="button" class="btn btn-yellow btn-lg" data-act="wiz-criar">${ic("sparkle")} Criar a minha preparação</button></div>`}
+    </section>`;
+  }
+  const wizRender = () => { const s = document.getElementById("tst-form"); if (s) s.outerHTML = wizHTML(st.testeAno || store.get("testeAno", "11.º")); };
+  function renderTestes() {
+    const ano = st.testeAno || store.get("testeAno", "11.º");
+    const regime = store.get("testeRegime", "per");
+    const T = store.get("teste", null);
+    const done = T ? T.done || {} : {};
+    const chipT = (id) => { const t = topicById(id); return t ? `<span class="tchip g-${t.grupo}">${esc(t.titulo)}</span>` : ""; };
+    const mapa = TESTES_MAPA[ano];
+    const grupos = regime === "sem" ? [1, 2].map((s) => ({ nome: SEM_NOME[s], itens: mapa.map((x, i) => ({ ...x, i })).filter((x) => (s === 1 ? x.p === 1 || (x.p === 2 && x.mes === "fevereiro") : !(x.p === 1 || (x.p === 2 && x.mes === "fevereiro")))) }))
+      : [1, 2, 3].map((p) => ({ nome: PER_NOME[p], itens: mapa.map((x, i) => ({ ...x, i })).filter((x) => x.p === p) }));
+    const meu = (() => {
+      if (!T) return "";
+      const P = testePlano(T), feitas = P.tarefas.filter((x) => done[x.id]).length, pct = Math.round((feitas / P.tarefas.length) * 100);
+      const quando = P.dias > 1 ? `Faltam <b>${P.dias} dias</b>` : P.dias === 1 ? "<b>É amanhã!</b>" : P.dias === 0 ? "<b>É hoje!</b> Boa sorte 🍀" : "Já passou";
+      const hojeK = dkey(new Date());
+      return `<section class="tst-meu rv">
+        <div class="tm-top"><div class="tm-cd"><b>${Math.max(0, P.dias)}</b><span>${P.dias === 1 ? "dia" : "dias"}</span></div>
+          <div class="tm-txt"><span class="lbl2">O meu próximo teste · ${esc(T.ano)} ano</span><h2>${esc(T.tit || "Teste de Português")}</h2>
+            <span>${quando} · ${cap(fdata(new Date(T.data + "T12:00:00")))} · ${P.min} min por dia</span>
+            ${P.cortadas.length ? `<span class="tm-cut">${ic("timer")} Por falta de tempo ficou de fora: ${P.cortadas.map((x) => esc(x.titulo)).join(", ")}.</span>` : ""}
+            <div class="tm-tops">${T.tops.map(chipT).join("")}</div></div>
+          <div class="tm-prog"><div class="ring big" style="--p:${pct}"><span>${pct}%<small>pronto</small></span></div></div></div>
+        <div class="tm-plan">${P.sessoes.map((s) => `<div class="tm-dia ${dkey(s.date) === hojeK ? "hoje" : ""}"><div class="ps-d"><small>${DIAS[s.date.getDay()]}</small><b>${s.date.getDate()}</b><span>${MESES[s.date.getMonth()]}</span></div>
+          <ul class="ps-l">${s.tasks.map((x) => `<li class="t-${x.tipo} ${done[x.id] ? "done" : ""}"><button type="button" class="tk" data-act="teste-done" data-id="${esc(x.id)}" aria-pressed="${!!done[x.id]}" aria-label="Marcar «${esc(x.titulo)}» como feito">${ic("check")}</button><a href="${x.href}"><span class="ps-ic">${ic(TIPO_IC[x.tipo] || "book")}</span><span class="ps-tx"><b>${esc(x.titulo)}</b><small>${x.min} min</small></span>${ic("arrow")}</a></li>`).join("")}</ul></div>`).join("")}</div>
+        <div class="tm-acts"><a class="btn btn-yellow" href="#treino">${ic("bolt")} Treino rápido agora</a><a class="btn btn-glass" href="#duvidas">${ic("sparkle")} Perguntar à IA</a><button class="btn btn-glass" type="button" data-act="teste-limpar">Apagar teste</button></div>
+      </section>`;
+    })();
+    app.innerHTML = `<div class="wrap tst" style="padding-bottom:60px">
+      <div class="page-head" style="margin-bottom:14px"><span class="eyebrow">${ic("compass", 'width="18" height="18"')} Plano de estudo</span></div>
+      ${planTabs("teste")}
+      <section class="tst-hero rv">${lince()}
+        <div><span class="lbl2">Testes da escola</span><h1>Tens teste de Português?</h1>
+          <p>Escolhe o teu ano, marca a data e a Nota20 faz-te um plano até ao dia do teste: resumos, exercícios e revisão na véspera.</p>
+          <div class="tst-anos" role="group" aria-label="Ano">${["10.º", "11.º", "12.º"].map((a) => `<button type="button" data-act="teste-ano" data-v="${a}" aria-pressed="${a === ano}">${a} ano</button>`).join("")}</div></div>
+      </section>
+      ${T ? meu + `<button type="button" class="btn btn-ghost tst-outro" data-act="wiz-novo">${ic("calendar")} Marcar outro teste</button>` + (st.wiz && st.wiz.aberto ? wizHTML(ano) : "") : wizHTML(ano)}
+      <div class="tst-reg"><h2>Os testes do ${ano} ano</h2>
+        <div class="tst-anos sm" role="group" aria-label="Organização da escola"><button type="button" data-act="teste-reg" data-v="per" aria-pressed="${regime === "per"}">3 períodos</button><button type="button" data-act="teste-reg" data-v="sem" aria-pressed="${regime === "sem"}">2 semestres</button></div></div>
+      <p class="muted small" style="font-weight:600;margin:-4px 0 14px">A ordem segue as planificações mais usadas. Cada escola tem a sua: se o teu professor seguir outra ordem, escolhe tu os tópicos acima.</p>
+      ${grupos.map((g) => `<section class="tst-per"><h3>${g.nome}</h3><div class="tst-grid">${g.itens.map((x) => `<article class="tst-card rv">
+          <div class="tc-hd"><span class="tc-n">Teste ${x.i + 1}</span><span class="tc-mes">${ic("calendar")} ${x.mes}</span></div>
+          <h4>${esc(x.tit)}</h4>
+          <div class="tm-tops">${x.tops.map(chipT).join("")}</div>
+          <button type="button" class="btn btn-primary btn-sm" data-act="teste-pick" data-i="${x.i}">${ic("target")} Preparar este teste</button>
+        </article>`).join("")}</div></section>`).join("")}
+    </div>`;
+  }
+
+  document.addEventListener("change", (ev) => {
+    if (!ev.target || ev.target.id !== "wz-data") return;
+    const w = wzState(); w.data = ev.target.value; w.dias = null; wizRender();
+  });
+
   /* ---------- Plano v2: painel, hoje em destaque, semana visual e próximas sessões ---------- */
   const PLANO_V2 = true;
   const TIPO_IC = { topico: "book", treino: "bolt", escrita: "pen", exame: "file", simulado: "timer", revisao: "layers" };
@@ -2059,6 +2233,7 @@
     const weekV2 = (w, i) => `<div class="pw"><h3>${wLabel(w, i)}<small>${w.sess.length} ${w.sess.length === 1 ? "sessão" : "sessões"} · ${w.sess.reduce((a, s) => a + s.tasks.length, 0)} tarefas</small></h3>${w.sess.map(sessV2).join("")}</div>`;
     return `<div class="wrap plan2" style="padding-bottom:60px">
       <div class="page-head"><span class="eyebrow">${ic("compass", 'width="18" height="18"')} Plano de estudo</span><h1>O teu plano até ao exame</h1></div>
+      ${planTabs("exame")}
       <section class="pl-hero rv">
         <div class="pl-main">
           <div class="ring big" style="--p:${pct}"><span>${pct}%<small>feito</small></span></div>
@@ -2070,6 +2245,7 @@
           <span class="pl-leg"><i class="l-ok"></i>estudaste <i class="l-est"></i>dia de estudo <i class="l-falhou"></i>falhaste</span></div>
         ${P.cabe ? "" : `<p class="plan-warn">${ic("timer")} Com este ritmo não acabas antes do exame. Aumenta o tempo por dia ou os dias de estudo em «Ajustar o plano».</p>`}
       </section>
+      ${store.get("teste", null) ? testeBanner() : ""}
       <div class="plan-layout">
         <div>
           <section class="pl-today rv">
@@ -2104,7 +2280,7 @@
     const head = `<div class="page-head"><span class="eyebrow">${ic("compass", 'width="18" height="18"')} Plano de estudo</span><h1>O teu plano até ao exame</h1>
       <p>Dizes quanto tempo tens e a Nota20 organiza tudo: o que estudar em cada dia, pela ordem dos tópicos mais prováveis, com treinos, textos, exames e simulados nas alturas certas.</p></div>`;
     if (!cfg) {
-      app.innerHTML = `<div class="wrap" style="padding-bottom:60px">${head}
+      app.innerHTML = `<div class="wrap" style="padding-bottom:60px">${head}${planTabs("exame")}
         <div class="plan-intro">${planFormHTML(null)}
           <div class="card plan-why rv"><h3>Como funciona</h3><ul class="how">
             <li><b>Ordem certa:</b> começas pelos tópicos mais prováveis de 2027 e pelo grupo que te custa mais.</li>
@@ -3304,6 +3480,41 @@
       case "paywall": { const tt = document.getElementById("toast"); if (tt) tt.remove(); openPaywall(a.dataset.r || "topico"); break; }
       case "promo-x": ssSet("n20:promo-x", "1"); renderPromo(); break;
       case "err-filter": st.errosFiltro = a.dataset.v; renderErros(); enhance(app); break;
+      case "teste-ano": { st.testeAno = a.dataset.v; store.set("testeAno", a.dataset.v); if (st.wiz) { st.wiz.tops = []; st.wiz.tit = ""; st.wiz.step = 1; } const y = window.scrollY; renderTestes(); enhance(app); window.scrollTo(0, y); break; }
+      case "teste-reg": { const y = window.scrollY; store.set("testeRegime", a.dataset.v); renderTestes(); enhance(app); window.scrollTo(0, y); break; }
+      case "teste-pick": case "wiz-sug": {
+        const ano = st.testeAno || store.get("testeAno", "11.º"), x = TESTES_MAPA[ano][+a.dataset.i];
+        if (!x) break;
+        const w = wzState(); w.tops = x.tops.slice(); w.tit = x.tit; w.aberto = true;
+        if (act === "teste-pick") { w.step = 2; if (!document.getElementById("tst-form")) { renderTestes(); enhance(app); } else wizRender(); document.getElementById("tst-form").scrollIntoView({ behavior: "smooth", block: "start" }); }
+        else wizRender();
+        break;
+      }
+      case "wiz-novo": { const w = wzState(); w.aberto = true; w.step = 1; w.tops = []; w.tit = ""; w.data = ""; w.dias = null; renderTestes(); enhance(app); document.getElementById("tst-form").scrollIntoView({ behavior: "smooth", block: "start" }); break; }
+      case "wiz-top": { const w = wzState(), id = a.dataset.id; w.tops = w.tops.includes(id) ? w.tops.filter((x) => x !== id) : w.tops.concat(id); w.tit = ""; wizRender(); break; }
+      case "wiz-dias": { const w = wzState(); w.dias = +a.dataset.v; w.data = ""; wizRender(); break; }
+      case "wiz-min": { const w = wzState(); w.min = +a.dataset.v; wizRender(); break; }
+      case "wiz-next": { const w = wzState(); w.step = Math.min(3, w.step + 1); wizRender(); document.getElementById("tst-form").scrollIntoView({ behavior: "smooth", block: "start" }); break; }
+      case "wiz-back": { const w = wzState(); w.step = Math.max(1, w.step - 1); wizRender(); break; }
+      case "wiz-criar": {
+        const w = wzState(), data = wzData(w), ano = st.testeAno || store.get("testeAno", "11.º");
+        if (!w.tops.length || !data) break;
+        const lit = w.tops.map(topicById).filter((t) => t && t.grupo === "I");
+        const tit = w.tit || (lit.length ? lit.map((t) => t.titulo).join(" e ") : (topicById(w.tops[0]) || {}).titulo) || "Teste de Português";
+        store.set("teste", { ano, data, tops: w.tops.slice(), tit, min: w.min, done: {} });
+        GC.event("teste-criado");
+        st.wiz = null;
+        renderTestes(); enhance(app); window.scrollTo({ top: 0, behavior: "smooth" });
+        const [x, y] = [innerWidth / 2, 200]; confetti(x, y, 26);
+        break;
+      }
+      case "teste-done": {
+        const T = store.get("teste", null); if (!T) break;
+        T.done = T.done || {}; T.done[a.dataset.id] = !T.done[a.dataset.id]; store.set("teste", T);
+        if (T.done[a.dataset.id]) { const [x, y] = centerOf(a); addXP(3, "teste:" + T.data + a.dataset.id, x, y); }
+        const y = window.scrollY; renderTestes(); enhance(app); window.scrollTo(0, y); break;
+      }
+      case "teste-limpar": store.set("teste", null); renderTestes(); enhance(app); break;
       case "ano": { const y = window.scrollY; st.ano = a.dataset.v; renderStudy(); enhance(app); window.scrollTo(0, y); break; }
       case "tr-sel": st.treinoSel[a.dataset.k] = a.dataset.k === "n" ? +a.dataset.v : a.dataset.v; renderTreino(); enhance(app); break;
       case "tr-start": startTreino(); break;
