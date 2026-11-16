@@ -991,14 +991,25 @@
     return { iniciar };
   })();
 
-  let routedOnce = false;
+  let routedOnce = false, routedOnce2 = false;
   function route() {
     const vt = routedOnce && !REDUCED && typeof document.startViewTransition === "function" && !document.hidden;
     routedOnce = true;
     if (vt) { try { document.startViewTransition(routeNow); return; } catch (e) { /* segue sem transição */ } }
     routeNow();
   }
+  /* quem já usa a app (conta, progresso ou app instalada) abre logo em Estudar; visitantes novos veem a página inicial */
+  function abrirEmEstudar() {
+    try {
+      if (store.get("xp", 0) > 0) return true;
+      if (window.matchMedia && matchMedia("(display-mode: standalone)").matches) return true;
+      for (let i = 0; i < localStorage.length; i++) if (/^sb-.*-auth-token$/.test(localStorage.key(i))) return true;
+    } catch (e) { /* sem acesso ao armazenamento */ }
+    return false;
+  }
   function routeNow() {
+    if (!routedOnce2 && !location.hash && abrirEmEstudar()) history.replaceState(history.state, "", location.pathname + location.search + "#estudar");
+    routedOnce2 = true;
     const h = decodeURIComponent(location.hash.slice(1)) || "inicio";
     GC.page(h);
     clearInterval(timerInt);
