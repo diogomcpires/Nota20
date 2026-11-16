@@ -2019,6 +2019,86 @@
       <button type="button" class="tk" data-act="plan-done" data-id="${esc(t.id)}" aria-pressed="${taskDone(t)}" aria-label="Marcar «${esc(t.titulo)}» como feito">${ic("check")}</button>
       <a href="${t.href}"><b>${esc(t.titulo)}</b><span>${esc(t.sub || "")} · ${t.min} min</span></a>
       ${t.lock ? `<span class="tl" title="Plano Completo">${ic("lock", 'width="16" height="16"')}</span>` : ""}<span class="tt ${t.tipo}">${TIPO[t.tipo]}</span>${hoje ? "" : ""}</li>`;
+  /* ---------- Plano v2: painel, hoje em destaque, semana visual e próximas sessões ---------- */
+  const PLANO_V2 = true;
+  const TIPO_IC = { topico: "book", treino: "bolt", escrita: "pen", exame: "file", simulado: "timer", revisao: "layers" };
+  const DIAS_C = ["D", "S", "T", "Q", "Q", "S", "S"];
+  function planoV2({ cfg, P, total, feitas, pct, hojeK, doneToday, first, isToday, hojeTasks, weeks, wLabel }) {
+    const hojeLista = isToday || doneToday.length ? hojeTasks : [];
+    const hFeitas = hojeLista.filter(taskDone).length, hMin = hojeLista.reduce((a, t) => a + t.min, 0);
+    const hPct = hojeLista.length ? Math.round((hFeitas / hojeLista.length) * 100) : 0;
+    const sq = streak();
+    const dias = cfg.dias.length;
+    const fracoTxt = { nenhum: "tudo igual", I: "Grupo I", II: "Grupo II", III: "Grupo III" }[cfg.fraco || "nenhum"];
+    /* semana atual, de segunda a domingo */
+    const seg = new Date(); seg.setHours(0, 0, 0, 0); seg.setDate(seg.getDate() - ((seg.getDay() + 6) % 7));
+    const strip = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(seg); d.setDate(seg.getDate() + i);
+      const k = dkey(d), passado = k < hojeK, eHoje = k === hojeK, estudo = cfg.dias.includes(d.getDay()), fez = st.days.includes(k);
+      const cls = fez ? "w-ok" : eHoje ? "w-hoje" : passado && estudo ? "w-falhou" : estudo ? "w-est" : "w-livre";
+      return `<span class="ws ${cls}" title="${cap(fdata(d))}${fez ? " · estudaste" : estudo ? " · dia de estudo" : " · folga"}"><small>${DIAS_C[d.getDay()]}</small><b>${d.getDate()}</b><i>${fez ? ic("check") : eHoje ? "hoje" : estudo ? "" : "folga"}</i></span>`;
+    }).join("");
+    const card = (t) => {
+      const ok = taskDone(t);
+      return `<li class="tk2 t-${t.tipo} ${ok ? "done" : ""}">
+        <span class="tk2-ic">${ic(TIPO_IC[t.tipo] || "book")}</span>
+        <div class="tk2-tx"><span class="tk2-tags"><span class="tt ${t.tipo}">${TIPO[t.tipo]}</span><span class="tk2-min">${ic("timer")} ${t.min} min</span>${t.lock ? `<span class="tk2-lk">${ic("lock")} Completo</span>` : ""}</span>
+          <b>${esc(t.titulo)}</b><span>${esc(t.sub || "")}</span></div>
+        <div class="tk2-bt"><a class="btn btn-sm ${ok ? "btn-ghost" : "btn-primary"}" href="${t.href}">${ok ? "Rever" : "Começar"} ${ic("arrow")}</a>
+          <button type="button" class="tk2-ok" data-act="plan-done" data-id="${esc(t.id)}" aria-pressed="${ok}">${ic("check")} ${ok ? "Feito" : "Marcar feito"}</button></div></li>`;
+    };
+    const proxima = first && !isToday ? first : null;
+    const hojeBloco = hojeLista.length
+      ? `${hFeitas === hojeLista.length ? `<div class="pl-win">${lince()}<div><b>Sessão de hoje concluída! 🎉</b><span>${hMin} minutos de estudo. Amanhã continuas, ou adianta já a próxima tarefa.</span></div>${P.sessions[isToday ? 1 : 0] ? `<a class="btn btn-yellow btn-sm" href="${P.sessions[isToday ? 1 : 0].tasks[0].href}">Adiantar ${ic("arrow")}</a>` : ""}</div>` : ""}
+        <ul class="tk2-list">${hojeLista.map(card).join("")}</ul>`
+      : `<div class="pl-folga">${lince()}<div><b>Hoje é dia de folga no teu plano.</b><span>${proxima ? `A próxima sessão é ${fdata(proxima.date)}. Se quiseres adiantar, começa já.` : "Não há tarefas por fazer."}</span></div></div>
+        ${proxima ? `<ul class="tk2-list">${proxima.tasks.map(card).join("")}</ul>` : ""}`;
+    const sessV2 = (s) => `<div class="ps t-${s.tasks[0] ? s.tasks[0].tipo : "topico"}"><div class="ps-d"><small>${DIAS[s.date.getDay()]}</small><b>${s.date.getDate()}</b><span>${MESES[s.date.getMonth()]}</span></div>
+      <ul class="ps-l">${s.tasks.map((t) => `<li class="t-${t.tipo} ${taskDone(t) ? "done" : ""}"><button type="button" class="tk" data-act="plan-done" data-id="${esc(t.id)}" aria-pressed="${taskDone(t)}" aria-label="Marcar «${esc(t.titulo)}» como feito">${ic("check")}</button><a href="${t.href}"><span class="ps-ic">${ic(TIPO_IC[t.tipo] || "book")}</span><span class="ps-tx"><b>${esc(t.titulo)}</b><small>${TIPO[t.tipo]} · ${t.min} min${t.lock ? " · Completo" : ""}</small></span>${ic("arrow")}</a></li>`).join("")}</ul>
+      <span class="ps-min">${s.tasks.reduce((a, t) => a + t.min, 0)} min</span></div>`;
+    const weekV2 = (w, i) => `<div class="pw"><h3>${wLabel(w, i)}<small>${w.sess.length} ${w.sess.length === 1 ? "sessão" : "sessões"} · ${w.sess.reduce((a, s) => a + s.tasks.length, 0)} tarefas</small></h3>${w.sess.map(sessV2).join("")}</div>`;
+    return `<div class="wrap plan2" style="padding-bottom:60px">
+      <div class="page-head"><span class="eyebrow">${ic("compass", 'width="18" height="18"')} Plano de estudo</span><h1>O teu plano até ao exame</h1></div>
+      <section class="pl-hero rv">
+        <div class="pl-main">
+          <div class="ring big" style="--p:${pct}"><span>${pct}%<small>feito</small></span></div>
+          <div class="pl-txt"><b>${feitas} de ${total} tarefas feitas</b>
+            <span>${P.last ? `Ao teu ritmo, acabas a matéria a <b>${fdata(P.last)}</b>.` : "Plano concluído. Agora é rever e treinar."}</span>
+            <div class="pl-chips">${diasExame() ? `<span>${ic("target")} Exame em ${diasExame()} dias</span>` : ""}<span>${icFill("flame")} ${sq} ${sq === 1 ? "dia seguido" : "dias seguidos"}</span><span>${ic("calendar")} ${dias} dias/semana</span><span>${ic("timer")} ${cfg.min} min/dia</span></div></div>
+        </div>
+        <div class="pl-week"><span class="lbl2">Esta semana</span><div class="wstrip">${strip}</div>
+          <span class="pl-leg"><i class="l-ok"></i>estudaste <i class="l-est"></i>dia de estudo <i class="l-falhou"></i>falhaste</span></div>
+        ${P.cabe ? "" : `<p class="plan-warn">${ic("timer")} Com este ritmo não acabas antes do exame. Aumenta o tempo por dia ou os dias de estudo em «Ajustar o plano».</p>`}
+      </section>
+      <div class="plan-layout">
+        <div>
+          <section class="pl-today rv">
+            <div class="pt-head"><div><span class="eyebrow">${ic("calendar", 'width="18" height="18"')} ${hojeLista.length ? "Hoje" : "Próxima sessão"}</span><h2>${cap(fdata(new Date()))}</h2></div>
+              ${hojeLista.length ? `<div class="pt-prog"><b>${hFeitas}/${hojeLista.length} feitas · ${hMin} min</b><span class="dom-bar"><i style="width:${hPct}%"></i></span></div>` : ""}</div>
+            ${hojeBloco}
+          </section>
+          <h2 class="pl-h2">Próximas sessões</h2>
+          ${weeks.slice(0, 2).map(weekV2).join("") || `<p class="muted" style="font-weight:700">Não há mais sessões. Acabaste o plano!</p>`}
+          ${weeks.length > 2 ? `<details class="all-weeks"><summary>Ver o plano completo (mais ${weeks.length - 2} semanas)</summary>${weeks.slice(2).map((w, i) => weekV2(w, i + 2)).join("")}</details>` : ""}
+        </div>
+        <aside class="aside">
+          <details class="card pl-adj rv"><summary><span><b>Ajustar o plano</b><small>${dias} dias · ${cfg.min} min · foco: ${fracoTxt}</small></span>${ic("arrow")}</summary>${planFormHTML(cfg).replace('class="card plan-form rv"', 'class="plan-form"').replace("<h3>Ajustar o plano</h3>", "")}</details>
+          <div class="card pl-side ps-azul rv"><span class="tile bg-blue">${ic("bell")}</span><h3>Lembretes</h3>
+            <p class="small muted" style="font-weight:600">Põe as sessões no calendário do telemóvel, com aviso 10 minutos antes.</p>
+            <label class="lbl" for="pl-hora">A que horas estudas?</label>
+            <select id="pl-hora">${["07:30", "13:00", "15:00", "17:00", "18:00", "19:00", "20:00", "21:00", "22:00"].map((h) => `<option ${(cfg.hora || "18:00") === h ? "selected" : ""}>${h}</option>`).join("")}</select>
+            <button class="btn btn-primary btn-sm" type="button" data-act="ics" style="margin-top:10px">${ic("calendar")} Adicionar ao calendário</button>
+            <p class="small muted" style="margin:8px 0 0">Google Calendar, Calendário do iPhone e Outlook.</p></div>
+          <div class="card pl-side ps-verde rv"><span class="tile bg-mint">${ic("chat")}</span><h3>Mostra aos teus pais</h3>
+            <p class="small muted" style="font-weight:600">Envia por WhatsApp o que já fizeste esta semana.</p>
+            <button class="btn btn-ghost btn-sm" type="button" data-act="share-progress">Enviar o progresso</button></div>
+          <div class="card rv" data-lead-wrap ${leadsOn() || store.get("lead", false) ? "" : "hidden"}><h3>${ic("mail", 'width="20" height="20" style="vertical-align:-4px"')} Dicas por email</h3>
+            <p class="small muted" style="font-weight:600">Uma dica por semana, até ao exame.</p><div data-lead-slot="plano">${leadHTML("plano")}</div></div>
+          ${installHTML()}
+        </aside>
+      </div>
+    </div>`;
+  }
   function renderPlano() {
     const cfg = st.plano;
     const head = `<div class="page-head"><span class="eyebrow">${ic("compass", 'width="18" height="18"')} Plano de estudo</span><h1>O teu plano até ao exame</h1>
@@ -2051,6 +2131,7 @@
     const wLabel = (w) => w.k === thisW ? "Esta semana" : w.k === nextW ? "Próxima semana" : `Semana de ${w.start.getDate()} ${MESES[w.start.getMonth()]}`;
     const sessHTML = (s) => `<div class="sess"><div class="sd">${fdata(s.date)}</div><ul class="tasks">${s.tasks.map((t) => taskRow(t)).join("")}</ul></div>`;
     const weekHTML = (w, i) => `<div class="week"><h3>${wLabel(w, i)}</h3>${w.sess.map(sessHTML).join("")}</div>`;
+    if (PLANO_V2) { app.innerHTML = planoV2({ cfg, P, total, feitas, pct, hojeK, doneToday, first, isToday, hojeTasks, weeks, wLabel }); return; }
     app.innerHTML = `<div class="wrap" style="padding-bottom:60px">${head}
       <div class="plan-top rv">
         <div class="plan-prog"><div class="ring" style="--p:${pct}"><span>${pct}%</span></div>
