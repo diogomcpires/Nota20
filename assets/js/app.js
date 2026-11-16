@@ -259,6 +259,32 @@
       <div class="card" style="margin:14px 0"><b>Pack de IA · ${esc(C.PACK_PRECO || "4,99 €")}</b><p class="muted" style="margin:6px 0 0;font-weight:600">+100 perguntas ao explicador e +20 correções, sem prazo. Podes escolher mais do que um pack no pagamento.</p></div>
       <a class="btn btn-primary btn-shine" href="${esc(packHref())}" rel="noopener" data-pack>Comprar pack de IA · ${esc(C.PACK_PRECO || "4,99 €")}</a>`);
   }
+  /* bloco «IA da Nota20» com atalhos e o pack de IA (início, Estudar, Dúvidas, Preços) */
+  function packLinha(cls = "") {
+    if (!C.PACK_LINK || !unlocked()) return "";
+    return `<a class="pack-line ${cls}" href="${esc(packHref())}" rel="noopener" data-pack>${ic("bolt")}<span><b>Pack de IA · ${esc(C.PACK_PRECO || "4,99 €")}</b> +100 perguntas e +20 correções, sem prazo</span><span class="pl-btn">Comprar ${ic("arrow")}</span></a>`;
+  }
+  /* convite ao pack de IA depois de usar a IA: no máximo 1 vez por dia, só a quem já tem o plano Completo
+     (no plano grátis, o limite leva ao ecrã do plano Completo) */
+  let iaUsosSessao = 0;
+  function packNudge(tipo) {
+    if (!C.PACK_LINK || !unlocked()) return;
+    iaUsosSessao++;
+    if (tipo === "explicador" && iaUsosSessao < 3) return;
+    if (store.get("packNudge", "") === today()) return;
+    store.set("packNudge", today());
+    GC.event("pack-nudge-" + tipo);
+    setTimeout(() => toast(`<span class="tl">${lince()}</span><div><b>${tipo === "correcao" ? "Gostaste da correção?" : "A IA está a ajudar-te?"}</b><span>Com o pack de IA tens +100 perguntas e +20 correções, sem prazo, por ${esc(C.PACK_PRECO || "4,99 €")}.</span><a class="btn btn-yellow btn-sm" href="${esc(packHref())}" rel="noopener" data-pack style="margin-top:8px">Ver pack de IA ${ic("arrow")}</a></div>`, 12000), 1200);
+  }
+  function iaBand(onde) {
+    return `<div class="ia-band rv" data-onde="${onde}">
+      <div class="ia-txt"><span class="ia-tag">${ic("sparkle")} IA da Nota20</span>
+        <b>Tens uma dúvida? Pergunta ao Lince. Escreveste um texto? A IA corrige-o.</b>
+        <span>Explicador a qualquer hora e correção do texto pelos critérios do IAVE, com nota e o que melhorar.</span></div>
+      <div class="ia-btns"><a class="btn btn-yellow btn-sm" href="#duvidas">${ic("chat")} Perguntar à IA</a><a class="btn btn-glass btn-sm" href="#t-texto-opiniao/exercicios">${ic("pen")} Corrigir um texto</a></div>
+      ${packLinha("on-dark")}
+    </div>`;
+  }
   /* link de pagamento com a conta: a Stripe devolve o id e o email no webhook */
   function payHref() {
     if (!C.PAYMENT_LINK) return "#precos";
@@ -948,6 +974,7 @@
       if (item.tipo === "texto" && r) { st.g3 = st.g3.concat(scoreTexto(r, n).total / 44).slice(-5); store.set("g3", st.g3); }
       consume("correcao");
       const [x, y] = centerOf(btn); addXP(5, "ai:" + key, x, y - 20);
+      packNudge("correcao");
     } catch (e) {
       slot.innerHTML = `<div class="fb info">${erroIA(e, "correcao") || "Não foi possível corrigir agora. Tenta de novo ou vê a proposta de resolução."}</div>`;
     } finally { btn.disabled = false; }
@@ -1056,6 +1083,7 @@
             <svg class="squiggle" viewBox="0 0 420 18" preserveAspectRatio="none" aria-hidden="true"><path d="M4 12 C 60 2, 110 18, 170 9 S 290 2, 416 10"/></svg></h1>
           <p class="lead">Diz-nos quanto tempo tens e recebes um <b>plano de estudo dia a dia</b> até ao exame: resumos, ${nExercicios} exercícios com resolução, <b>${REAL.length} exames nacionais resolvidos</b>, simulados com tempo e um explicador para as dúvidas.</p>
           ${madeBy("hero-made")}
+          <a class="hero-ia" href="#duvidas"><span class="hi-ic">${ic("sparkle")}</span><span><b>Com IA:</b> o Lince tira-te dúvidas a qualquer hora e corrige os teus textos pelos critérios do IAVE.</span><span class="hi-btn">Experimentar ${ic("arrow")}</span></a>
           <div class="row">
             <a class="btn btn-primary btn-shine" href="#plano">Cria o teu plano de estudo ${ic("arrow")}</a>
             <a class="btn btn-ghost" href="#provaveis"><span style="color:var(--coral)">${icFill("flame")}</span> Tópicos prováveis 2027</a>
@@ -1069,13 +1097,13 @@
             ${G ? `<span><span style="color:var(--mint)">${ic("shield")}</span>Garantia de ${G} dias</span>` : ""}
           </div>
         </div>
-        <div class="stage" aria-hidden="true">
-          <div class="orbit"><i>${ic("book")}</i><i>${ic("pen")}</i><i>${ic("trophy")}</i><i>${ic("star")}</i></div>
+        <div class="stage">
+          <div class="orbit"><a href="#estudar" aria-label="Estudar os tópicos" data-tip="Tópicos">${ic("book")}</a><a href="#t-texto-opiniao/exercicios" aria-label="Escrever e corrigir um texto" data-tip="Escrita">${ic("pen")}</a><a href="#simulado" aria-label="Fazer um simulado" data-tip="Simulado">${ic("trophy")}</a><a href="#provaveis" aria-label="Tópicos prováveis 2027" data-tip="2027">${ic("star")}</a></div>
           <div class="blob"></div>
           ${lince()}
-          <div class="fcard blue a"><span class="ic bg-yellow" style="color:#3a2a00">${icFill("bolt")}</span><div>+13 pontos<small>resposta certa</small></div></div>
-          <div class="fcard b"><span class="ic bg-violet">${ic("sparkle")}</span><div>Explicador IA<small>tira dúvidas já</small></div></div>
-          <div class="fcard c"><span class="ic bg-coral">${icFill("flame")}</span><div>Dias seguidos<small>não quebres a sequência</small></div></div>
+          <a class="fcard blue a" href="#desafio"><span class="ic bg-yellow" style="color:#3a2a00">${icFill("bolt")}</span><div>Desafio do dia<small>5 perguntas · ganha pontos</small></div>${ic("arrow")}</a>
+          <a class="fcard b" href="#duvidas"><span class="ic bg-violet">${ic("sparkle")}</span><div>Explicador IA<small>pergunta já</small></div>${ic("arrow")}</a>
+          <a class="fcard c" href="#treino"><span class="ic bg-coral">${icFill("flame")}</span><div>Treino rápido<small>não quebres a sequência</small></div>${ic("arrow")}</a>
         </div>
       </div>
     </section>
@@ -1426,6 +1454,7 @@
       <p>Organizados pelos grupos da prova ${C.PROVA}.</p></div>
       ${streakWarnHTML()}
       ${continuaHTML()}
+      ${iaBand("estudar")}
       ${fracoHTML()}
       ${!unlocked() && PARC.length ? `<a class="parc-band rv" href="#parcerias"><span class="tile bg-violet">${icFill("star")}</span><span><b>Códigos de desconto dos parceiros</b><span>Poupa ${esc(PARC_DESC || "no preço")} no plano Completo com o código de um criador.</span></span>${ic("arrow")}</a>` : ""}
       <div class="filters" role="group" aria-label="Filtrar por grupo">
@@ -1435,12 +1464,15 @@
         const ts = TOPICS.filter((t) => t.grupo === g);
         const done = ts.filter((t) => st.studied.has(t.id)).length;
         const pct = Math.round((done / ts.length) * 100);
+        const anos = ["10.º", "11.º", "12.º"], fa = st.ano || "todos";
         const inner = g === "I"
-          ? ["10.º", "11.º", "12.º"].map((a) => `<span class="year-label">${a} ano</span><div class="grid grid-3">${ts.filter((t) => t.ano === a).map(topicCard).join("")}</div>`).join("")
+          ? `<div class="year-tabs" role="group" aria-label="Filtrar por ano">${[["todos", "Todos"], ...anos.map((a) => [a, a + " ano"])].map(([v, l]) => `<button type="button" data-act="ano" data-v="${v}" aria-pressed="${fa === v}">${l}${v === "todos" ? "" : ` <small>${ts.filter((t) => t.ano === v).length}</small>`}</button>`).join("")}</div>`
+            + anos.filter((a) => fa === "todos" || fa === a).map((a) => `${fa === "todos" ? `<span class="year-label">${a} ano</span>` : ""}<div class="grid grid-3">${ts.filter((t) => t.ano === a).map(topicCard).join("")}</div>`).join("")
           : `<div class="grid grid-3">${ts.map(topicCard).join("")}</div>`;
+        const comec = ts.filter((t) => st.studied.has(t.id) || dominio(t).n).length;
         return `<section class="group-block g-${g}">
-          <div class="group-title"><div class="gt"><span class="gi">${ic(GRUPOS[g].icon)}</span><div><h2>${GRUPOS[g].nome}</h2><span class="muted" style="font-weight:700">${GRUPOS[g].desc}</span></div></div>
-            <div class="ring" style="--p:${pct}" title="${done} de ${ts.length} estudados"><span>${pct}%</span></div></div>
+          <div class="group-title gt2"><div class="gt"><span class="gi">${g}</span><div><h2>${GRUPOS[g].nome} · ${GRUPOS[g].desc}</h2><span class="gsub">${ts.length} tópicos · ${comec} começados · ${done} estudados</span></div></div>
+            <div class="gprog" title="${done} de ${ts.length} estudados"><b>${pct}% do grupo</b><span class="dom-bar"><i style="width:${pct}%"></i></span></div></div>
           ${inner}</section>${g === "I" && f === "todos" ? upsellHTML("estudar") : ""}`;
       }).join("")}
       <h2 class="mais-h">O teu progresso e mais ferramentas</h2>
@@ -1484,16 +1516,38 @@
       <div><b>${txt[0]}</b><span>${txt[1]}</span><span class="up-p"><b>${esc(C.PRECO)}</b> · pagamento único${G ? ` · garantia de ${G} dias` : ""}</span></div>
       <a class="btn btn-primary btn-sm" href="#precos" data-up="${onde}">Ver plano Completo ${ic("arrow")}</a></div>`;
   }
+  /* iniciais do tópico para o bloco de cor (OM, PV, FL…) */
+  const PEQ = new Set(["de", "da", "do", "das", "dos", "e", "a", "o", "as", "os", "na", "no", "em"]);
+  function iniciais(tit) {
+    const p = String(tit).replace(/[«»"().,:]/g, " ").split(/\s+/).filter((w) => w && !PEQ.has(w.toLowerCase()));
+    return ((p[0] || "?")[0] + (p[1] ? p[1][0] : (p[0] || "").slice(1, 2))).toUpperCase();
+  }
+  const minLeitura = (t) => { const m = MAT(t); const txt = String(t.resumo || "") + " " + (m ? JSON.stringify(m) : ""); return Math.max(2, Math.round(txt.replace(/<[^>]+>|\\n/g, " ").split(/\s+/).filter(Boolean).length / 200)); };
   function topicCard(t) {
-    const done = st.studied.has(t.id);
-    return `<a class="topic-card g-${t.grupo} rv ${done ? "done" : ""}" href="#t-${t.id}">
-      ${done ? `<span class="tick">${ic("check")}</span>` : ""}
-      ${canOpen(t) ? "" : `<span class="lock" title="Plano Completo">${ic("lock", 'width="18" height="18"')}</span>`}
-      <span class="ti">${ic(GRUPOS[t.grupo].icon)}</span>
-      <span><h3>${esc(t.titulo)}</h3><span class="sub">${esc(t.subtitulo)}</span>
-      <span class="meta">${hotChip(t)}${t.free ? '<span class="chip free">Grátis</span>' : (canOpen(t) ? "" : '<span class="chip pro">Pré-visualização</span>')}<span class="chip">${t.exercicios.length} exercícios</span></span>${domHTML(t)}</span>
-      <span class="go" aria-hidden="true">${ic("arrow")}</span>
-    </a>`;
+    const done = st.studied.has(t.id), open = canOpen(t), d = dominio(t);
+    const pct = d.tot ? Math.round((d.ok / d.tot) * 100) : 0;
+    const dominado = d.tot && d.ok >= d.tot;
+    const comecou = done || d.n > 0;
+    const anoChip = t.ano ? `<span class="chip ano">${esc(t.ano)} ano</span>` : "";
+    const tag = !open ? '<span class="chip pro">' + ic("lock") + " Completo</span>" : (t.free ? '<span class="chip free">Grátis</span>' : "");
+    const estado = dominado ? `${d.ok}/${d.tot} certas · dominado` : d.n ? `${d.ok}/${d.tot} certas` : done ? "Resumo lido" : "Ainda não começaste";
+    const cta = !open ? "Ver" : dominado ? "Rever" : comecou ? "Continuar" : "Começar";
+    const ctaCls = !open ? "c-lock" : dominado ? "c-rev" : comecou ? "c-cont" : "c-new";
+    const u = `#t-${t.id}`;
+    return `<div class="topic-card tc2 g-${t.grupo} rv ${done ? "done" : ""} ${dominado ? "dom-ok" : ""}">
+      <div class="tc-top"><span class="ti" aria-hidden="true">${lince("mini")}</span>
+        <div class="tc-h"><h3><a class="tc-link" href="${u}">${esc(t.titulo)}</a></h3><span class="sub">${esc(t.subtitulo)}</span>
+        <span class="meta">${anoChip}${hotChip(t)}${tag}</span></div>
+        <span class="tc-st">${done ? ic("check") + " Estudado" : comecou ? "Em curso" : "Novo"}</span></div>
+      <div class="tc-stats"><span><b>${t.exercicios.length}</b>exercícios</span><span><b>${minLeitura(t)} min</b>de resumo</span><span><b>${(t.pontos || []).length || "—"}</b>pontos-chave</span></div>
+      <div class="tc-prog"><span class="dom-bar"><i style="width:${pct}%"></i></span><span class="dom-n ${d.n ? "on" : ""}">${estado}</span></div>
+      <div class="tc-acts">
+        <a class="tc-b b-res" href="${u}/resumo">${ic("book")} Ler resumo</a>
+        <a class="tc-b b-ex" href="${u}/exercicios">${ic("pen")} Fazer exercícios</a>
+        <a class="tc-b b-ia" href="#duvidas">${ic("sparkle")} Perguntar à IA</a>
+      </div>
+      <a class="tc-cta ${ctaCls}" href="${u}">${cta === "Ver" ? "Ver tópico completo" : cta} ${ic(open ? "arrow" : "lock")}</a>
+    </div>`;
   }
 
   function hotChip(t) {
@@ -1560,7 +1614,7 @@
       <span class="crumbs"><a href="#estudar">Estudar</a> / ${g.nome} · ${g.desc}${t.ano ? " · " + t.ano + " ano" : ""}</span>
       <h1>${esc(t.titulo)}</h1><p>${esc(t.subtitulo)}</p>
       <div class="toc">${t.free ? '<span class="chip free">Grátis</span>' : ""}${hotChip(t)}<a href="#t-${t.id}" data-jump="resumo">Resumo</a><a href="#t-${t.id}" data-jump="pontos">Pontos-chave</a><a href="#t-${t.id}" data-jump="no-exame">No exame</a><a href="#t-${t.id}" data-jump="exercicios">${t.exercicios.length} exercícios</a></div>
-      <div class="banner-btns">${MAT(t) ? `<a class="btn btn-yellow btn-sm mat-btn" href="#m-${t.id}">📚 Matéria completa</a>` : ""}${TTS_OK && canOpen(t) ? `<button class="btn btn-glass btn-sm tts-btn" type="button" data-act="tts" data-id="${t.id}">${ic("volume")}<span>Ouvir o resumo</span></button>` : ""}</div>
+      <div class="banner-btns"><a class="btn btn-glass btn-sm" href="#duvidas">${ic("sparkle")}<span>Perguntar à IA</span></a>${MAT(t) ?`<a class="btn btn-yellow btn-sm mat-btn" href="#m-${t.id}">📚 Matéria completa</a>` : ""}${TTS_OK && canOpen(t) ? `<button class="btn btn-glass btn-sm tts-btn" type="button" data-act="tts" data-id="${t.id}">${ic("volume")}<span>Ouvir o resumo</span></button>` : ""}</div>
     </div>`;
     const full = canOpen(t);
     const done = st.studied.has(t.id);
@@ -2503,6 +2557,7 @@
       <div class="tutor-head">${lince()}<div><h3 style="margin:0">Lince, o teu explicador</h3>
         <span class="${ready ? "on" : "muted"}" style="font-weight:700">${ready ? "Online · responde na hora" : (pending ? "A ligar…" : "Indisponível nesta versão")}</span>
         <p class="small muted" style="margin:4px 0 0;font-weight:600">Gramática, obras, escrita ou como responder a um item. Confirma sempre com os resumos.</p></div></div>
+      ${packLinha()}
       ${pending ? `<div class="empty"><span class="typing"><i></i><i></i><i></i></span> A ligar o explicador…</div>` : ""}
       ${!pending && !ready ? `<div class="empty"><span>O explicador ainda não está ligado nesta versão. Enquanto isso, encontras as respostas mais pedidas nos <a href="#estudar">tópicos</a>.</span></div>` : ""}
       ${ready ? `<div class="chat">
@@ -2537,6 +2592,7 @@
       st.chat.push({ role: "assistant", content: full });
       consume("explicador");
       addXP(2, null);
+      packNudge("explicador");
     } catch (e) {
       st.chat.push({ role: "assistant", content: erroIA(e, "explicador") || "Não consegui responder agora. Tenta de novo." });
     }
@@ -3158,6 +3214,7 @@
       case "paywall": { const tt = document.getElementById("toast"); if (tt) tt.remove(); openPaywall(a.dataset.r || "topico"); break; }
       case "promo-x": ssSet("n20:promo-x", "1"); renderPromo(); break;
       case "err-filter": st.errosFiltro = a.dataset.v; renderErros(); enhance(app); break;
+      case "ano": { const y = window.scrollY; st.ano = a.dataset.v; renderStudy(); enhance(app); window.scrollTo(0, y); break; }
       case "tr-sel": st.treinoSel[a.dataset.k] = a.dataset.k === "n" ? +a.dataset.v : a.dataset.v; renderTreino(); enhance(app); break;
       case "tr-start": startTreino(); break;
       case "tr-again": startTreino(); break;
