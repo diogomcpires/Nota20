@@ -2276,3 +2276,26 @@ body.has-side #ia-fab { right: 24px; }
   body.has-side .top-goal:not([hidden]) { min-width: 0; }
 }
 @media (min-width: 1100px) and (max-width: 1599px) { body.has-side .top-search { margin-left: 18px; } body.has-side .top-search kbd { display: none; } }
+/* v4.3 · upgrade / pack de IA na barra de cima, no menu e no Lince flutuante */
+#top-up[hidden] { display: none !important; }
+@media (min-width: 900px) {
+  body.has-side .top-up { background: linear-gradient(120deg, #ff9a3d, #ff6a1f); color: #fff; box-shadow: 0 3px 0 #c4520a; position: relative; overflow: hidden; }
+  body.has-side .top-up svg { color: #ffe27a; }
+  body.has-side .top-up::after { content: ""; position: absolute; top: 0; bottom: 0; width: 40%; left: -60%; background: linear-gradient(100deg, transparent, rgba(255,255,255,.45), transparent); animation: tuShine 4.5s ease-in-out infinite; }
+}
+@keyframes tuShine { 0%, 70% { left: -60%; } 100% { left: 130%; } }
+@media (prefers-reduced-motion: reduce) { .top-up::after { animation: none !important; display: none; } }
+@media (max-width: 899px) {
+  .top-up:not([hidden]) { display: inline-flex; align-items: center; gap: 5px; margin-left: auto; margin-right: 6px; padding: 6px 10px; border-radius: 11px; text-decoration: none; font-weight: 800; font-size: 0.8rem; white-space: nowrap; background: linear-gradient(120deg, #ff9a3d, #ff6a1f); color: #fff; box-shadow: 0 3px 0 #c4520a; }
+  .top-up svg { width: 15px; height: 15px; color: #ffe27a; flex: none; }
+  .top-up .lg { display: none; } .top-up .sh { display: inline; }
+  .top-up:not([hidden]) ~ .xp-chip, .top-up:not([hidden]) ~ .srch-chip { margin-left: 0; }
+  body.promo-home .top-up { display: none !important; }
+}
+@media (max-width: 359px) { .top-up .sh { display: none; } .top-up:not([hidden]) { padding: 6px 8px; } }
+#side-nav .sn-up.is-pack { background: linear-gradient(120deg, #fff0e2, #ffe1c4); border-color: #ff9a3d; }
+#side-nav .sn-up.is-pack .sn-ic { background: #ff8a2a; color: #fff; }
+.fab-pop .fp-pack { display: flex; align-items: center; gap: 10px; margin-top: 6px; padding: 10px 12px; border-radius: 14px; text-decoration: none; color: #3a2a00; background: linear-gradient(120deg, #fff4d6, #ffe1c4); border: 2px solid #ffc72c; }
+.fab-pop .fp-pack > svg:first-child { width: 20px; height: 20px; color: #ff7a1a; flex: none; }
+.fab-pop .fp-pack span { display: grid; flex: 1; line-height: 1.2; } .fab-pop .fp-pack b { font-size: 0.88rem; } .fab-pop .fp-pack small { font-size: 0.74rem; font-weight: 600; color: var(--muted); }
+.fab-pop .fp-pack > svg:last-child { width: 16px; height: 16px; flex: none; }

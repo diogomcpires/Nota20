@@ -24,9 +24,22 @@
       s.onload = flush; document.head.appendChild(s);
     }
     const send = (o) => { if (!on) return; q.push(o); flush(); };
+    /* PostHog (UE): funis, onde as pessoas saem e gravações das sessões. Memória só da página: sem cookies nem localStorage. */
+    const phKey = String(C.POSTHOG_KEY || "").trim();
+    const ph = phKey && !C.MODO_DEMO && /^https?:$/.test(location.protocol) && !/claude|localhost|127\.0\.0\.1/.test(location.hostname);
+    if (ph) {
+      const P = (window.posthog = []); P._i = []; P.__SV = 1;
+      P.init = (k, c, n) => { P._i.push([k, c, n]); };
+      ["capture", "register", "register_for_session", "identify", "reset", "startSessionRecording", "stopSessionRecording", "set_config"].forEach((m) => { P[m] = (...a) => { P.push([m, ...a]); }; });
+      P.init(phKey, { api_host: C.POSTHOG_HOST || "https://eu.i.posthog.com", persistence: "memory", person_profiles: "identified_only", capture_pageview: false, capture_pageleave: true, autocapture: true, disable_surveys: true, session_recording: { maskAllInputs: true, maskTextSelector: ".chat-msg, textarea" } });
+      const s = document.createElement("script"); s.async = true; s.crossOrigin = "anonymous";
+      s.src = (C.POSTHOG_HOST || "https://eu.i.posthog.com").replace(".i.posthog.com", "-assets.i.posthog.com") + "/static/array.js";
+      document.head.appendChild(s);
+    }
+    const phc = (n, p) => { if (ph && window.posthog && window.posthog.capture) try { window.posthog.capture(n, p); } catch (e) {} };
     return {
-      page: (h) => send({ path: "/" + (String(h || "inicio").split("/")[0] || "inicio") }),
-      event: (name) => send({ path: name, title: name, event: true })
+      page: (h) => { send({ path: "/" + (String(h || "inicio").split("/")[0] || "inicio") }); phc("$pageview", { $current_url: location.href, pagina: String(h || "inicio").split("/")[0] || "inicio" }); },
+      event: (name) => { send({ path: name, title: name, event: true }); phc(name); }
     };
   })();
   let SIM = SIMS[0];
@@ -2295,6 +2308,8 @@
     ];
     return `<div class="fp-h">${lince()}<div><b>Olá! Sou o Lince.</b><small>${t ? `Estás em ${esc(t.titulo)}.` : "Em que te posso ajudar?"}</small></div></div>
       ${ops.map(([i, l, p]) => `<button type="button" data-act="fab-go" data-p="${esc(p)}">${ic(i)}<span>${l}</span>${ic("arrow")}</button>`).join("")}
+      ${unlocked() ? (C.PACK_LINK ? `<a class="fp-pack" href="${esc(packHref())}" rel="noopener" data-pack>${icFill("bolt")}<span><b>Pack de IA · ${esc(C.PACK_PRECO || "4,99 €")}</b><small>+100 perguntas e +20 correções</small></span>${ic("arrow")}</a>` : "")
+        : `<a class="fp-pack" href="#precos">${icFill("bolt")}<span><b>Muito mais IA no plano Completo</b><small>${esc(C.PRECO)} · pagamento único</small></span>${ic("arrow")}</a>`}
       <p class="fp-note">A IA pode enganar-se: confirma com os resumos.</p>`;
   }
 
@@ -2335,6 +2350,16 @@
       go.innerHTML = `<span class="tg-t">${x >= META_DIA ? "Meta de hoje cumprida!" : `Meta de hoje · <b>${x}/${META_DIA} XP</b>`}</span><span class="tg-bar"><i style="width:${p}%"></i></span>`;
     }
     const pc = document.getElementById("top-parc");
+    const tu = document.getElementById("top-up");
+    if (tu) {
+      const pk = unlocked();
+      tu.hidden = pk && !C.PACK_LINK;
+      tu.classList.toggle("is-pack", pk);
+      if (pk) { tu.href = packHref(); tu.setAttribute("data-pack", ""); tu.setAttribute("rel", "noopener"); tu.removeAttribute("data-act"); }
+      else { tu.href = "#precos"; tu.removeAttribute("data-pack"); }
+      tu.querySelector(".lg").innerHTML = pk ? `Pack de IA · ${esc(C.PACK_PRECO || "4,99 €")}` : "Plano Completo";
+      tu.querySelector(".sh").textContent = pk ? "+IA" : "Upgrade";
+    }
     if (pc) { pc.hidden = unlocked() || !PARC.length; const d = String(PARC_DESC || "").replace(/^[−-]/, ""); if (d) { pc.querySelector(".lg").textContent = `Códigos −${d}`; pc.querySelector(".sh").textContent = `−${d}`; } }
     const me = document.querySelector("#side-nav .sn-me");
     if (me) { const nv = level(), pr = st.xp % 100; me.innerHTML = `${lince()}<div><b>Nível ${nv}</b><small>${st.xp} XP · ${streak()} ${streak() === 1 ? "dia seguido" : "dias seguidos"}</small><span class="sn-lv"><i style="width:${pr}%"></i></span></div>`; }
@@ -2354,7 +2379,14 @@
     s.querySelectorAll("[data-side]").forEach((a) => a.toggleAttribute("aria-current", a.dataset.side === key));
     const T = store.get("teste", null), dot = s.querySelector(".sn-dot");
     if (dot) { const d = T ? Math.round((new Date(T.data + "T00:00:00") - new Date(dkey(new Date()) + "T00:00:00")) / 864e5) : -1; dot.hidden = !(d >= 0); dot.textContent = d >= 0 ? d : ""; }
-    const up = s.querySelector(".sn-up"); if (up) up.hidden = unlocked();
+    const up = s.querySelector(".sn-up");
+    if (up) {
+      const pk = unlocked();
+      up.hidden = pk && !C.PACK_LINK;
+      up.classList.toggle("is-pack", pk);
+      if (pk && C.PACK_LINK) { up.href = packHref(); up.setAttribute("data-pack", ""); up.setAttribute("rel", "noopener"); up.innerHTML = `<span class="sn-ic">${icFill("bolt")}</span><span><b>Pack de IA · ${esc(C.PACK_PRECO || "4,99 €")}</b><small>+100 perguntas e +20 correções</small></span>`; }
+      else if (!pk) { up.href = "#precos"; up.removeAttribute("data-pack"); up.innerHTML = `<span class="sn-ic">${icFill("bolt")}</span><span><b>Plano Completo</b><small>Desbloqueia tudo</small></span>`; }
+    }
   }
 
   /* ---------- Plano v2: painel, hoje em destaque, semana visual e próximas sessões ---------- */
@@ -2646,6 +2678,7 @@
           <li><b>Compra</b>: nome, email e dados do pagamento são tratados pela Stripe e por nós para ativar o acesso e emitir a fatura (obrigação legal). As faturas são guardadas durante o prazo legal.</li>
           <li><b>Perguntas ao explicador</b>: são enviadas a um fornecedor de inteligência artificial só para gerar a resposta.</li>
           ${C.GOATCOUNTER ? `<li><b>Estatísticas de visitas</b>: contamos as visitas e algumas ações (por exemplo, criar um plano) de forma anónima, com o GoatCounter. Não usamos cookies nem guardamos o teu IP.</li>` : ""}
+          ${C.POSTHOG_KEY ? `<li><b>Melhorar a app</b>: usamos o PostHog (servidores na União Europeia) para perceber como a app é usada: que páginas abres, onde clicas e onde desistes, incluindo gravações anónimas do ecrã em que o que escreves fica escondido. Não usa cookies nem guarda nada no teu dispositivo, e não liga estes dados ao teu nome ou email.</li>` : ""}
         </ul>
         <p>Versão completa e atualizada: <a href="privacidade/">nota20app.pt/privacidade</a>. Se entrares com a Google, recebemos só o teu nome, email e fotografia de perfil.</p>
         <p>Não usamos cookies de publicidade nem de análise. Não vendemos nem partilhamos os teus dados para marketing. Podes pedir acesso, correção ou apagamento dos teus dados por email, e apresentar queixa à <a href="https://www.cnpd.pt" target="_blank" rel="noopener">CNPD</a>.</p></section>
