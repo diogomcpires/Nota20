@@ -224,8 +224,16 @@
       user = null; perfil = null;
       if (store.get("unlockedConta", false)) { st.unlocked = false; store.set("unlocked", false); store.set("unlockedConta", false); }
     }
+    /* ranking semanal: só alcunha, escola e XP da semana (quem aderiu) */
+    async function rankEnviar(r) {
+      if (!user) return;
+      await cliente();
+      const { error } = await sb.from("ranking_semana").upsert({ user_id: user.id, semana: r.semana, xp: r.xp, nome: r.nome, escola: r.escola || null, atualizado_em: new Date().toISOString() }, { onConflict: "user_id,semana" });
+      if (error) throw error;
+    }
+    async function rankSair() { if (!user) return; await cliente(); await sb.from("ranking_semana").delete().eq("user_id", user.id); }
     window.addEventListener("pagehide", () => { if (user) enviar().catch(() => {}); });
-    return { on, ia, lead, avaliar, rpc, contador, arranque, verificarPagamento, pedirCodigo, confirmarCodigo, entrarGoogle, sair, apagar, agendar, enviar,
+    return { on, ia, lead, avaliar, rpc, rankEnviar, rankSair, contador, arranque, verificarPagamento, pedirCodigo, confirmarCodigo, entrarGoogle, sair, apagar, agendar, enviar,
       get voltouGoogle() { return voltouGoogle; },
       get user() { return user; }, get perfil() { return perfil; }, get ultima() { return ultima; } };
   })();
@@ -563,6 +571,8 @@
   function addXP(n, key, x, y) {
     if (key) { if (st.awarded.has(key)) return; st.awarded.add(key); store.set("awarded", [...st.awarded]); }
     st.xp += n; store.set("xp", st.xp);
+    rankSomar(n);
+    { const h = store.get("xpHoje", { dia: today(), xp: 0 }); if (h.dia !== today()) { h.dia = today(); h.xp = 0; } h.xp += n; store.set("xpHoje", h); topoSet(); }
     if (!st.days.includes(today())) { st.days.push(today()); st.days = st.days.slice(-120); store.set("days", st.days); }
     renderXpChip(true);
     checkBadges();
@@ -799,9 +809,10 @@
       body += `<label class="sr" for="ta-${key}">A tua resposta</label><textarea id="ta-${key}" data-act="draft" rows="${isTexto ? 12 : 6}" placeholder="${isTexto ? "Escreve aqui o teu texto (200 a 350 palavras)…" : "Escreve aqui a tua resposta…"}">${esc(val)}</textarea>`;
       body += `<div style="margin-top:6px"><span data-wc>${wcLabel(val, isTexto)}</span></div>`;
       if (mode === "practice") {
-        body += `<div class="actions">
-          <button type="button" class="btn btn-soft btn-sm" data-act="show-sol">${ic("bulb")} Ver resolução</button>
-          <button type="button" class="btn btn-primary btn-sm ai-only" data-act="ai-fix">${ic("sparkle")} Corrigir com IA</button>
+        body += `<div class="actions ans-acts">
+          <button type="button" class="btn btn-ia ai-only" data-act="ai-fix">${ic("sparkle")} Avaliar com IA</button>
+          <button type="button" class="btn btn-soft btn-sm voz-only" data-act="ditar" aria-pressed="false">${micSvg()} Ditar resposta</button>
+          <button type="button" class="btn btn-soft btn-sm" data-act="show-sol">${ic("bulb")} Ver resolução e autoavaliar</button>
         </div><div class="ai-slot"></div><div class="solution" hidden>${solutionHTML(item)}</div>`;
       }
     }
@@ -1049,10 +1060,12 @@
     ttsStop();
     if (QZ && currentView !== QZ.kind) QZ = null;
     setNav(h === "precos" ? "precos" : (navOf[currentView] || currentView));
+    sideSet(h === "precos" ? "precos" : currentView);
+    fabSet(currentView);
     if (view.startsWith("m-")) renderMateria(view.slice(2));
     else if (view.startsWith("t-")) renderTopic(view.slice(2));
     else if (view.startsWith("e-")) renderExam(view.slice(2));
-    else ({ inicio: renderHome, estudar: renderStudy, testes: renderTestes, exames: renderExams, provaveis: renderProvaveis, simulado: renderSim, duvidas: renderTutor, plano: renderPlano, treino: renderTreino, erros: renderErros, cabula: renderCabula, pais: renderPais, termos: renderTermos, conta: renderConta, desafio: renderDesafio, revisao: renderRevisao, parcerias: renderParcerias, "parcerias-admin": renderParcAdmin }[view] || renderHome)();
+    else ({ inicio: renderHome, estudar: renderStudy, testes: renderTestes, ranking: renderRanking, exames: renderExams, provaveis: renderProvaveis, simulado: renderSim, duvidas: renderTutor, plano: renderPlano, treino: renderTreino, erros: renderErros, cabula: renderCabula, pais: renderPais, termos: renderTermos, conta: renderConta, desafio: renderDesafio, revisao: renderRevisao, parcerias: renderParcerias, "parcerias-admin": renderParcAdmin }[view] || renderHome)();
     enhance(app);
     renderPromo();
     if (anchor) {
@@ -1449,15 +1462,11 @@
   function renderStudy() {
     const f = st.filter;
     const groups = ["I", "II", "III"].filter((g) => f === "todos" || f === g);
-    app.innerHTML = `<div class="wrap" style="padding-bottom:60px">
-      <div class="page-head"><span class="eyebrow">${ic("book", 'width="18" height="18"')} Estudar</span><h1>Todos os tópicos do exame</h1>
-      <p>Organizados pelos grupos da prova ${C.PROVA}.</p></div>
+    app.innerHTML = `<div class="wrap est2" style="padding-bottom:60px">
+      <div class="page-head ph-compact"><h1>Estudar</h1><p>${TOPICS.length} tópicos da prova ${C.PROVA} · ${st.studied.size} estudados</p></div>
       ${streakWarnHTML()}
       ${continuaHTML()}
-      ${testeBanner()}
-      ${iaBand("estudar")}
       ${fracoHTML()}
-      ${!unlocked() && PARC.length ? `<a class="parc-band rv" href="#parcerias"><span class="tile bg-violet">${icFill("star")}</span><span><b>Códigos de desconto dos parceiros</b><span>Poupa ${esc(PARC_DESC || "no preço")} no plano Completo com o código de um criador.</span></span>${ic("arrow")}</a>` : ""}
       <div class="filters" role="group" aria-label="Filtrar por grupo">
         ${[["todos", "Todos"], ["I", "Grupo I · Literária"], ["II", "Grupo II · Gramática"], ["III", "Grupo III · Escrita"]].map(([v, t]) => `<button type="button" data-act="filter" data-v="${v}" aria-pressed="${f === v}">${t}</button>`).join("")}
       </div>
@@ -1501,6 +1510,8 @@
       <div class="cont-side">
         <a class="${feito ? "" : "novo"}" href="#desafio"><span class="tile bg-yellow">${icFill("bolt")}</span><span><b>Desafio do dia</b><span>${feito ? `Feito: ${desHoje().res.filter(Boolean).length}/${DES_N}` : "5 perguntas · 2 min"}</span></span></a>
         <a class="${nr ? "novo" : ""}" href="#revisao"><span class="tile bg-violet">${ic("layers")}</span><span><b>Revisão de hoje</b><span>${nr ? `${nr} para rever` : "Tudo em dia"}</span></span></a>
+        ${(() => { const T = store.get("teste", null), d = T ? Math.round((new Date(T.data + "T00:00:00") - new Date(dkey(new Date()) + "T00:00:00")) / 864e5) : -1;
+          return `<a class="${d >= 0 && d <= 3 ? "novo" : ""}" href="#testes"><span class="tile bg-blue">${ic("calendar")}</span><span><b>${d >= 0 ? `Teste ${d === 0 ? "hoje" : d === 1 ? "amanhã" : `daqui a ${d} dias`}` : "Teste da escola"}</b><span>${d >= 0 ? esc(T.tit) : "Cria um plano para o teu teste"}</span></span></a>`; })()}
       </div></div>`;
   }
   /* convite à compra, nos sítios onde o aluno acabou de ver valor */
@@ -2057,8 +2068,9 @@
         out.push({ id: "x:" + t.id, tipo: "treino", t, titulo: `Exercícios de «${t.titulo}»`, href: `#t-${t.id}/exercicios`, min: 20 });
       }
     });
-    out.push({ id: "q:mix", tipo: "exame", titulo: "Treino misto com tempo", href: "#treino", min: 15 });
-    out.push({ id: "v:final", tipo: "revisao", titulo: "Véspera: rever os pontos-chave e os teus erros", href: "#erros", min: 25 });
+    if (T.tipo !== "qa") out.push({ id: "q:mix", tipo: "exame", titulo: "Treino misto com tempo", href: "#treino", min: 15 });
+    out.push(T.tipo === "qa" ? { id: "v:final", tipo: "revisao", titulo: "Antes da questão-aula: pede ao Lince 3 perguntas rápidas", href: "#duvidas", min: 10 }
+      : { id: "v:final", tipo: "revisao", titulo: "Véspera: rever os pontos-chave e os teus erros", href: "#erros", min: 25 });
     return out;
   };
   /* plano à medida: cabe no tempo por dia que o aluno escolheu; se não houver tempo, corta o menos importante
@@ -2113,13 +2125,14 @@
     const lista = TOPICS.filter((t) => (!t.ano || t.ano === ano) && t.id !== "correcao-linguistica");
     const grupo = (g, nome, icn) => { const ts = lista.filter((t) => t.grupo === g); return ts.length ? `<div class="wz-g"><span class="wz-gl">${ic(icn)} ${nome}</span><div class="tf-tops">${ts.map((t) => `<button type="button" class="tf-t g-${t.grupo}" data-act="wiz-top" data-id="${t.id}" aria-pressed="${w.tops.includes(t.id)}"><span>${esc(t.titulo)}</span></button>`).join("")}</div></div>` : ""; };
     const data = wzData(w), nDias = data ? Math.round((new Date(data + "T00:00:00") - new Date(dkey(new Date()) + "T00:00:00")) / 864e5) : null;
-    const prev = w.tops.length && data ? testePlano({ tops: w.tops, data, min: w.min }) : null;
+    const prev = w.tops.length && data ? testePlano({ tops: w.tops, data, min: w.min, tipo: w.tipo }) : null;
     const passos = ["O que sai", "Quando", "Tempo"];
     return `<section class="tst-novo wiz" id="tst-form">
       <div class="wz-head"><span class="lbl2">${lince()} Preparação à tua medida</span><h2>Diz-me o que vai sair no teu teste</h2>
         <ol class="wz-steps">${passos.map((p, i) => `<li class="${w.step === i + 1 ? "on" : w.step > i + 1 ? "ok" : ""}"><b>${w.step > i + 1 ? ic("check") : i + 1}</b>${p}</li>`).join("")}</ol></div>
       ${w.step === 1 ? `<div class="wz-body">
-          <p class="wz-q">Que matéria entra no teste? <small>Toca em tudo o que o professor disse que sai.</small></p>
+          <div class="wz-tipo" role="group" aria-label="Tipo de avaliação"><button type="button" data-act="wiz-tipo" data-v="teste" aria-pressed="${w.tipo !== "qa"}"><b>Teste</b><small>90 minutos · matéria de várias semanas</small></button><button type="button" data-act="wiz-tipo" data-v="qa" aria-pressed="${w.tipo === "qa"}"><b>Questão-aula</b><small>Mini-teste curto · 1 ou 2 temas</small></button></div>
+          <p class="wz-q">Que matéria entra ${w.tipo === "qa" ? "na questão-aula" : "no teste"}? <small>Toca em tudo o que o professor disse que sai.</small></p>
           <div class="wz-sug"><span>Atalhos:</span>${sugs.map((x, i) => `<button type="button" data-act="wiz-sug" data-i="${i}">Teste ${i + 1} · ${esc(x.tit)}</button>`).join("")}</div>
           ${grupo("I", "Obras e autores", "book")}${grupo("II", "Gramática e leitura", "layers")}${grupo("III", "Escrita", "pen")}
         </div>
@@ -2192,6 +2205,157 @@
     if (!ev.target || ev.target.id !== "wz-data") return;
     const w = wzState(); w.data = ev.target.value; w.dias = null; wizRender();
   });
+
+  /* ============================================================
+     RANKING SEMANAL (por alcunha, com filtro por escola)
+     ============================================================ */
+  function semanaK(d = new Date()) { const x = new Date(d); x.setHours(0, 0, 0, 0); x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); return dkey(x); }
+  let rankTimer = null;
+  function rankSomar(n) {
+    const k = semanaK(), r = store.get("rankXP", { semana: k, xp: 0 });
+    if (r.semana !== k) { r.semana = k; r.xp = 0; }
+    r.xp += n; store.set("rankXP", r);
+    rankAgendar();
+  }
+  function rankAgendar(ja) {
+    const eu = store.get("rankEu", null);
+    if (!eu || !CONTA.user) return;
+    clearTimeout(rankTimer);
+    rankTimer = setTimeout(() => { const r = store.get("rankXP", { semana: semanaK(), xp: 0 }); if (r.semana === semanaK()) CONTA.rankEnviar({ semana: r.semana, xp: r.xp, nome: eu.nome, escola: eu.escola }).catch(() => {}); }, ja ? 0 : 5000);
+  }
+  async function renderRanking() {
+    const eu = store.get("rankEu", null), r = store.get("rankXP", { semana: semanaK(), xp: 0 });
+    const meuXP = r.semana === semanaK() ? r.xp : 0;
+    const filtro = st.rankFiltro || "todos";
+    const fimSem = (() => { const d = new Date(semanaK() + "T12:00:00"); d.setDate(d.getDate() + 6); return d; })();
+    const head = `<div class="wrap rk" style="padding-bottom:60px">
+      <section class="rk-hero rv">${lince()}<div><span class="lbl2">Ranking semanal</span><h1>Quem estuda mais esta semana?</h1>
+        <p>Ganhas XP com exercícios, desafios, treinos e o plano. O ranking recomeça todas as segundas-feiras. Esta semana acaba ${fdata(fimSem)}.</p>
+        <div class="rk-me"><span>${icFill("bolt")} <b>${meuXP} XP</b> esta semana</span>${eu ? `<span>${ic("star")} ${esc(eu.nome)}${eu.escola ? " · " + esc(eu.escola) : ""}</span>` : ""}</div></div></section>`;
+    if (!CONTA.on || !CONTA.user) {
+      app.innerHTML = head + `<section class="rk-join rv"><h2>Entra para aparecer no ranking</h2><p class="muted">O ranking usa a tua conta para guardar o XP da semana. Só aparece a alcunha que escolheres.</p><button class="btn btn-primary" type="button" data-act="login">Entrar ou criar conta</button></section></div>`;
+      return;
+    }
+    if (!eu) {
+      app.innerHTML = head + `<section class="rk-join rv"><h2>Junta-te ao ranking</h2><p class="muted">Escolhe uma alcunha (não uses o teu nome completo) e, se quiseres, a tua escola para competires com os colegas.</p>
+        <form id="rank-form" class="rk-form"><label class="lbl" for="rk-nome">Alcunha</label><input id="rk-nome" name="nome" maxlength="24" minlength="2" required placeholder="ex.: leitora_dos_maias">
+          <label class="lbl" for="rk-escola">Escola <small class="muted">(opcional)</small></label><input id="rk-escola" name="escola" maxlength="80" placeholder="ex.: Escola Secundária de Odivelas">
+          <button class="btn btn-yellow" type="submit">${ic("star")} Entrar no ranking</button><p class="small rk-msg" aria-live="polite"></p></form></section></div>`;
+      return;
+    }
+    app.innerHTML = head + `<div class="rk-tabs" role="group" aria-label="Filtro"><button type="button" data-act="rank-f" data-v="todos" aria-pressed="${filtro === "todos"}">Todos</button>${eu.escola ? `<button type="button" data-act="rank-f" data-v="escola" aria-pressed="${filtro === "escola"}">A minha escola</button>` : ""}</div>
+      <div id="rk-body"><div class="empty"><span class="typing"><i></i><i></i><i></i></span> A carregar o ranking…</div></div>
+      <p class="small muted" style="margin-top:14px;font-weight:600">Aparece só a alcunha e a escola. <button type="button" class="linkish" data-act="rank-sair">Sair do ranking</button></p></div>`;
+    try {
+      if (meuXP > 0) await CONTA.rankEnviar({ semana: semanaK(), xp: meuXP, nome: eu.nome, escola: eu.escola });
+      const d = await CONTA.rpc("ranking_top", { p_semana: semanaK(), p_escola: filtro === "escola" ? eu.escola : null });
+      if (currentView !== "ranking") return;
+      const top = d.top || [], pod = top.slice(0, 3), resto = top.slice(3);
+      const ord = [pod[1], pod[0], pod[2]];
+      document.getElementById("rk-body").innerHTML = top.length ? `
+        <div class="rk-pod">${ord.map((p, i) => p ? `<div class="pd p${p.pos} ${p.eu ? "eu" : ""}"><span class="pd-av">${esc(p.nome.slice(0, 1).toUpperCase())}</span><b>${esc(p.nome)}</b><small>${p.xp} XP</small><div class="pd-col"><span>${p.pos}</span></div></div>` : `<div class="pd vazio"></div>`).join("")}</div>
+        ${resto.length ? `<ol class="rk-list">${resto.map((p) => `<li class="${p.eu ? "eu" : ""}"><span class="rk-pos">#${p.pos}</span><span class="pd-av sm">${esc(p.nome.slice(0, 1).toUpperCase())}</span><span class="rk-n"><b>${esc(p.nome)}</b>${p.escola ? `<small>${esc(p.escola)}</small>` : ""}</span><span class="rk-xp">${p.xp} XP</span></li>`).join("")}</ol>` : ""}
+        <div class="rk-eu">${d.eu ? `Estás em <b>#${d.eu.pos}</b> de ${d.total} com <b>${d.eu.xp} XP</b>.` : "Ainda não tens XP esta semana: faz o desafio do dia para entrares."} <a class="btn btn-primary btn-sm" href="#desafio">${ic("bolt")} Ganhar XP agora</a></div>`
+        : `<div class="empty">${lince()}<span>Ainda ninguém pontuou esta semana${filtro === "escola" ? " na tua escola" : ""}. Faz o desafio do dia e fica em 1.º lugar!</span><a class="btn btn-primary btn-sm" href="#desafio">Fazer o desafio</a></div>`;
+    } catch (e) { const b = document.getElementById("rk-body"); if (b) b.innerHTML = `<div class="empty"><span>Não foi possível carregar o ranking. Tenta outra vez daqui a pouco.</span></div>`; }
+  }
+  document.addEventListener("submit", async (ev) => {
+    const f = ev.target; if (!f || f.id !== "rank-form") return;
+    ev.preventDefault();
+    const nome = f.elements.nome.value.trim().replace(/\s+/g, " "), escola = f.elements.escola.value.trim().replace(/\s+/g, " ");
+    const msg = f.querySelector(".rk-msg");
+    if (nome.length < 2) { msg.textContent = "A alcunha precisa de pelo menos 2 letras."; return; }
+    if (/@|\d{6,}/.test(nome)) { msg.textContent = "Não uses emails nem números de telefone na alcunha."; return; }
+    store.set("rankEu", { nome, escola: escola || null });
+    GC.event("ranking-entrou");
+    renderRanking(); enhance(app);
+  });
+
+  /* ============================================================
+     LINCE-IA SEMPRE À MÃO (botão flutuante com pedidos rápidos)
+     ============================================================ */
+  function fabTopico() { return currentView && currentView.startsWith("t-") ? topicById(currentView.slice(2)) : null; }
+  function fabSet(v) {
+    let f = document.getElementById("ia-fab");
+    if (!f) {
+      f = document.createElement("div"); f.id = "ia-fab";
+      f.innerHTML = `<div class="fab-pop" hidden></div><button type="button" class="fab-b" data-act="fab" aria-expanded="false" aria-label="Perguntar à IA">${lince()}<span>IA</span></button>`;
+      document.body.appendChild(f);
+    }
+    f.hidden = v === "duvidas" || v === "parcerias-admin";
+    const pop = f.querySelector(".fab-pop"); pop.hidden = true; f.querySelector(".fab-b").setAttribute("aria-expanded", "false");
+  }
+  function fabPop() {
+    const t = fabTopico(), nome = t ? `«${t.titulo}»` : "";
+    const ops = [
+      ["book", "Explica-me a matéria", t ? `Explica-me ${nome} de forma simples, com o que costuma sair no exame.` : "Explica-me de forma simples a matéria que mais sai no Exame de Português."],
+      ["layers", "Faz-me um resumo", t ? `Faz-me um resumo de ${nome} com os pontos-chave para o teste e para o exame.` : "Faz-me um resumo dos pontos-chave do Exame de Português 639."],
+      ["check", "Faz-me exercícios", t ? `Faz-me 3 perguntas de exame sobre ${nome}, uma de cada vez, e corrige as minhas respostas.` : "Faz-me 3 perguntas de exame de Português, uma de cada vez, e corrige as minhas respostas."],
+      ["chat", "Tenho outra dúvida", ""],
+    ];
+    return `<div class="fp-h">${lince()}<div><b>Olá! Sou o Lince.</b><small>${t ? `Estás em ${esc(t.titulo)}.` : "Em que te posso ajudar?"}</small></div></div>
+      ${ops.map(([i, l, p]) => `<button type="button" data-act="fab-go" data-p="${esc(p)}">${ic(i)}<span>${l}</span>${ic("arrow")}</button>`).join("")}
+      <p class="fp-note">A IA pode enganar-se: confirma com os resumos.</p>`;
+  }
+
+  /* ditar a resposta por voz (onde o navegador deixa) */
+  const VOZ = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (VOZ) document.body.classList.add("has-voz");
+  let vozAtiva = null;
+  function micSvg() { return `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>`; }
+  function ditar(btn) {
+    const el = btn.closest(".q"), ta = el && el.querySelector("textarea");
+    if (!VOZ || !ta) return;
+    if (vozAtiva) { vozAtiva.stop(); return; }
+    const r = new VOZ(); r.lang = "pt-PT"; r.continuous = true; r.interimResults = false;
+    vozAtiva = r; btn.setAttribute("aria-pressed", "true"); btn.lastChild.textContent = " A ouvir… toca para parar";
+    r.onresult = (ev) => { for (let i = ev.resultIndex; i < ev.results.length; i++) if (ev.results[i].isFinal) { const t = ev.results[i][0].transcript.trim(); ta.value = (ta.value ? ta.value.replace(/\s*$/, " ") : "") + t; ta.dispatchEvent(new Event("input", { bubbles: true })); } };
+    r.onend = () => { vozAtiva = null; btn.setAttribute("aria-pressed", "false"); btn.lastChild.textContent = " Ditar resposta"; };
+    r.onerror = () => r.stop();
+    r.start();
+  }
+
+  /* ============================================================
+     MENU LATERAL (computador, dentro da app)
+     ============================================================ */
+  const SIDE = [
+    ["Organizar", [["plano", "#plano", "compass", "Plano até ao exame"], ["testes", "#testes", "calendar", "Teste da escola"]]],
+    ["Estudar", [["estudar", "#estudar", "book", "Tópicos"], ["desafio", "#desafio", "bolt", "Desafio do dia"], ["treino", "#treino", "target", "Treino rápido"], ["revisao", "#revisao", "layers", "Revisão"], ["erros", "#erros", "check", "Os meus erros"]]],
+    ["Exame", [["exames", "#exames", "file", "Exames resolvidos"], ["simulado", "#simulado", "timer", "Simulado"], ["provaveis", "#provaveis", "flame", "Prováveis 2027"]]],
+    ["Mais", [["duvidas", "#duvidas", "sparkle", "Lince IA"], ["ranking", "#ranking", "trophy", "Ranking"], ["parcerias", "#parcerias", "star", "Parcerias"]]],
+  ];
+  const SEM_SIDE = new Set(["inicio", "termos", "conta", "parcerias-admin"]);
+  const META_DIA = 50;
+  function topoSet() {
+    const cd = document.getElementById("top-cd"), go = document.getElementById("top-goal");
+    if (cd) { const d = diasExame(); cd.hidden = !d; cd.innerHTML = d ? `${ic("target")}<span>Exame em <b>${d}</b> dias</span>` : ""; }
+    if (go) {
+      const h = store.get("xpHoje", { dia: today(), xp: 0 }), x = h.dia === today() ? h.xp : 0, p = Math.min(100, Math.round((x / META_DIA) * 100));
+      go.hidden = false; go.classList.toggle("ok", x >= META_DIA);
+      go.innerHTML = `<span class="tg-t">${x >= META_DIA ? "Meta de hoje cumprida!" : `Meta de hoje · <b>${x}/${META_DIA} XP</b>`}</span><span class="tg-bar"><i style="width:${p}%"></i></span>`;
+    }
+    const pc = document.getElementById("top-parc");
+    if (pc) { pc.hidden = unlocked() || !PARC.length; const d = String(PARC_DESC || "").replace(/^[−-]/, ""); if (d) { pc.querySelector(".lg").textContent = `Códigos −${d}`; pc.querySelector(".sh").textContent = `−${d}`; } }
+    const me = document.querySelector("#side-nav .sn-me");
+    if (me) { const nv = level(), pr = st.xp % 100; me.innerHTML = `${lince()}<div><b>Nível ${nv}</b><small>${st.xp} XP · ${streak()} ${streak() === 1 ? "dia seguido" : "dias seguidos"}</small><span class="sn-lv"><i style="width:${pr}%"></i></span></div>`; }
+  }
+  function sideSet(v) {
+    let s = document.getElementById("side-nav");
+    if (!s) {
+      s = document.createElement("aside"); s.id = "side-nav"; s.setAttribute("aria-label", "Menu");
+      s.innerHTML = `<a class="sn-me" href="#ranking" aria-label="O teu nível e o ranking"></a>` + SIDE.map(([g, its], gi) => `<div class="sn-g sg${gi}"><span>${g}</span>${its.map(([k, h, i, l]) => `<a href="${h}" data-side="${k}"><span class="sn-ic">${i === "flame" ? icFill("flame") : ic(i)}</span><span>${l}</span>${k === "testes" ? '<i class="sn-dot" hidden></i>' : ""}</a>`).join("")}</div>`).join("")
+        + `<a class="sn-up" href="#precos"><span class="sn-ic">${icFill("bolt")}</span><span><b>Plano Completo</b><small>Desbloqueia tudo</small></span></a>`;
+      document.body.appendChild(s);
+    }
+    topoSet();
+    const on = !SEM_SIDE.has(v);
+    document.body.classList.toggle("has-side", on);
+    const map = { m: "estudar" }, key = v.startsWith("t-") || v.startsWith("m-") ? "estudar" : v.startsWith("e-") ? "exames" : (map[v] || v);
+    s.querySelectorAll("[data-side]").forEach((a) => a.toggleAttribute("aria-current", a.dataset.side === key));
+    const T = store.get("teste", null), dot = s.querySelector(".sn-dot");
+    if (dot) { const d = T ? Math.round((new Date(T.data + "T00:00:00") - new Date(dkey(new Date()) + "T00:00:00")) / 864e5) : -1; dot.hidden = !(d >= 0); dot.textContent = d >= 0 ? d : ""; }
+    const up = s.querySelector(".sn-up"); if (up) up.hidden = unlocked();
+  }
 
   /* ---------- Plano v2: painel, hoje em destaque, semana visual e próximas sessões ---------- */
   const PLANO_V2 = true;
@@ -2827,7 +2991,11 @@
       </div>` : ""}
     </div>`;
     const pre = ssGet("n20:ask");
-    if (pre && ready) { $("#ask").value = pre; ssSet("n20:ask", ""); $("#ask").focus(); }
+    if (pre && ready) {
+      ssSet("n20:ask", "");
+      if (ssGet("n20:askGo")) { ssSet("n20:askGo", ""); setTimeout(() => sendChat(pre), 50); }
+      else { $("#ask").value = pre; $("#ask").focus(); }
+    }
   }
   function ssGet(k) { try { return sessionStorage.getItem(k) || ""; } catch (e) { return ""; } }
   function ssSet(k, v) { try { sessionStorage.setItem(k, v); } catch (e) { /* nada */ } }
@@ -3445,6 +3613,7 @@
     const jump = ev.target.closest("[data-jump]");
     if (jump) { ev.preventDefault(); const t = document.getElementById(jump.dataset.jump); if (t) t.scrollIntoView({ behavior: "smooth" }); return; }
     const a = ev.target.closest("[data-act]");
+    if (!ev.target.closest("#ia-fab")) { const fp = document.querySelector("#ia-fab .fab-pop"); if (fp && !fp.hidden) { fp.hidden = true; const fb = document.querySelector("#ia-fab .fab-b"); if (fb) fb.setAttribute("aria-expanded", "false"); } }
     if (!a) return;
     const act = a.dataset.act;
     const q = a.closest(".q");
@@ -3480,6 +3649,24 @@
       case "paywall": { const tt = document.getElementById("toast"); if (tt) tt.remove(); openPaywall(a.dataset.r || "topico"); break; }
       case "promo-x": ssSet("n20:promo-x", "1"); renderPromo(); break;
       case "err-filter": st.errosFiltro = a.dataset.v; renderErros(); enhance(app); break;
+      case "fab": {
+        const f = document.getElementById("ia-fab"), pop = f.querySelector(".fab-pop"), abrir = pop.hidden;
+        if (abrir) pop.innerHTML = fabPop();
+        pop.hidden = !abrir; a.setAttribute("aria-expanded", String(abrir));
+        GC.event(abrir ? "fab-abrir" : "fab-fechar");
+        break;
+      }
+      case "fab-go": {
+        const p = a.dataset.p;
+        if (p) { ssSet("n20:ask", p); ssSet("n20:askGo", "1"); }
+        GC.event("fab-pedido");
+        document.querySelector("#ia-fab .fab-pop").hidden = true;
+        if (location.hash === "#duvidas") renderTutor(); else location.hash = "#duvidas";
+        break;
+      }
+      case "ditar": ditar(a); break;
+      case "rank-f": st.rankFiltro = a.dataset.v; renderRanking(); enhance(app); break;
+      case "rank-sair": store.set("rankEu", null); CONTA.rankSair().catch(() => {}); renderRanking(); enhance(app); break;
       case "teste-ano": { st.testeAno = a.dataset.v; store.set("testeAno", a.dataset.v); if (st.wiz) { st.wiz.tops = []; st.wiz.tit = ""; st.wiz.step = 1; } const y = window.scrollY; renderTestes(); enhance(app); window.scrollTo(0, y); break; }
       case "teste-reg": { const y = window.scrollY; store.set("testeRegime", a.dataset.v); renderTestes(); enhance(app); window.scrollTo(0, y); break; }
       case "teste-pick": case "wiz-sug": {
@@ -3492,6 +3679,7 @@
       }
       case "wiz-novo": { const w = wzState(); w.aberto = true; w.step = 1; w.tops = []; w.tit = ""; w.data = ""; w.dias = null; renderTestes(); enhance(app); document.getElementById("tst-form").scrollIntoView({ behavior: "smooth", block: "start" }); break; }
       case "wiz-top": { const w = wzState(), id = a.dataset.id; w.tops = w.tops.includes(id) ? w.tops.filter((x) => x !== id) : w.tops.concat(id); w.tit = ""; wizRender(); break; }
+      case "wiz-tipo": { const w = wzState(); w.tipo = a.dataset.v; wizRender(); break; }
       case "wiz-dias": { const w = wzState(); w.dias = +a.dataset.v; w.data = ""; wizRender(); break; }
       case "wiz-min": { const w = wzState(); w.min = +a.dataset.v; wizRender(); break; }
       case "wiz-next": { const w = wzState(); w.step = Math.min(3, w.step + 1); wizRender(); document.getElementById("tst-form").scrollIntoView({ behavior: "smooth", block: "start" }); break; }
@@ -3501,7 +3689,7 @@
         if (!w.tops.length || !data) break;
         const lit = w.tops.map(topicById).filter((t) => t && t.grupo === "I");
         const tit = w.tit || (lit.length ? lit.map((t) => t.titulo).join(" e ") : (topicById(w.tops[0]) || {}).titulo) || "Teste de Português";
-        store.set("teste", { ano, data, tops: w.tops.slice(), tit, min: w.min, done: {} });
+        store.set("teste", { ano, data, tops: w.tops.slice(), tit: w.tipo === "qa" ? "Questão-aula: " + tit : tit, tipo: w.tipo || "teste", min: w.min, done: {} });
         GC.event("teste-criado");
         st.wiz = null;
         renderTestes(); enhance(app); window.scrollTo({ top: 0, behavior: "smooth" });
