@@ -2160,7 +2160,7 @@
       : `<div class="wz-body">
           <p class="wz-q">Quanto tempo consegues estudar por dia?</p>
           <div class="wz-opts">${WZ_MIN.map((m) => `<button type="button" data-act="wiz-min" data-v="${m}" aria-pressed="${w.min === m}"><b>${m}</b><span>minutos</span></button>`).join("")}</div>
-          ${prev ? `<div class="wz-prev"><div><b>${prev.sessoes.length}</b><span>${prev.sessoes.length === 1 ? "sessão" : "sessões"}</span></div><div><b>${prev.tarefas.length}</b><span>tarefas</span></div><div><b>${Math.round(prev.tarefas.reduce((s, x) => s + x.min, 0) / 6) / 10} h</b><span>de estudo</span></div></div>
+          ${prev ? `<div class="wz-prev"><div><b>${prev.sessoes.length}</b><span>${prev.sessoes.length === 1 ? "sessão" : "sessões"}</span></div><div><b>${prev.tarefas.length}</b><span>tarefas</span></div><div><b>${String(Math.round(prev.tarefas.reduce((s, x) => s + x.min, 0) / 6) / 10).replace(".", ",")} h</b><span>de estudo</span></div></div>
             ${prev.cortadas.length ? `<p class="wz-warn">${ic("timer")} Com este tempo não cabe tudo: deixámos de fora ${prev.cortadas.map((x) => `«${esc(x.titulo)}»`).join(", ")}. Aumenta os minutos por dia para incluir.</p>` : `<p class="wz-info">${ic("check")} Cabe tudo: resumos, exercícios, treino e revisão na véspera.</p>`}` : ""}
         </div>
         <div class="wz-nav"><button type="button" class="btn btn-ghost" data-act="wiz-back">Voltar</button><button type="button" class="btn btn-yellow btn-lg" data-act="wiz-criar">${ic("sparkle")} Criar a minha preparação</button></div>`}
