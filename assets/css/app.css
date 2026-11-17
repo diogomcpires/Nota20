@@ -2267,3 +2267,12 @@ body.has-side #ia-fab { right: 24px; }
 /* o Lince-IA sobe quando a barra do preço está visível */
 @media (max-width: 899px) { body:has(.promo-bar:not([hidden])) #ia-fab { bottom: calc(150px + env(safe-area-inset-bottom)); } }
 @media (min-width: 900px) { body:has(.promo-bar:not([hidden])) #ia-fab { bottom: 96px; } }
+/* v4.2 · barra de cima nunca transborda no computador */
+@media (min-width: 900px) {
+  body.has-side .top .wrap { min-width: 0; }
+  body.has-side .top .wrap > * { flex-shrink: 0; }
+  body.has-side .top .wrap > .top-search { flex: 1 1 auto; min-width: 120px; flex-shrink: 1; }
+  body.has-side .top-goal .tg-t { white-space: nowrap; }
+  body.has-side .top-goal:not([hidden]) { min-width: 0; }
+}
+@media (min-width: 1100px) and (max-width: 1599px) { body.has-side .top-search { margin-left: 18px; } body.has-side .top-search kbd { display: none; } }
