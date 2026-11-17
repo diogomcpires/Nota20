@@ -2678,6 +2678,7 @@
           <li><b>Compra</b>: nome, email e dados do pagamento são tratados pela Stripe e por nós para ativar o acesso e emitir a fatura (obrigação legal). As faturas são guardadas durante o prazo legal.</li>
           <li><b>Perguntas ao explicador</b>: são enviadas a um fornecedor de inteligência artificial só para gerar a resposta.</li>
           ${C.GOATCOUNTER ? `<li><b>Estatísticas de visitas</b>: contamos as visitas e algumas ações (por exemplo, criar um plano) de forma anónima, com o GoatCounter. Não usamos cookies nem guardamos o teu IP.</li>` : ""}
+          <li><b>Emails</b>: se criares conta ou fizeres uma compra, enviamos-te emails da conta (código de entrada, boas-vindas, confirmação de compra) e, se marcares um teste da escola, um lembrete antes do teste. Os emails são enviados pelo Resend (servidores na União Europeia). Podes deixar de receber lembretes no link que vem em cada um.</li>
           ${C.POSTHOG_KEY ? `<li><b>Melhorar a app</b>: usamos o PostHog (servidores na União Europeia) para perceber como a app é usada: que páginas abres, onde clicas e onde desistes, incluindo gravações anónimas do ecrã em que o que escreves fica escondido. Não usa cookies nem guarda nada no teu dispositivo, e não liga estes dados ao teu nome ou email.</li>` : ""}
         </ul>
         <p>Versão completa e atualizada: <a href="privacidade/">nota20app.pt/privacidade</a>. Se entrares com a Google, recebemos só o teu nome, email e fotografia de perfil.</p>
