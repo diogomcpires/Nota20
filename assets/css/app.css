@@ -2452,3 +2452,11 @@ details.ext { padding: 0; margin: 0; }
 .el-ess { font-size: 0.68rem; font-weight: 800; padding: 2px 8px; border-radius: 99px; background: var(--yellow-50); color: #8a6100; border: 1px solid #ffd76a; }
 @media (max-width: 560px) { .exs-ess { padding: 18px 16px; } .ee-star { width: 46px; height: 46px; font-size: 1.6rem; border-radius: 15px; } .ee-acts .btn { flex: 1 1 auto; justify-content: center; } }
 @media (min-width: 1100px) { .exs-fil { grid-template-columns: 1fr 1fr; gap: 14px 28px; } }
+/* v4.8 · aviso do plano grátis na página Exercícios */
+.exs-free { display: grid; grid-template-columns: auto 1fr; gap: 10px 14px; align-items: center; padding: 14px 16px; margin-bottom: 14px; background: var(--surface); border: 2px solid var(--blue); border-radius: 18px; box-shadow: var(--shadow); }
+.exs-free .tile { width: 42px; height: 42px; border-radius: 13px; display: grid; place-items: center; color: #fff; }
+.exs-free .tile svg { width: 21px; height: 21px; }
+.exs-free > div { display: grid; gap: 2px; } .exs-free > div > b { font-family: var(--f-display); font-size: 1.05rem; }
+.exs-free > div > span { color: var(--muted); font-weight: 600; font-size: 0.9rem; } .exs-free > div > span b { color: var(--ink); }
+.exs-free .btn { grid-column: 1 / -1; justify-self: start; }
+@media (min-width: 760px) { .exs-free { grid-template-columns: auto 1fr auto; } .exs-free .btn { grid-column: auto; } }

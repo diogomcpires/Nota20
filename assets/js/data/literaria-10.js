@@ -4,7 +4,7 @@ window.N20 = window.N20 || { topics: [] };
 N20.topics.push(
 {
   id: "trovadoresca",
-  grupo: "I", ano: "10.º", free: false,
+  grupo: "I", ano: "10.º", free: true,
   titulo: "Poesia trovadoresca",
   subtitulo: "Cantigas de amigo, de amor, de escárnio e de maldizer",
   resumo: `

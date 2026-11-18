@@ -3608,7 +3608,13 @@
     const chip = (k, v, l, c) => `<button type="button" data-exf="${k}" data-v="${v}" aria-pressed="${F[k] === v}">${l}${c != null ? ` <small>${c}</small>` : ""}</button>`;
     const abre = F.tipo !== "todos" || F.est !== "todos" || F.ver === "ess";
     const essL = all.filter((x) => ESS.has(x.k)), essF = essL.filter((x) => st.res[x.k]).length;
-    const essAuto = essL.filter((x) => AUTO.includes(x.ex.tipo) && canOpen(x.t)).length;
+    const essAuto = essL.filter((x) => AUTO.includes(x.ex.tipo)).length;
+    const gratis = unlocked() ? "" : (() => {
+      const fr = TOPICS.filter((t) => t.free), l = left("exercicios");
+      return `<div class="exs-free rv"><span class="tile bg-blue">${ic("star")}</span>
+        <div><b>No plano grátis</b><span>${fr.map((t) => `«${esc(t.titulo)}»`).join(" e ")} ${fr.length === 1 ? "completo" : "completos"}, o Desafio do dia e mais <b>${l} ${l === 1 ? "exercício" : "exercícios"}</b> à tua escolha de qualquer tema (essenciais e treino incluídos). O resto está no plano Completo.</span></div>
+        <a class="btn btn-primary btn-sm" href="#precos">Desbloquear os ${nExercicios} ${ic("arrow")}</a></div>`;
+    })();
     const essP = essL.length ? Math.round((essF / essL.length) * 100) : 0;
     const R = 46, CIRC = 2 * Math.PI * R;
     const temaCard = (t, itens) => {
@@ -3664,6 +3670,7 @@
         ${[["bg-pink", "bolt", "Treino rápido", "10 perguntas ao acaso", "#treino"], ["bg-yellow", "flame", "Desafio do dia", desFeito() ? "Feito hoje ✓" : "5 perguntas · 2 min", "#desafio"], ["bg-coral", "target", "Os meus erros", ne ? `${ne} por corrigir` : "Ainda sem erros", "#erros"], ["bg-mint", "timer", "Simulado", "Prova completa com tempo", "#simulado"]]
           .map(([c, i, tt, d, h]) => `<a class="hub-card rv" href="${h}"><span class="tile ${c}">${["bolt", "flame"].includes(i) ? icFill(i) : ic(i)}</span><span><b>${tt}</b><span>${d}</span></span></a>`).join("")}
       </div>
+      ${gratis}
       <section class="exs-ess rv">
         <div class="ee-l"><span class="ee-star" aria-hidden="true">★</span>
           <div><span class="eyebrow">Se tens pouco tempo, começa aqui</span><h2>Os essenciais</h2>
@@ -3691,7 +3698,8 @@
     const b = e.target.closest("[data-exf]"); if (!b) return;
     if (b.dataset.exf === "ess-treino") {
       const ESS = essenciais(), idx = itemIndex();
-      const ks = [...ESS].filter((k) => { const e = idx.get(k); return e && AUTO.includes(e.item.tipo) && canOpen(topicById(k.replace(/^t-/, "").replace(/-\d+$/, ""))); });
+      /* no grátis também: cada resposta conta para o limite de exercícios grátis */
+      const ks = [...ESS].filter((k) => { const e = idx.get(k); return e && AUTO.includes(e.item.tipo); });
       const novos = ks.filter((k) => !(st.res[k] && st.res[k].ok)), resto = ks.filter((k) => st.res[k] && st.res[k].ok);
       const keys = shuffle(novos).concat(shuffle(resto)).slice(0, 15);
       if (!keys.length) return;
