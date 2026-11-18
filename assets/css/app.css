@@ -2503,3 +2503,9 @@ details.ext { padding: 0; margin: 0; }
   .conv-modal .pw-head h3 { grid-column: 2; grid-row: 1; align-self: center; font-size: 1.25rem; line-height: 1.2; }
   .conv-modal .pw-head p { grid-column: 1 / -1; }
 }
+.conv-modal .conv-mail { display: grid; gap: 8px; margin: 16px 0 0; padding: 14px; border-radius: 14px; border: 2px dashed var(--line); }
+.conv-modal .conv-mail .row { flex-wrap: nowrap; gap: 8px; }
+.conv-modal .conv-mail input { min-width: 0; flex: 1 1 auto; font: 600 .95rem var(--f-body); padding: 9px 12px; border-radius: 12px; border: 2px solid var(--line); background: var(--surface); color: var(--ink); }
+.conv-modal .conv-mail .ok { color: var(--mint-d); font-weight: 800; }
+.conv-modal .conv-mail .err { color: var(--coral-d); font-weight: 800; }
+@media (max-width: 420px) { .conv-modal .conv-mail .row { flex-wrap: wrap; } .conv-modal .conv-mail .row .btn { width: 100%; justify-content: center; } }

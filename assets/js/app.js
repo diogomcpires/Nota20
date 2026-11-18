@@ -153,6 +153,11 @@
       ssSet("n20:conv-msg", JSON.stringify(data || {}));
       return data;
     }
+    async function conviteEmail(email, nome) {
+      await cliente();
+      const { error } = await sb.functions.invoke("convite", { body: { email, nome } });
+      if (error) { let code = "indisponivel"; try { code = (await error.context.json()).error || code; } catch (e) { /* sem corpo */ } throw { code }; }
+    }
     async function meuConvite() { await cliente(); if (!user) return null; const { data, error } = await sb.rpc("convite_meu"); if (error) throw error; return data; }
     /* devolve true se trouxe da nuvem um progresso maior (a página tem de recarregar) */
     async function sincronizar() {
@@ -267,7 +272,7 @@
     }
     async function rankSair() { if (!user) return; await cliente(); await sb.from("ranking_semana").delete().eq("user_id", user.id); }
     window.addEventListener("pagehide", () => { if (user) enviar().catch(() => {}); });
-    return { on, ia, lead, avaliar, rpc, usarConvite, meuConvite, rankEnviar, rankSair, contador, arranque, verificarPagamento, pedirCodigo, confirmarCodigo, entrarGoogle, sair, apagar, agendar, enviar,
+    return { on, ia, lead, avaliar, rpc, usarConvite, meuConvite, conviteEmail, rankEnviar, rankSair, contador, arranque, verificarPagamento, pedirCodigo, confirmarCodigo, entrarGoogle, sair, apagar, agendar, enviar,
       get voltouGoogle() { return voltouGoogle; },
       get user() { return user; }, get perfil() { return perfil; }, get ultima() { return ultima; } };
   })();
@@ -360,7 +365,7 @@
       ia: "Para usares o explicador e a correção com IA. É grátis e não precisa de palavra-passe.",
       comprei: "Entra com o email que usaste na compra e o plano Completo abre logo.",
       convidar: "Para teres o teu link de convite e ganhares os prémios quando os teus amigos entrarem.",
-      convite: "Cria a tua conta e os 7 dias do plano Completo que o teu amigo te ofereceu ficam logo ativos."
+      convite: "Entra ou cria a tua conta e os 7 dias do plano Completo que o teu amigo te ofereceu ficam logo ativos."
     }[motivo] || "Guarda o teu progresso e usa a Nota20 em qualquer dispositivo.";
     const emApp = /Instagram|FBAN|FBAV|TikTok|musical_ly|Bytedance|Line\//i.test(navigator.userAgent);
     const g = C.GOOGLE_LOGIN && !emApp && !inFrame;
@@ -379,7 +384,7 @@
         <p class="small muted" id="login-msg" aria-live="polite" style="font-weight:700;margin:6px 0 0"></p>
         <p class="small muted" style="margin:6px 0 0">Ao continuar, aceitas os <a href="#termos" data-act="modal-close">Termos e a Política de privacidade</a>.</p>
       </form>`);
-    setTimeout(() => { const i = document.getElementById("login-email"); if (i) i.focus(); }, 50);
+    setTimeout(() => { const i = document.getElementById("login-email"); if (i) { if (motivo === "convite" && convEmail && !i.value) i.value = convEmail; i.focus(); } }, 50);
   }
   const erroConta = (e) => {
     const c = (e && (e.code || e.error_code)) || "", m = String((e && e.message) || "");
@@ -463,7 +468,7 @@
           <div class="mt">${conviteHTML()}</div>
           ${p && p.plano !== "completo" && !convAte ? `<div class="card mt conv-usar"><b>Tens um código de convite de um amigo?</b>
             <div class="row"><input type="text" id="conv-in" maxlength="12" autocomplete="off" autocapitalize="characters" placeholder="Ex.: ABC234" aria-label="Código de convite"><button class="btn btn-primary btn-sm" type="button" data-act="conv-usar">Ativar 7 dias</button></div>
-            <span class="small muted">Só para contas criadas há menos de 7 dias.</span></div>` : ""}
+            <span class="small muted">Cada pessoa só pode usar um convite.</span></div>` : ""}
           <details class="card mt"><summary style="font-weight:800;cursor:pointer">Apagar a conta</summary>
             <p class="small muted" style="font-weight:600">Apaga o teu email, o progresso guardado e o acesso ligado à conta. Os registos de compras são guardados durante o prazo legal das faturas. Não dá para desfazer.</p>
             <button class="btn btn-ghost btn-sm" type="button" data-act="conta-apagar" style="color:var(--coral-d)">Apagar a minha conta</button></details>`
@@ -709,7 +714,7 @@
 
   /* ---------- convida um amigo: 7 dias do Completo para os dois ---------- */
   const CONV_MAX = 5;
-  let meuConv = null;
+  let meuConv = null, convEmail = "";
   const convLink = (cod) => `${SITE().split("?")[0]}?convite=${encodeURIComponent(cod)}`;
   const conviteTexto = (cod) => `Estou a preparar o exame de Português com a Nota20 🦊 Com o meu link ganhas 7 dias do plano Completo grátis (resumos, exames resolvidos e correção com IA): ${convLink(cod)}`;
   const convPago = () => !!(CONTA.perfil && CONTA.perfil.plano === "completo");
@@ -742,7 +747,11 @@
       <div class="row"><a class="btn btn-primary btn-sm" href="https://wa.me/?text=${encodeURIComponent(txt)}" target="_blank" rel="noopener" data-act="convite-wa">${ic("chat")} Enviar por WhatsApp</a>
         ${navigator.share && !inFrame ? `<button class="btn btn-ghost btn-sm" type="button" data-act="convite-share">Partilhar</button>` : ""}
         <button class="btn btn-ghost btn-sm" type="button" data-act="convite-copiar">Copiar mensagem</button></div>
-      <p class="small muted" style="font-weight:600;margin:10px 0 0">O convite é para contas novas. Cada amigo só pode usar um convite.</p>
+      <form class="conv-mail" id="conv-mail"><b>Ou envia por email</b><span class="small muted">O teu amigo recebe o convite e, ao criar conta, o email dele já aparece preenchido.</span>
+        <input type="email" id="conv-mail-em" required maxlength="120" autocomplete="off" placeholder="Email do teu amigo" aria-label="Email do teu amigo">
+        <div class="row"><input type="text" id="conv-mail-nome" maxlength="30" autocomplete="given-name" placeholder="O teu nome (opcional)" aria-label="O teu nome"><button class="btn btn-primary btn-sm" type="submit">Enviar convite</button></div>
+        <span class="small" id="conv-mail-msg" aria-live="polite"></span></form>
+      <p class="small muted" style="font-weight:600;margin:10px 0 0">Cada amigo só pode usar um convite, e só se ainda não tiver o plano Completo.</p>
       <button class="btn btn-soft btn-sm" type="button" data-act="modal-close">Fechar</button></div>`);
   }
   /* abriu um link de convite: guarda o código e pede para criar conta */
@@ -750,7 +759,13 @@
     const q = new URLSearchParams(location.search);
     if (!q.has("convite")) return;
     const cod = String(q.get("convite") || "").replace(/[^A-Za-z0-9]/g, "").slice(0, 12).toUpperCase();
-    q.delete("convite");
+    const tok = String(q.get("t") || "").replace(/[^A-Za-z0-9_-]/g, "").slice(0, 40);
+    q.delete("convite"); q.delete("t");
+    /* convite recebido por email: vai buscar o email para o deixar preenchido */
+    if (tok && !CONTA.user) CONTA.rpc("convite_email", { p_token: tok }).then((e) => {
+      if (!e) return; convEmail = String(e);
+      const i = document.getElementById("login-email"); if (i && !i.value && !i.readOnly) i.value = convEmail;
+    }).catch(() => {});
     history.replaceState(history.state, "", location.pathname + (q.toString() ? "?" + q : "") + location.hash);
     if (!cod) return;
     GC.event("convite-link");
@@ -758,8 +773,8 @@
     if (CONTA.user) { CONTA.usarConvite(cod).then(() => { mostrarConvMsg(); route(); topoSet(); }); return; }
     if (unlocked() && !convAtivo()) return;
     openModal(`<div class="conv-modal"><div class="pw-head">${lince()}<div><h3>Um amigo ofereceu-te 7 dias do plano Completo 🎁</h3><p class="muted" style="margin:6px 0 0;font-weight:600">Todos os tópicos, exames resolvidos, simulados e mais IA, durante 7 dias. Cria a tua conta (é grátis, sem palavra-passe) e o presente fica logo ativo.</p></div></div>
-      <div class="row mt"><button class="btn btn-primary btn-shine" type="button" data-act="login" data-m="convite">Criar conta e ativar</button><button class="btn btn-ghost" type="button" data-act="modal-close">Agora não</button></div>
-      <p class="small muted" style="font-weight:600;margin:10px 0 0">Código do convite: <b>${esc(cod)}</b>. Fica guardado neste aparelho.</p></div>`);
+      <div class="row mt"><button class="btn btn-primary btn-shine" type="button" data-act="login" data-m="convite">Ativar os 7 dias</button><button class="btn btn-ghost" type="button" data-act="modal-close">Agora não</button></div>
+      <p class="small muted" style="font-weight:600;margin:10px 0 0">Já tens conta? Entra com ela: também funciona, se ainda não tiveres o plano Completo. Código do convite: <b>${esc(cod)}</b>.</p></div>`);
   }
   /* mensagem do resultado do convite (também depois de recarregar a página) */
   function mostrarConvMsg() {
@@ -771,7 +786,7 @@
       toast(`<span class="tl">${lince()}</span><div><b>Presente ativo: 7 dias do Completo! 🎁</b><span>Tens tudo desbloqueado${fim ? ` até ${esc(fim)}` : ""}. Bom estudo!</span></div>`, 8000);
       return;
     }
-    const m = { codigo: "Esse código de convite não existe. Confirma o link com o teu amigo.", proprio: "Esse é o teu próprio link: envia-o a um amigo e ganham os dois.", usado: "Já usaste um convite nesta conta.", completo: "Já tens o plano Completo. Partilha o teu link com amigos!", antiga: "Os convites são para contas novas (criadas há menos de 7 dias).", rede: "Não foi possível ativar o convite agora. Tenta outra vez mais tarde." }[r.erro];
+    const m = { codigo: "Esse código de convite não existe. Confirma o link com o teu amigo.", proprio: "Esse é o teu próprio link: envia-o a um amigo e ganham os dois.", usado: "Já usaste um convite nesta conta.", completo: "Já tens o plano Completo. Partilha o teu link com amigos!", antiga: "Este convite já não pode ser usado nesta conta.", troca: "Não dá para trocar convites com quem te convidou. Convida outro amigo!", rede: "Não foi possível ativar o convite agora. Tenta outra vez mais tarde." }[r.erro];
     if (m) toast(`<span class="tl">${lince()}</span><div><b>Convite</b><span>${m}</span></div>`, 7000);
   }
   /* acabou a semana do convite: avisa uma vez */
@@ -2751,7 +2766,7 @@
       <section id="garantia"><h2>5. Garantia de reembolso e livre resolução</h2>
         <p>Tens ${G || 14} dias a contar da compra para pedir o reembolso total, sem teres de dar justificação, mesmo que já tenhas começado a usar a Nota20. Basta escreveres para ${falta(C.CONTACTO_EMAIL)}. Devolvemos o valor pelo mesmo meio de pagamento, no prazo máximo de 14 dias.</p></section>
       <section><h2>6. Utilização</h2>
-        <p><b>Convites.</b> Quem cria conta com o link de convite de um amigo recebe 7 dias de acesso ao plano Completo, uma única vez por pessoa e só em contas novas. Quem convida recebe 7 dias por cada amigo (até 5) ou, se já tiver o plano Completo, perguntas e correções extra de IA. Contas falsas ou criadas só para ganhar prémios podem ser anuladas.</p>
+        <p><b>Convites.</b> Quem entra com o link de convite de um amigo recebe 7 dias de acesso ao plano Completo, uma única vez por pessoa e só se ainda não tiver o plano Completo. Quem convida recebe 7 dias por cada amigo (até 5) ou, se já tiver o plano Completo, perguntas e correções extra de IA. Contas falsas ou criadas só para ganhar prémios podem ser anuladas.</p>
         <p>O acesso é pessoal: não o partilhes nem revendas. Os resumos, exercícios, resoluções e simulados são da Nota20. Os enunciados e critérios oficiais dos exames pertencem ao EduQA (antigo IAVE) e são apresentados por ligação.</p>
         <p>As respostas do explicador são geradas automaticamente e podem ter erros: confirma sempre com os resumos ou com o teu professor. Não escrevas dados pessoais nas perguntas.</p></section>
       <section id="reclamacoes"><h2>7. Reclamações e litígios</h2>
@@ -4184,6 +4199,23 @@
       if (novo) { window.scrollTo({ top: 0, behavior: "instant" }); const c = $(".today"); if (c) { const [x, y] = centerOf(c); confetti(x, Math.min(y, 300), 30); addXP(20, "plano", x, Math.min(y, 300)); } }
     }
     if (f.id === "login-form") { ev.preventDefault(); submitLogin(f); }
+    if (f.id === "conv-mail") {
+      ev.preventDefault();
+      const em = $("#conv-mail-em", f), msg = $("#conv-mail-msg", f), btn = $("button[type=submit]", f);
+      const email = em.value.trim().toLowerCase(), nome = $("#conv-mail-nome", f).value.trim();
+      if (!email) return;
+      btn.disabled = true; msg.className = "small"; msg.textContent = "A enviar…";
+      try {
+        await CONTA.conviteEmail(email, nome);
+        GC.event("convite-email");
+        msg.className = "small ok"; msg.textContent = `Convite enviado para ${email} ✓`;
+        em.value = "";
+      } catch (e) {
+        msg.className = "small err";
+        msg.textContent = { email: "Esse email não parece válido.", proprio: "Esse é o teu email: escreve o de um amigo.", limite: "Já enviaste 10 convites hoje. Amanhã há mais.", repetido: "Já enviaste um convite para esse email hoje." }[e && e.code] || "Não foi possível enviar agora. Tenta outra vez.";
+      }
+      btn.disabled = false;
+    }
     if (f.id === "code-form") {
       ev.preventDefault();
       const msg = $("#code-msg"), v = $("#code-in").value.trim().toUpperCase();
