@@ -1823,7 +1823,7 @@
       <div class="section-head" style="margin:34px 0 16px"><h2 style="font-size:1.7rem">Exames nacionais oficiais</h2></div>
       <div class="grid grid-2">
         ${REAL.map(examCard).join("")}
-        <a class="card exam-card rv" href="#simulado" style="background:linear-gradient(135deg,#fff,#fff6d6)">
+        <a class="card exam-card exam-sim rv" href="#simulado">
           <span class="year" style="color:#ffe9a6">200</span>
           ${unlocked() ? "" : `<span class="lock">${ic("lock", 'width="18" height="18"')}</span>`}
           <span class="eyebrow">Simulados · formato oficial</span>
