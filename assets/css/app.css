@@ -2414,3 +2414,41 @@ details.ext { padding: 0; margin: 0; }
   .exs-fil .filters button { flex: none; }
 }
 .exs-fil > div { min-width: 0; }
+/* v4.6 · separadores Tópicos | Exercícios */
+.est-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 6px; margin: 4px 0 16px; background: var(--surface); border: 2px solid var(--line); border-radius: 20px; box-shadow: var(--shadow); max-width: 520px; }
+.est-tabs a { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 11px 12px; border-radius: 15px; text-decoration: none; font-family: var(--f-display); font-weight: 800; font-size: 1.02rem; color: var(--muted); transition: background .2s, color .2s; }
+.est-tabs a svg { width: 19px; height: 19px; }
+.est-tabs a small { font-family: var(--f-body); font-size: 0.74rem; font-weight: 800; padding: 2px 8px; border-radius: 99px; background: var(--blue-50); color: var(--blue-d); }
+.est-tabs a:hover { color: var(--ink); background: var(--bg); }
+.est-tabs a[aria-current="page"] { background: var(--navy); color: #fff; box-shadow: 0 4px 0 #0a1330, 0 10px 20px rgba(19, 32, 74, 0.25); }
+.est-tabs a[aria-current="page"] small { background: var(--yellow); color: #3a2a00; }
+.exs .est-tabs { margin-top: 6px; }
+@media (max-width: 560px) { .est-tabs { max-width: none; } .est-tabs a { font-size: 0.96rem; padding: 10px 8px; } }
+[data-theme="dark"] .est-tabs a[aria-current="page"] { background: var(--blue); box-shadow: 0 4px 0 var(--blue-d); }
+.est2 .est-tabs { margin: 6px 0 4px; }
+/* v4.7 · Os essenciais (página Exercícios) */
+.exs-ess { position: relative; overflow: hidden; display: grid; gap: 16px 24px; align-items: center; padding: 22px 24px; margin-bottom: 14px; border-radius: 24px; color: #3a2a00;
+  background: radial-gradient(70% 140% at 100% 0%, rgba(255, 255, 255, 0.55) 0, rgba(255, 255, 255, 0) 55%), linear-gradient(120deg, #ffd34d 0%, #ffc72c 45%, #ff9a3d 100%);
+  box-shadow: 0 6px 0 #d99a00, 0 18px 34px rgba(233, 168, 0, 0.32); }
+@media (min-width: 900px) { .exs-ess { grid-template-columns: 1.4fr 1fr; } }
+.ee-l { display: flex; gap: 16px; align-items: flex-start; }
+.ee-star { flex: none; width: 58px; height: 58px; border-radius: 18px; display: grid; place-items: center; font-size: 2rem; line-height: 1; color: #fff; background: linear-gradient(140deg, #13204a, #1d3a9e); box-shadow: 0 6px 16px rgba(19, 32, 74, 0.3); transform: rotate(-6deg); }
+.exs-ess .eyebrow { color: #7a4a00; }
+.exs-ess h2 { margin: 2px 0 4px; color: #13204a; font-size: clamp(1.5rem, 3vw, 1.9rem); }
+.exs-ess p { margin: 0; font-weight: 700; color: #5a3d00; font-size: 0.94rem; }
+.ee-r { display: grid; gap: 12px; }
+.ee-prog { display: grid; gap: 6px; font-weight: 700; color: #5a3d00; }
+.ee-prog b { font-family: var(--f-display); font-size: 1.4rem; color: #13204a; }
+.ee-prog .ext-bar { background: rgba(255, 255, 255, 0.55); height: 10px; } .ee-prog .ext-bar i { background: #13204a; }
+.ee-acts { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.exs-ess .btn-yellow { background: #13204a; color: #fff; box-shadow: 0 4px 0 #0a1330; }
+.exs-ess .btn-yellow svg { color: var(--yellow); }
+.exs-ess .btn-glass { background: rgba(255, 255, 255, 0.55); color: #13204a; border-color: rgba(255, 255, 255, 0.7); }
+.exs-ess .btn-soft { background: #fff; color: #13204a; }
+@media (min-width: 1100px) { .exs-fil { grid-template-columns: auto 1.35fr 1fr 1fr; } }
+.ef-ver .filters button[data-v="ess"] { border-color: var(--yellow-d); }
+.ef-ver .filters button[data-v="ess"][aria-pressed="true"] { background: var(--yellow); color: #3a2a00; border-color: var(--yellow-d); }
+.el-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.el-ess { font-size: 0.68rem; font-weight: 800; padding: 2px 8px; border-radius: 99px; background: var(--yellow-50); color: #8a6100; border: 1px solid #ffd76a; }
+@media (max-width: 560px) { .exs-ess { padding: 18px 16px; } .ee-star { width: 46px; height: 46px; font-size: 1.6rem; border-radius: 15px; } .ee-acts .btn { flex: 1 1 auto; justify-content: center; } }
+@media (min-width: 1100px) { .exs-fil { grid-template-columns: 1fr 1fr; gap: 14px 28px; } }
