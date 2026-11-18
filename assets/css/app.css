@@ -2467,3 +2467,39 @@ details.ext { padding: 0; margin: 0; }
 .redo-btn, [data-act="refazer"] { display: inline-flex; align-items: center; gap: 6px; }
 .redo-btn svg, [data-act="refazer"] svg { flex: none; }
 .qz [data-act="redo"] { display: none; }
+/* v5.1 · convida um amigo (7 dias do Completo para os dois) */
+.convite.conv2 { flex-wrap: nowrap; align-items: center; background: linear-gradient(120deg, #fff6dc 0%, #fff 55%, #eaf1ff 100%); border-color: #ffd970; box-shadow: var(--shadow); }
+.convite.conv2 .cv-ic { flex: none; display: grid; place-items: center; width: 46px; height: 46px; border-radius: 14px; background: linear-gradient(140deg, var(--yellow), #ff9a3d); color: #fff; box-shadow: 0 3px 0 #c97a10; }
+.convite.conv2 .cv-ic svg { width: 24px; height: 24px; }
+.convite.conv2 > .btn { flex: none; }
+@media (max-width: 560px) {
+  .convite.conv2 { flex-wrap: wrap; }
+  .convite.conv2 > div { flex: 1 1 calc(100% - 64px); }
+  .convite.conv2 > .btn { width: 100%; justify-content: center; }
+}
+.conv-modal .conv-box { display: grid; gap: 6px; margin: 16px 0 12px; padding: 12px 14px; border-radius: 14px; background: var(--blue-50); border: 2px solid var(--line); }
+.conv-modal .conv-l { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.conv-modal .conv-l code { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 700 .95rem/1.3 var(--f-body); color: var(--blue-d); background: #fff; border-radius: 10px; padding: 8px 10px; border: 1px solid var(--line); }
+.conv-modal .conv-l .btn { flex: none; }
+.conv-modal .conv-cod { letter-spacing: .12em; color: var(--ink); }
+.conv-modal .conv-prog { display: flex; align-items: center; gap: 10px; margin: 0 0 14px; font-weight: 700; color: var(--muted); }
+.conv-modal .conv-dots { display: inline-flex; gap: 6px; }
+.conv-modal .conv-dots i { width: 14px; height: 14px; border-radius: 50%; background: #ffe08a; }
+.conv-modal .conv-dots i.on { background: var(--yellow-d); box-shadow: 0 0 0 3px rgba(233,168,0,.2); }
+.conv-modal .row { flex-wrap: wrap; }
+.conv-usar { display: grid; gap: 10px; }
+.conv-usar .row { flex-wrap: nowrap; gap: 8px; }
+.conv-usar input { flex: 1 1 auto; min-width: 0; font: 800 1rem var(--f-body); letter-spacing: .1em; text-transform: uppercase; padding: 9px 12px; border-radius: 12px; border: 2px solid var(--line); background: var(--surface); color: var(--ink); }
+.tem-conv { width: 100%; margin-top: 8px; cursor: pointer; font: inherit; font-weight: 600; font-size: .92rem; border-color: var(--yellow-d); background: var(--yellow-50); }
+.tem-conv svg { color: var(--yellow-d); }
+.tem-conv b { color: #9a6a00; }
+.top-up.is-conv { background: linear-gradient(120deg, #14b877, #0c9660) !important; box-shadow: 0 3px 0 #08704a !important; }
+.conv-modal .pw-head { align-items: flex-start; }
+.conv-modal .pw-head h3 { margin: 0; }
+@media (max-width: 560px) {
+  .conv-modal .pw-head { display: grid; grid-template-columns: 56px 1fr; gap: 4px 12px; }
+  .conv-modal .pw-head .lince { width: 56px; height: 56px; grid-row: 1; }
+  .conv-modal .pw-head > div { display: contents; }
+  .conv-modal .pw-head h3 { grid-column: 2; grid-row: 1; align-self: center; font-size: 1.25rem; line-height: 1.2; }
+  .conv-modal .pw-head p { grid-column: 1 / -1; }
+}
