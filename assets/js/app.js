@@ -1069,7 +1069,7 @@
     if (["precos", "avaliacoes", "faq", "como-funciona", "comecar", "previsao"].includes(h)) { view = "inicio"; scrollTo = h; }
     if (view.includes("/")) { anchor = view.slice(view.indexOf("/") + 1); view = view.slice(0, view.indexOf("/")); }
     currentView = (view.startsWith("t-") || view.startsWith("m-")) ? "estudar" : view.startsWith("e-") ? "exames" : view;
-    const navOf = { testes: "plano", treino: "estudar", erros: "estudar", cabula: "estudar", simulado: "exames", desafio: "estudar", revisao: "estudar" };
+    const navOf = { testes: "plano", exercicios: "estudar", treino: "estudar", erros: "estudar", cabula: "estudar", simulado: "exames", desafio: "estudar", revisao: "estudar" };
     ttsStop();
     if (QZ && currentView !== QZ.kind) QZ = null;
     setNav(h === "precos" ? "precos" : (navOf[currentView] || currentView));
@@ -1078,7 +1078,7 @@
     if (view.startsWith("m-")) renderMateria(view.slice(2));
     else if (view.startsWith("t-")) renderTopic(view.slice(2));
     else if (view.startsWith("e-")) renderExam(view.slice(2));
-    else ({ inicio: renderHome, estudar: renderStudy, testes: renderTestes, ranking: renderRanking, exames: renderExams, provaveis: renderProvaveis, simulado: renderSim, duvidas: renderTutor, plano: renderPlano, treino: renderTreino, erros: renderErros, cabula: renderCabula, pais: renderPais, termos: renderTermos, conta: renderConta, desafio: renderDesafio, revisao: renderRevisao, parcerias: renderParcerias, "parcerias-admin": renderParcAdmin }[view] || renderHome)();
+    else ({ inicio: renderHome, estudar: renderStudy, exercicios: renderExercicios, testes: renderTestes, ranking: renderRanking, exames: renderExams, provaveis: renderProvaveis, simulado: renderSim, duvidas: renderTutor, plano: renderPlano, treino: renderTreino, erros: renderErros, cabula: renderCabula, pais: renderPais, termos: renderTermos, conta: renderConta, desafio: renderDesafio, revisao: renderRevisao, parcerias: renderParcerias, "parcerias-admin": renderParcAdmin }[view] || renderHome)();
     enhance(app);
     renderPromo();
     if (anchor) {
@@ -1523,6 +1523,7 @@
       <div class="cont-side">
         <a class="${feito ? "" : "novo"}" href="#desafio"><span class="tile bg-yellow">${icFill("bolt")}</span><span><b>Desafio do dia</b><span>${feito ? `Feito: ${desHoje().res.filter(Boolean).length}/${DES_N}` : "5 perguntas · 2 min"}</span></span></a>
         <a class="${nr ? "novo" : ""}" href="#revisao"><span class="tile bg-violet">${ic("layers")}</span><span><b>Revisão de hoje</b><span>${nr ? `${nr} para rever` : "Tudo em dia"}</span></span></a>
+        <a href="#exercicios"><span class="tile bg-pink">${ic("pen")}</span><span><b>Exercícios</b><span>${nExercicios} por tema</span></span></a>
         ${(() => { const T = store.get("teste", null), d = T ? Math.round((new Date(T.data + "T00:00:00") - new Date(dkey(new Date()) + "T00:00:00")) / 864e5) : -1;
           return `<a class="${d >= 0 && d <= 3 ? "novo" : ""}" href="#testes"><span class="tile bg-blue">${ic("calendar")}</span><span><b>${d >= 0 ? `Teste ${d === 0 ? "hoje" : d === 1 ? "amanhã" : `daqui a ${d} dias`}` : "Teste da escola"}</b><span>${d >= 0 ? esc(T.tit) : "Cria um plano para o teu teste"}</span></span></a>`; })()}
       </div></div>`;
@@ -2335,7 +2336,7 @@
      ============================================================ */
   const SIDE = [
     ["Organizar", [["plano", "#plano", "compass", "Plano até ao exame"], ["testes", "#testes", "calendar", "Teste da escola"]]],
-    ["Estudar", [["estudar", "#estudar", "book", "Tópicos"], ["desafio", "#desafio", "bolt", "Desafio do dia"], ["treino", "#treino", "target", "Treino rápido"], ["revisao", "#revisao", "layers", "Revisão"], ["erros", "#erros", "check", "Os meus erros"]]],
+    ["Estudar", [["estudar", "#estudar", "book", "Tópicos"], ["exercicios", "#exercicios", "pen", "Exercícios"], ["desafio", "#desafio", "bolt", "Desafio do dia"], ["treino", "#treino", "target", "Treino rápido"], ["revisao", "#revisao", "layers", "Revisão"], ["erros", "#erros", "check", "Os meus erros"]]],
     ["Exame", [["exames", "#exames", "file", "Exames resolvidos"], ["simulado", "#simulado", "timer", "Simulado"], ["provaveis", "#provaveis", "flame", "Prováveis 2027"]]],
     ["Mais", [["duvidas", "#duvidas", "sparkle", "Lince IA"], ["ranking", "#ranking", "trophy", "Ranking"], ["parcerias", "#parcerias", "star", "Parcerias"]]],
   ];
@@ -3564,6 +3565,100 @@
       ${ativo ? `<div class="parc-ok">${ic("check")}<span>Código aplicado no pagamento</span><button type="button" class="linklike" data-act="parc-tirar">Tirar</button></div>` : `<button type="button" class="btn btn-primary btn-sm parc-usar" data-act="parc-usar" data-c="${esc(p.codigo)}">Usar este código ${ic("arrow")}</button>`}
     </article>`;
   }
+  /* ============================================================
+     EXERCÍCIOS: todos os exercícios num só sítio, organizados por tema
+     ============================================================ */
+  const EX_TIPO = { mc: "auto", multi: "auto", completar: "auto", aberta: "curta", texto: "texto" };
+  const EX_TIPO_TXT = { auto: "Escolha múltipla", curta: "Resposta curta", texto: "Texto" };
+  const exEstado = (k) => { const r = st.res[k]; return !r ? "novo" : r.ok === false ? "errado" : "feito"; };
+  function renderExercicios() {
+    const F = st.exF || (st.exF = Object.assign({ g: "todos", tipo: "todos", est: "todos" }, store.get("exF", {})));
+    const all = [];
+    TOPICS.forEach((t) => t.exercicios.forEach((ex, i) => all.push({ t, ex, i, k: `t-${t.id}-${i}`, tipo: EX_TIPO[ex.tipo] || "auto" })));
+    const feitos = all.filter((x) => st.res[x.k]).length;
+    const aval = all.filter((x) => st.res[x.k] && typeof st.res[x.k].ok === "boolean");
+    const certos = aval.filter((x) => st.res[x.k].ok).length;
+    const ne = errosKeys().length;
+    const pct = all.length ? Math.round((feitos / all.length) * 100) : 0;
+    const passa = (x) => (F.g === "todos" || x.t.grupo === F.g) && (F.tipo === "todos" || x.tipo === F.tipo)
+      && (F.est === "todos" || (F.est === "novo" ? !st.res[x.k] : exEstado(x.k) === F.est));
+    const vis = all.filter(passa);
+    const n = (fn) => all.filter(fn).length;
+    const chip = (k, v, l, c) => `<button type="button" data-exf="${k}" data-v="${v}" aria-pressed="${F[k] === v}">${l}${c != null ? ` <small>${c}</small>` : ""}</button>`;
+    const abre = F.tipo !== "todos" || F.est !== "todos";
+    const R = 46, CIRC = 2 * Math.PI * R;
+    const temaCard = (t, itens) => {
+      const open = canOpen(t), tot = t.exercicios.length;
+      const ks = t.exercicios.map((_, i) => `t-${t.id}-${i}`);
+      const f = ks.filter((k) => st.res[k]).length, er = ks.filter((k) => exEstado(k) === "errado").length;
+      const tipos = {}; t.exercicios.forEach((ex) => { const y = EX_TIPO[ex.tipo] || "auto"; tipos[y] = (tipos[y] || 0) + 1; });
+      const p = Math.round((f / tot) * 100);
+      const [sc, stx] = f === tot ? ["ok", `${ic("check")} Concluído`] : f ? ["cur", "Em curso"] : ["new", "Por começar"];
+      return `<details class="ext g-${t.grupo}" ${abre ? "open" : ""}>
+        <summary>
+          <span class="ext-ic" aria-hidden="true">${lince("mini")}</span>
+          <span class="ext-h"><b>${esc(t.titulo)}</b><small>${esc(t.subtitulo)}</small>
+            <span class="ext-meta">${t.ano ? `<span class="chip ano">${esc(t.ano)} ano</span>` : ""}${hotChip(t)}${open ? "" : `<span class="chip pro">${ic("lock")} Completo</span>`}</span></span>
+          <span class="ext-r"><span class="ext-n"><b>${f}</b>/${tot}</span><span class="ext-bar"><i style="width:${p}%"></i></span><span class="ext-st ${sc}">${stx}</span></span>
+          <span class="ext-chev" aria-hidden="true">${ic("arrow")}</span>
+        </summary>
+        <div class="ext-body">
+          <div class="ext-tipos">${Object.entries(tipos).map(([y, c]) => `<span class="et-${y}">${c} · ${EX_TIPO_TXT[y]}</span>`).join("")}${er ? `<span class="et-err">${er} por corrigir</span>` : ""}</div>
+          <ol class="ext-list">${itens.map((x) => {
+            const e = exEstado(x.k), lk = !open && x.i > 0, txt = strip(x.ex.enunciado).replace(/\s+/g, " ");
+            return `<li class="el-${e} ${lk ? "lk" : ""}"><a href="#t-${t.id}/exercicios"><span class="el-n">${x.i + 1}</span>
+              <span class="el-t"><span class="el-ty et-${x.tipo}">${EX_TIPO_TXT[x.tipo]}${x.ex.cotacao ? ` · ${x.ex.cotacao} pontos` : ""}</span><span class="el-q">${esc(txt.slice(0, 130))}${txt.length > 130 ? "…" : ""}</span></span>
+              <span class="el-s">${lk ? ic("lock") : e === "feito" ? ic("check") : e === "errado" ? ic("x") : ic("arrow")}</span></a></li>`;
+          }).join("")}</ol>
+          <div class="ext-acts"><a class="btn btn-primary btn-sm" href="#t-${t.id}/exercicios">${ic("pen")} ${f ? "Continuar" : "Começar"} os exercícios</a><a class="btn btn-ghost btn-sm" href="#t-${t.id}/resumo">${ic("book")} Rever o resumo</a></div>
+        </div></details>`;
+    };
+    const grupos = ["I", "II", "III"].filter((g) => F.g === "todos" || F.g === g).map((g) => {
+      const ts = TOPICS.filter((t) => t.grupo === g).map((t) => [t, vis.filter((x) => x.t === t)]).filter(([, it]) => it.length);
+      if (!ts.length) return "";
+      const gAll = all.filter((x) => x.t.grupo === g), gf = gAll.filter((x) => st.res[x.k]).length, gp = Math.round((gf / gAll.length) * 100);
+      const grid = (l) => `<div class="ext-grid">${l.map(([t, it]) => temaCard(t, it)).join("")}</div>`;
+      const body = g === "I"
+        ? ["10.º", "11.º", "12.º"].map((a) => { const l = ts.filter(([t]) => t.ano === a); return l.length ? `<span class="year-label">${a} ano</span>${grid(l)}` : ""; }).join("")
+        : grid(ts);
+      return `<section class="group-block g-${g}"><div class="group-title gt2"><div class="gt"><span class="gi">${g}</span><div><h2>${GRUPOS[g].nome} · ${GRUPOS[g].desc}</h2><span class="gsub">${gAll.length} exercícios · ${ts.length} ${ts.length === 1 ? "tema" : "temas"}</span></div></div>
+        <div class="gprog"><b>${gp}% feito</b><span class="dom-bar"><i style="width:${gp}%"></i></span></div></div>${body}</section>${g === "I" && !unlocked() ? upsellHTML("desafio") : ""}`;
+    }).join("");
+    app.innerHTML = `<div class="wrap exs" style="padding-bottom:60px">
+      <section class="exs-hero rv">
+        <div class="exs-hl"><span class="eyebrow">${ic("pen", 'width="18" height="18"')} Banco de exercícios</span>
+          <h1>Exercícios</h1>
+          <p>${all.length} exercícios originais em ${TOPICS.length} temas, no formato do exame. Corrigidos na hora e, os de escrita, avaliados pela IA.</p>
+          <div class="exs-kpis"><div><b>${feitos}</b><span>feitos</span></div><div><b>${aval.length ? Math.round((certos / aval.length) * 100) + "%" : "–"}</b><span>de acertos</span></div><a href="#erros"><b>${ne}</b><span>por corrigir ${ic("arrow")}</span></a></div></div>
+        <div class="exs-ring" role="img" aria-label="${pct}% dos exercícios feitos">
+          <svg viewBox="0 0 110 110"><circle cx="55" cy="55" r="${R}" class="rg-bg"/><circle cx="55" cy="55" r="${R}" class="rg-fg" stroke-dasharray="${CIRC.toFixed(1)}" stroke-dashoffset="${(CIRC * (1 - pct / 100)).toFixed(1)}"/></svg>
+          <span class="rg-c"><b>${pct}%</b><small>${feitos} de ${all.length}</small></span>
+          <span class="rg-l" aria-hidden="true">${lince("mini")}</span></div>
+      </section>
+      <div class="exs-quick">
+        ${[["bg-pink", "bolt", "Treino rápido", "10 perguntas ao acaso", "#treino"], ["bg-yellow", "flame", "Desafio do dia", desFeito() ? "Feito hoje ✓" : "5 perguntas · 2 min", "#desafio"], ["bg-coral", "target", "Os meus erros", ne ? `${ne} por corrigir` : "Ainda sem erros", "#erros"], ["bg-mint", "timer", "Simulado", "Prova completa com tempo", "#simulado"]]
+          .map(([c, i, tt, d, h]) => `<a class="hub-card rv" href="${h}"><span class="tile ${c}">${["bolt", "flame"].includes(i) ? icFill(i) : ic(i)}</span><span><b>${tt}</b><span>${d}</span></span></a>`).join("")}
+      </div>
+      <div class="exs-fil card rv">
+        <div><span class="lbl">Grupo</span><div class="filters">${chip("g", "todos", "Todos", all.length)}${["I", "II", "III"].map((g) => chip("g", g, `${GRUPOS[g].nome} · ${{ I: "Literária", II: "Gramática", III: "Escrita" }[g]}`, n((x) => x.t.grupo === g))).join("")}</div></div>
+        <div><span class="lbl">Tipo</span><div class="filters">${chip("tipo", "todos", "Todos")}${["auto", "curta", "texto"].map((y) => chip("tipo", y, EX_TIPO_TXT[y], n((x) => x.tipo === y))).join("")}</div></div>
+        <div><span class="lbl">Estado</span><div class="filters">${chip("est", "todos", "Todos")}${chip("est", "novo", "Por fazer", n((x) => !st.res[x.k]))}${chip("est", "errado", "Errados", n((x) => exEstado(x.k) === "errado"))}${chip("est", "feito", "Feitos", n((x) => exEstado(x.k) === "feito"))}</div></div>
+      </div>
+      <p class="exs-count">${vis.length === all.length ? `${all.length} exercícios` : `A mostrar <b>${vis.length}</b> de ${all.length} exercícios`} · toca num tema para ver a lista</p>
+      ${grupos || `<div class="empty">${lince()}<span>${F.est === "errado" ? "Não tens exercícios errados com esta escolha. Boa!" : "Não há exercícios com esta escolha."}</span><button class="btn btn-primary btn-sm" type="button" data-exf="reset" data-v="1">Ver todos</button></div>`}
+      <section class="exs-provas rv"><div><span class="eyebrow">${ic("file", 'width="18" height="18"')} Como no dia do exame</span><h2>Provas completas</h2>
+        <p>${REAL.length} exames nacionais resolvidos (${nItensExame} itens) e ${SIMS.length} simulados com tempo, para treinares a prova inteira.</p></div>
+        <div class="row"><a class="btn btn-yellow" href="#exames">Exames resolvidos ${ic("arrow")}</a><a class="btn btn-glass" href="#simulado">Fazer um simulado</a></div></section>
+    </div>`;
+  }
+  document.addEventListener("click", (e) => {
+    const b = e.target.closest("[data-exf]"); if (!b) return;
+    if (b.dataset.exf === "reset") st.exF = { g: "todos", tipo: "todos", est: "todos" };
+    else st.exF[b.dataset.exf] = b.dataset.v;
+    store.set("exF", st.exF);
+    const y = window.scrollY; renderExercicios(); enhance(app); window.scrollTo(0, y);
+  });
+
   function renderParcerias() {
     const com = C.PARCEIROS_COMISSAO || "";
     const mail = C.CONTACTO_EMAIL ? `mailto:${C.CONTACTO_EMAIL}?subject=${encodeURIComponent("Parceria Nota20")}&body=${encodeURIComponent("Olá! Quero ser parceiro da Nota20.\n\nNome:\nTikTok / Instagram:\nCódigo que gostava de ter:\n")}` : "";
