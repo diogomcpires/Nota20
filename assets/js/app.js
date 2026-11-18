@@ -794,7 +794,8 @@
      ============================================================ */
   function chipsFor(item, ctx) {
     const c = [];
-    if (ctx.exam) c.push(item.obrigatorio ? '<span class="chip req">Obrigatório</span>' : '<span class="chip opt">Opcional</span>');
+    /* «optn» e não «opt»: a classe .opt é das opções de resposta (senão as contas das opções ficavam trocadas) */
+    if (ctx.exam) c.push(item.obrigatorio ? '<span class="chip req">Obrigatório</span>' : '<span class="chip optn">Opcional</span>');
     const cot = item.cotacao || 13;
     if (ctx.exam || item.tipo === "aberta" || item.tipo === "texto") c.push(`<span class="chip num">${cot} pontos</span>`);
     const tipo = { mc: "Escolha múltipla", multi: "Seleção", completar: "Completamento", aberta: "Resposta restrita", texto: "Resposta extensa" }[item.tipo];
@@ -826,6 +827,7 @@
           <button type="button" class="btn btn-ia ai-only" data-act="ai-fix">${ic("sparkle")} Avaliar com IA</button>
           <button type="button" class="btn btn-soft btn-sm voz-only" data-act="ditar" aria-pressed="false">${micSvg()} Ditar resposta</button>
           <button type="button" class="btn btn-soft btn-sm" data-act="show-sol">${ic("bulb")} Ver resolução e autoavaliar</button>
+          <button type="button" class="btn btn-ghost btn-sm redo-btn" data-act="redo">${REDO_SVG} Refazer a pergunta</button>
         </div><div class="ai-slot"></div><div class="solution" hidden>${solutionHTML(item)}</div>`;
       }
     }
@@ -861,7 +863,8 @@
     if (item.tipo === "multi") { r.sel.forEach((i) => { const b = $(`.opt[data-i="${i}"]`, el); if (b) b.classList.add("sel"); }); checkMulti(el, item, key, false); }
     if (item.tipo === "completar") { Object.entries(r.sel).forEach(([s, i]) => { const b = $(`.opt[data-s="${s}"][data-i="${i}"]`, el); if (b) b.classList.add("sel"); }); checkComp(el, item, key, false); }
   }
-  const retryBtn = () => `<button type="button" class="btn btn-ghost btn-sm" data-act="retry" style="margin-top:12px">Tentar de novo</button>`;
+  const REDO_SVG = `<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>`;
+  const retryBtn = () => `<button type="button" class="btn btn-soft btn-sm redo-btn" data-act="retry" style="margin-top:12px">${REDO_SVG} Refazer a pergunta</button>`;
   const PRAISE = ["Certo!", "Muito bem.", "Exatamente.", "Correto.", "Boa resposta."];
   const praise = () => PRAISE[Math.floor(Math.random() * PRAISE.length)];
 
@@ -1973,7 +1976,7 @@
       const pct = ok / n;
       end.innerHTML = `<div class="card tr-result"><span class="eyebrow">${icFill("trophy")} Fim do treino</span><h2>${ok}/${n} certas</h2>
         <p class="muted" style="font-weight:700;margin:0">${pct >= 0.8 ? "Excelente. Estás pronto para perguntas mais difíceis." : pct >= 0.5 ? "Bom treino. Revê os erros e repete amanhã." : "Ainda há matéria para rever. Abre os tópicos dos erros e tenta de novo."}</p>
-        <div class="row"><button class="btn btn-primary btn-sm" type="button" data-act="tr-again">Nova ronda</button><a class="btn btn-ghost btn-sm" href="#erros">Rever os meus erros</a></div></div>`;
+        <div class="row"><button class="btn btn-primary btn-sm" type="button" data-act="tr-again">Nova ronda</button><button class="btn btn-soft btn-sm" type="button" data-act="refazer" data-keys="${T.keys.join(",")}">${REDO_SVG} Refazer este treino</button><a class="btn btn-ghost btn-sm" href="#erros">Rever os meus erros</a></div></div>`;
       const [x, y] = centerOf(end); addXP(15, "treino:" + T.at, x, y - 20); if (pct >= 0.8) confetti(x, y, 24);
     }
   }
@@ -3185,7 +3188,7 @@
   }
 
   /* ---------- leitor de perguntas, uma de cada vez (desafio e revisão) ---------- */
-  let QZ = null;
+  let QZ = null, ultimoQZ = null;
   const qzKey = () => `zq-${QZ.kind}-${QZ.i}`;
   function qzStart(kind) {
     if (kind === "desafio") {
@@ -3239,6 +3242,7 @@
     if (!QZ || !QZ.answered) return;
     if (QZ.i < QZ.keys.length - 1) { QZ.i += 1; QZ.answered = false; qzRender(); return; }
     const kind = QZ.kind, res = QZ.res.slice(), seg = Math.max(1, Math.round((Date.now() - QZ.t0) / 1000));
+    ultimoQZ = QZ.keys.slice();
     QZ = null;
     if (kind === "desafio") {
       const s = desHoje();
@@ -3280,7 +3284,8 @@
         <div class="des-quad" aria-hidden="true">${s.res.map((x) => `<i class="${x ? "ok" : "no"}"></i>`).join("")}</div>
         <p class="des-frase">${frase}</p>
         <div class="des-facts"><div><b>${s.seg ? fmtSeg(s.seg) : "—"}</b><span>tempo</span></div><div><b>${sk}</b><span>${sk === 1 ? "dia seguido" : "dias seguidos"}</span></div><div><b>${fh}h ${String(fm).padStart(2, "0")}m</b><span>para o próximo</span></div></div>
-        <div class="row" style="justify-content:center"><button class="btn btn-primary" type="button" data-act="des-share">${ic("chat")} Desafiar um amigo</button><button class="btn btn-ghost" type="button" data-act="des-img">Guardar imagem</button></div>
+        <div class="row" style="justify-content:center"><button class="btn btn-primary" type="button" data-act="des-share">${ic("chat")} Desafiar um amigo</button><button class="btn btn-soft" type="button" data-act="refazer" data-keys="${keys.join(",")}">${REDO_SVG} Refazer as ${DES_N} perguntas</button><button class="btn btn-ghost" type="button" data-act="des-img">Guardar imagem</button></div>
+        <p class="small muted" style="margin:6px 0 0;font-weight:700">Refazer é só treino: o teu resultado de hoje fica guardado.</p>
       </div>
       <h2 class="des-h">As perguntas de hoje</h2>
       <div class="des-list">${keys.map((k, i) => { const e = idx.get(k); if (!e) return ""; return `<div class="des-it ${s.res[i] ? "ok" : "no"}"><span class="fi">${ic(s.res[i] ? "check" : "x")}</span><div><b>${esc(strip(e.item.enunciado))}</b><span>Resposta certa: ${esc(strip(e.item.opcoes[e.item.certa]))}</span><a href="${e.href}">Rever a matéria: ${esc(e.label)} ${ic("arrow")}</a></div></div>`; }).join("")}</div>
@@ -3376,7 +3381,7 @@
         <div class="des-score"><b>${ok}</b><span>/${res.length}</span></div>
         <div class="des-quad" aria-hidden="true">${res.map((x) => `<i class="${x ? "ok" : "no"}"></i>`).join("")}</div>
         <p class="des-frase">${due.length ? `Ainda tens ${due.length} ${due.length === 1 ? "pergunta" : "perguntas"} para hoje.` : "Está tudo em dia. Volta amanhã."}</p>
-        <div class="row" style="justify-content:center">${due.length ? `<button class="btn btn-primary" type="button" data-act="qz-start" data-k="revisao">Continuar a rever</button>` : `<a class="btn btn-primary" href="#estudar">Voltar ao estudo</a>`}<a class="btn btn-ghost" href="#erros">Ver os meus erros</a></div></div>`;
+        <div class="row" style="justify-content:center">${due.length ? `<button class="btn btn-primary" type="button" data-act="qz-start" data-k="revisao">Continuar a rever</button>` : `<a class="btn btn-primary" href="#estudar">Voltar ao estudo</a>`}${ultimoQZ && ultimoQZ.length ? `<button class="btn btn-soft" type="button" data-act="refazer" data-keys="${ultimoQZ.join(",")}">${REDO_SVG} Refazer estas perguntas</button>` : ""}<a class="btn btn-ghost" href="#erros">Ver os meus erros</a></div></div>`;
     } else if (due.length) {
       body = `<div class="card des-intro rv">${lince("des-l")}
         <div class="des-facts"><div><b>${due.length}</b><span>para rever hoje</span></div><div><b>${total}</b><span>perguntas guardadas</span></div><div><b>${Math.min(10, due.length)}</b><span>nesta sessão</span></div></div>
@@ -3949,13 +3954,36 @@
       case "demo-reset":
         used.ex = used.chat = used.fix = 0; store.set("used", used); counted.clear(); store.set("counted", []);
         route(); break;
-      case "retry": {
+      case "retry":
+      case "redo": {
+        /* refazer a pergunta: escolha múltipla e companhia (retry) ou resposta aberta / texto (redo) */
+        if (act === "redo") {
+          const ta = $("textarea", q);
+          if (ta && ta.value.trim().length > 20 && !window.confirm("Apagar a tua resposta e fazer esta pergunta do zero?")) break;
+          saveDraft(key, "");
+        }
         if (st.res[key] && st.res[key].ok === false) wasWrong.add(key);
         delete st.res[key]; saveRes();
+        const ess = q.classList.contains("is-ess");
         const tmp = document.createElement("div");
         tmp.innerHTML = renderItem(entry.item, key, $(".q-num", q).textContent, entry.ctx);
-        q.replaceWith(tmp.firstElementChild);
+        const nq = tmp.firstElementChild;
+        if (ess) { nq.classList.add("is-ess"); const m = $(".q-meta", nq); if (m) m.insertAdjacentHTML("beforeend", `<span class="chip ess">★ Essencial</span>`); }
+        q.replaceWith(nq);
         formatPoems(app);
+        const foco = $("textarea", nq) || $(".opt", nq);
+        if (foco) foco.focus({ preventScroll: true });
+        break;
+      }
+      case "refazer": {
+        /* refazer um conjunto de perguntas (desafio, revisão, treino) como treino */
+        const idx = itemIndex(), keys = String(a.dataset.keys || "").split(",").filter((k) => idx.has(k));
+        if (!keys.length) break;
+        keys.forEach((k) => { if (st.res[k] && st.res[k].ok === false) wasWrong.add(k); delete st.res[k]; });
+        saveRes();
+        st.treino = { keys, done: {}, at: Date.now() };
+        GC.event("refazer");
+        if (currentView === "treino") { renderTreino(); enhance(app); window.scrollTo({ top: 0, behavior: "instant" }); } else location.hash = "#treino";
         break;
       }
       case "show-sol": {

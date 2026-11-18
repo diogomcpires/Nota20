@@ -161,7 +161,7 @@ p { margin: 0 0 0.85em; }
 .chip.pro { background: var(--violet-50); color: var(--violet-d); }
 .chip.done { background: var(--mint-50); color: var(--mint-d); }
 .chip.req { background: var(--ink); color: #fff; }
-.chip.opt { background: var(--surface); border: 1.5px dashed var(--muted); }
+.chip.opt, .chip.optn { background: var(--surface); border: 1.5px dashed var(--muted); }
 .eyebrow svg { width: 18px; height: 18px; flex: none; }
 .eyebrow { display: inline-flex; align-items: center; gap: 8px; font-weight: 800; font-size: 0.85rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--blue); }
 .pill { display: inline-flex; align-items: center; gap: 8px; background: var(--surface); border: 2px solid var(--line); border-radius: 999px; padding: 7px 14px; font-weight: 800; font-size: 0.9rem; color: var(--blue-d); box-shadow: var(--shadow); }
@@ -2463,3 +2463,7 @@ details.ext { padding: 0; margin: 0; }
 /* v4.9 · estrela dos essenciais nos exercícios do tópico */
 .q-meta .chip.ess { background: var(--yellow-50); color: #8a6100; border: 1px solid #ffd76a; }
 .q.is-ess { box-shadow: inset 4px 0 0 var(--yellow), var(--shadow); }
+/* v5.0 · botões «Refazer» */
+.redo-btn, [data-act="refazer"] { display: inline-flex; align-items: center; gap: 6px; }
+.redo-btn svg, [data-act="refazer"] svg { flex: none; }
+.qz [data-act="redo"] { display: none; }
