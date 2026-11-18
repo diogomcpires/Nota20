@@ -2460,3 +2460,6 @@ details.ext { padding: 0; margin: 0; }
 .exs-free > div > span { color: var(--muted); font-weight: 600; font-size: 0.9rem; } .exs-free > div > span b { color: var(--ink); }
 .exs-free .btn { grid-column: 1 / -1; justify-self: start; }
 @media (min-width: 760px) { .exs-free { grid-template-columns: auto 1fr auto; } .exs-free .btn { grid-column: auto; } }
+/* v4.9 · estrela dos essenciais nos exercícios do tópico */
+.q-meta .chip.ess { background: var(--yellow-50); color: #8a6100; border: 1px solid #ffd76a; }
+.q.is-ess { box-shadow: inset 4px 0 0 var(--yellow), var(--shadow); }

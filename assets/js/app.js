@@ -1693,6 +1693,14 @@
       </div>
     </div>`;
     t.exercicios.forEach((_, i) => { if (full || i === 0) restorePractice(`t-${t.id}-${i}`); });
+    /* marca os essenciais (a mesma estrela da página Exercícios) */
+    const ESS = essenciais();
+    $$("#exercicios ~ .q", app).forEach((el, i) => {
+      if (!ESS.has(`t-${t.id}-${i}`)) return;
+      el.classList.add("is-ess");
+      const m = el.querySelector(".q-meta");
+      if (m && !m.querySelector(".chip.ess")) m.insertAdjacentHTML("beforeend", `<span class="chip ess" title="Um dos exercícios essenciais deste tema">★ Essencial</span>`);
+    });
   }
 
   /* ---------- Exames ---------- */
