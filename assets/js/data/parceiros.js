@@ -9,6 +9,10 @@
      youtube: "https://youtube.com/@eduardo",         // opcional (endereço completo)
      codigo: "EDUARDO",
      foto: "assets/parceiros/eduardo.jpg" }           // opcional (quadrada); sem foto, aparecem as iniciais
+
+   Códigos escondidos (não aparecem na página Parcerias):
+   { nome: "Prof.ª Ana Lopes · Escola X", codigo: "TURMA-ANA", oculto: true, tipo: "turma" }   // código de turma de um professor
+   { nome: "Nota20", codigo: "CONVITE3", oculto: true, tipo: "promo" }                          // promoções (ex.: email do fim do convite)
 */
 window.N20_PARCEIROS = [
   { nome: "Beatriz Ribeiro", tiktok: "@bea..ribeiro", instagram: "@beaatriz.ribeiroo", codigo: "BR20", foto: "assets/parceiros/beatriz-ribeiro.jpg" },
@@ -17,5 +21,7 @@ window.N20_PARCEIROS = [
   { nome: "Beatriz Fonseca", tiktok: "@beatriz26fonseca", instagram: "@learn.with.bia", codigo: "BIA26F20", foto: "assets/parceiros/beatriz-fonseca.jpg" },
   { nome: "Letícia Parra", tiktok: "@leticiaa.parraa", instagram: "@leticia.parraa", codigo: "PARRA20" },
   { nome: "Mary Afonso", descricao: "Vida de estudante", tiktok: "@maryybtww", instagram: "@maryy__btww", codigo: "MARY20", foto: "assets/parceiros/mary-afonso.jpg" },
-  { nome: "Gonçalo Araújo", tiktok: "@gongas_0052", instagram: "@gon.m.a_", codigo: "GONGAS20", foto: "assets/parceiros/goncalo-araujo.jpg" }
+  { nome: "Gonçalo Araújo", tiktok: "@gongas_0052", instagram: "@gon.m.a_", codigo: "GONGAS20", foto: "assets/parceiros/goncalo-araujo.jpg" },
+  /* ---- códigos escondidos ---- */
+  { nome: "Nota20", codigo: "CONVITE3", oculto: true, tipo: "promo" }
 ];
