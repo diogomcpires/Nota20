@@ -63,7 +63,7 @@ window.N20_CONFIG = {
 
   /* PostHog (servidores na UE): funis, onde as pessoas saem, gravações de sessões.
      Põe aqui a "Project API key" (começa por phc_). Vazio = desligado. */
-  POSTHOG_KEY: "",
+  POSTHOG_KEY: "phc_ognCUwNywke4t7t6mfPxxCDjMdwZCZCtrAa6DtZioYdL",
   POSTHOG_HOST: "https://eu.i.posthog.com",
 
   /* Contas (Supabase): entrar com um código enviado por email, progresso guardado e plano pago.
