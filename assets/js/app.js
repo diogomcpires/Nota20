@@ -1198,7 +1198,7 @@
     if (view.startsWith("m-")) renderMateria(view.slice(2));
     else if (view.startsWith("t-")) renderTopic(view.slice(2));
     else if (view.startsWith("e-")) renderExam(view.slice(2));
-    else ({ inicio: renderHome, estudar: renderStudy, exercicios: renderExercicios, testes: renderTestes, ranking: renderRanking, exames: renderExams, provaveis: renderProvaveis, simulado: renderSim, duvidas: renderTutor, plano: renderPlano, treino: renderTreino, erros: renderErros, cabula: renderCabula, pais: renderPais, professores: renderProfessores, pausa: renderPausa, termos: renderTermos, conta: renderConta, desafio: renderDesafio, revisao: renderRevisao, parcerias: renderParcerias, "parcerias-admin": renderParcAdmin }[view] || renderHome)();
+    else ({ inicio: renderHome, estudar: renderStudy, exercicios: renderExercicios, testes: renderTestes, ranking: renderRanking, exames: renderExams, provaveis: renderProvaveis, simulado: renderSim, duvidas: renderTutor, plano: renderPlano, treino: renderTreino, erros: renderErros, cabula: renderCabula, pais: renderPais, pausa: renderPausa, termos: renderTermos, conta: renderConta, desafio: renderDesafio, revisao: renderRevisao, parcerias: renderParcerias, "parcerias-admin": renderParcAdmin }[view] || renderHome)();
     enhance(app);
     renderPromo();
     if (anchor) {
@@ -2817,7 +2817,6 @@
           <li><b>Perguntas ao explicador</b>: são enviadas a um fornecedor de inteligência artificial só para gerar a resposta.</li>
           ${C.GOATCOUNTER ? `<li><b>Estatísticas de visitas</b>: contamos as visitas e algumas ações (por exemplo, criar um plano) de forma anónima, com o GoatCounter. Não usamos cookies nem guardamos o teu IP.</li>` : ""}
           <li><b>Emails</b>: se criares conta ou fizeres uma compra, enviamos-te emails da conta (código de entrada, boas-vindas, confirmação de compra) e, se marcares um teste da escola, um lembrete antes do teste. Os emails são enviados pelo Resend (servidores na União Europeia). Podes deixar de receber lembretes no link que vem em cada um.</li>
-          <li><b>Pedidos de professores</b>: o nome, o email, a escola e a mensagem que preenches na página para professores, só para te respondermos e criarmos o teu acesso.</li>
           ${C.POSTHOG_KEY ? `<li><b>Melhorar a app</b>:usamos o PostHog (servidores na União Europeia) para perceber como a app é usada: que páginas abres, onde clicas e onde desistes, incluindo gravações anónimas do ecrã em que o que escreves fica escondido. Não usa cookies nem guarda nada no teu dispositivo, e não liga estes dados ao teu nome ou email.</li>` : ""}
         </ul>
         <p>Versão completa e atualizada: <a href="privacidade/">nota20app.pt/privacidade</a>. Se entrares com a Google, recebemos só o teu nome, email e fotografia de perfil.</p>
@@ -3017,64 +3016,6 @@
       </section>
     </div>`;
     FOCO.atualizar();
-  }
-
-  /* ---------- para professores: acesso grátis + código de turma ---------- */
-  function renderProfessores() {
-    const d = String(PARC_DESC || "3 €").replace(/^[−-]/, "");
-    app.innerHTML = `<div class="wrap pais prof" style="padding-bottom:60px">
-      <section class="pais-hero rv">
-        <span class="eyebrow">${ic("grad", 'width="18" height="18"')} Para professores de Português</span>
-        <h1>Leva a Nota20 para as tuas <span class="hl-y">turmas</span>, sem custos para ti.</h1>
-        <p>Os teus alunos treinam a matéria do 10.º ao 12.º ano no formato do exame, com correção na hora. Tu recebes acesso completo grátis e um código da tua turma, que dá <b>${esc(d)} de desconto</b> a cada aluno.</p>
-        <div class="row"><a class="btn btn-primary btn-shine" href="#prof-pedir" data-jump="prof-pedir">${ic("arrow")} Pedir acesso de professor</a><a class="btn btn-ghost" href="#exercicios">Ver os exercícios</a></div>
-        ${madeBy()}
-      </section>
-      <div class="pais-facts">
-        ${[["bg-blue", "pen", `${nExercicios} exercícios por tema`, "Escolha múltipla, respostas curtas e textos, do 10.º ao 12.º ano. Ótimos para TPC ou para rever antes de um teste."],
-           ["bg-coral", "file", `${REAL.length} exames nacionais resolvidos`, "De 2020 a 2026, item a item, com a resolução e a ligação à matéria."],
-           ["bg-violet", "sparkle", "Correção com IA pelos critérios", "Os alunos escrevem e recebem uma correção com nota, seguindo os critérios gerais de classificação."]]
-          .map(([c, i, t, x]) => `<div class="card pais-fact rv"><span class="tile ${c}">${ic(i)}</span><h3>${t}</h3><p>${x}</p></div>`).join("")}
-      </div>
-      <section class="section" style="padding:30px 0 10px">
-        <div class="section-head rv"><h2>Como funciona</h2><p>Sem plataformas novas para aprender: os alunos usam no telemóvel, tu acompanhas em sala.</p></div>
-        <div class="grid grid-3">
-          ${[["bg-mint", "check", "1 · Pedes o acesso", "Preenches o formulário em baixo. Respondemos no próprio dia ou no seguinte."],
-             ["bg-yellow", "star", "2 · Recebes o teu código", `Tens o plano Completo grátis e um código de turma (ex.: TURMA-ANA) que dá ${esc(d)} de desconto aos alunos.`],
-             ["bg-pink", "chat", "3 · Partilhas com a turma", "Os alunos começam grátis. Quem quiser tudo até ao exame usa o teu código no pagamento."]]
-            .map(([c, i, t, x]) => `<div class="card feat rv"><div class="tile ${c}">${ic(i)}</div><h3>${t}</h3><p class="muted" style="font-weight:600">${x}</p></div>`).join("")}
-        </div>
-      </section>
-      <section class="card prof-pedido rv" id="prof-pedir">
-        <div><span class="eyebrow">${ic("mail", 'width="18" height="18"')} Pedido de acesso</span><h2>Pedir acesso de professor</h2>
-          <p class="muted" style="font-weight:600">Usamos estes dados só para te responder e criar o teu acesso.</p></div>
-        <form id="prof-form" class="prof-form" novalidate>
-          <label>Nome<input name="nome" required maxlength="80" autocomplete="name" placeholder="Ex.: Ana Lopes"></label>
-          <label>Email<input name="email" type="email" required maxlength="120" autocomplete="email" placeholder="o.teu@email.pt"></label>
-          <label class="full">Escola<input name="escola" required maxlength="120" placeholder="Ex.: Escola Secundária de Odivelas"></label>
-          <fieldset class="full"><legend>Anos em que dás aulas</legend><div class="row">${["10.º", "11.º", "12.º"].map((a) => `<label class="pchk"><input type="checkbox" name="anos" value="${a}"><span>${a} ano</span></label>`).join("")}</div></fieldset>
-          <label>Número aproximado de alunos<input name="alunos" type="number" min="0" max="2000" inputmode="numeric" placeholder="Ex.: 50"></label>
-          <label class="full">Mensagem (opcional)<textarea name="mensagem" maxlength="600" rows="3" placeholder="Alguma pergunta ou ideia?"></textarea></label>
-          <div class="full row"><button class="btn btn-primary" type="submit">Enviar pedido ${ic("arrow")}</button><span class="small" id="prof-msg" aria-live="polite"></span></div>
-        </form>
-      </section>
-    </div>`;
-  }
-  async function enviarProfessor(f) {
-    const v = (n) => (f.elements[n] ? String(f.elements[n].value || "").trim() : "");
-    const msg = $("#prof-msg", f), btn = $("button[type=submit]", f);
-    const anos = [...f.querySelectorAll('input[name="anos"]:checked')].map((x) => x.value).join(", ");
-    if (v("nome").length < 3 || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v("email")) || v("escola").length < 3) { msg.className = "small err"; msg.textContent = "Preenche o nome, o email e a escola."; return; }
-    btn.disabled = true; msg.className = "small"; msg.textContent = "A enviar…";
-    try {
-      const r = await CONTA.rpc("professor_pedido", { p_nome: v("nome"), p_email: v("email"), p_escola: v("escola"), p_anos: anos, p_alunos: v("alunos") ? Math.min(2000, Math.max(0, parseInt(v("alunos"), 10) || 0)) : null, p_mensagem: v("mensagem") });
-      if (!r || !r.ok) throw new Error((r && r.erro) || "erro");
-      GC.event("professor-pedido");
-      f.outerHTML = `<div class="prof-ok">${lince()}<div><b>Pedido enviado. Obrigado!</b><span>Vamos responder para ${esc(v("email"))} no próprio dia ou no seguinte, com o teu acesso e o código da turma.</span></div></div>`;
-    } catch (e) {
-      btn.disabled = false; msg.className = "small err";
-      msg.textContent = String(e && e.message) === "limite" ? "Muitos pedidos neste momento. Tenta daqui a pouco." : "Não foi possível enviar. Verifica os dados e tenta outra vez.";
-    }
   }
 
   function renderPais() {
@@ -4102,7 +4043,6 @@
         ${mail ? `<a class="btn btn-yellow" href="${esc(mail)}">${ic("mail")} Quero ser parceiro</a>` : ""}
         ${C.CONTACTO_INSTAGRAM ? `<p class="small" style="margin:0;opacity:.9">Ou envia mensagem para ${esc(C.CONTACTO_INSTAGRAM)} no Instagram.</p>` : ""}
       </section>
-      <a class="pais-band rv prof-band" href="#professores"><span class="tile bg-mint">${ic("grad")}</span><span><b>És professor de Português?</b><span>Acesso grátis para ti e um código de desconto para as tuas turmas.</span></span>${ic("arrow")}</a>
     </div>`;
   }
 
@@ -4465,7 +4405,6 @@
       if (novo) { window.scrollTo({ top: 0, behavior: "instant" }); const c = $(".today"); if (c) { const [x, y] = centerOf(c); confetti(x, Math.min(y, 300), 30); addXP(20, "plano", x, Math.min(y, 300)); } }
     }
     if (f.id === "login-form") { ev.preventDefault(); submitLogin(f); }
-    if (f.id === "prof-form") { ev.preventDefault(); enviarProfessor(f); }
     if (f.id === "conv-mail") {
       ev.preventDefault();
       const em = $("#conv-mail-em", f), msg = $("#conv-mail-msg", f), btn = $("button[type=submit]", f);
@@ -4510,7 +4449,7 @@
   aplicarTema();
   document.getElementById("foot").innerHTML = `
     <div class="row" style="justify-content:space-between"><a class="logo" href="#inicio">${lince()}<span>Nota<b>20</b></span></a>
-      <span class="row small"><a href="#plano">Plano</a><a href="#estudar">Estudar</a><a href="#desafio">Desafio do dia</a><a href="#revisao">Revisão</a><a href="#treino">Treino</a><a href="#exames">Exames</a><a href="#simulado">Simulados</a><a href="#cabula">Cábula</a><a href="#pais">Para pais</a><a href="#professores">Para professores</a><a href="#parcerias">Parcerias</a><a href="#duvidas">Dúvidas</a><a href="#precos">Preços</a><a href="resumos/">Resumos</a><a href="#termos">Termos e privacidade</a><a href="${LRE}" target="_blank" rel="noopener">Livro de Reclamações</a></span></div>
+      <span class="row small"><a href="#plano">Plano</a><a href="#estudar">Estudar</a><a href="#desafio">Desafio do dia</a><a href="#revisao">Revisão</a><a href="#treino">Treino</a><a href="#exames">Exames</a><a href="#simulado">Simulados</a><a href="#cabula">Cábula</a><a href="#pais">Para pais</a><a href="#parcerias">Parcerias</a><a href="#duvidas">Dúvidas</a><a href="#precos">Preços</a><a href="resumos/">Resumos</a><a href="#termos">Termos e privacidade</a><a href="${LRE}" target="_blank" rel="noopener">Livro de Reclamações</a></span></div>
     <p class="small" style="margin:0">A Nota20 não tem ligação ao EduQA (antigo IAVE), ao Ministério da Educação${CRIADOR ? " nem ao Instituto Superior Técnico" : ""}. Os enunciados e critérios oficiais pertencem ao EduQA (antigo IAVE) e são apresentados por ligação; as resoluções são propostas da Nota20.</p>
     ${contactosHTML()}
     <button class="tema-btn" type="button" data-act="tema">${ic("moon")}<span data-tema-lab>Tema escuro</span></button>`;

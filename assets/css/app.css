@@ -2529,30 +2529,6 @@ details.ext { padding: 0; margin: 0; }
 [data-theme="dark"] .banner .toc .chip.hot { color: #e04c3c; }
 [data-theme="dark"] .chip.ess, [data-theme="dark"] .el-ess { color: #f3c04a; }
 
-/* v5.3 · página para professores */
-.prof .prof-pedido { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: 26px; margin-top: 26px; padding: 28px; scroll-margin-top: 90px; }
-.prof .prof-pedido h2 { margin: 6px 0 8px; }
-.prof-form { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 14px; }
-.prof-form label { display: grid; gap: 6px; font-weight: 800; font-size: 0.9rem; color: var(--ink); }
-.prof-form .full { grid-column: 1 / -1; }
-.prof-form input:not([type=checkbox]), .prof-form textarea { width: 100%; min-width: 0; font: 600 0.98rem var(--f-body); padding: 10px 12px; border-radius: 12px; border: 2px solid var(--line); background: var(--surface); color: var(--ink); }
-.prof-form input:focus, .prof-form textarea:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 4px rgba(45, 107, 255, 0.15); }
-.prof-form fieldset { border: 0; padding: 0; margin: 0; display: grid; gap: 6px; }
-.prof-form legend { font-weight: 800; font-size: 0.9rem; padding: 0; margin-bottom: 6px; }
-.prof-form .pchk { display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 999px; border: 2px solid var(--line); background: var(--surface); cursor: pointer; font-weight: 700; }
-.prof-form .pchk:has(input:checked) { border-color: var(--blue); background: var(--blue-50); color: var(--blue-d); }
-.prof-form .pchk input { accent-color: var(--blue); }
-.prof-form .err { color: var(--coral-d); font-weight: 800; }
-.prof-ok { display: flex; gap: 14px; align-items: center; padding: 18px; border-radius: 16px; background: var(--mint-50); border: 2px solid var(--mint); }
-.prof-ok .lince { width: 64px; height: 64px; flex: none; }
-.prof-ok div { display: grid; gap: 4px; }
-.prof-band { margin-top: 18px; }
-@media (max-width: 760px) {
-  .prof .prof-pedido { grid-template-columns: 1fr; padding: 20px; }
-  .prof-form { grid-template-columns: 1fr; }
-}
-[data-theme="dark"] .prof-form .pchk:has(input:checked) { color: #9db9ff; }
-
 /* v5.4 · foco e pausa */
 .top-foco { background: linear-gradient(120deg, #0c9660, #14b877); color: #fff !important; box-shadow: 0 3px 0 #08704a; font-variant-numeric: tabular-nums; }
 .top-foco.is-pausa { background: linear-gradient(120deg, #1d3a9e, #2d6bff); box-shadow: 0 3px 0 #13286e; }
@@ -3330,9 +3306,6 @@ details.ext { padding: 0; margin: 0; }
     color: #0ea96c
 }
 [data-theme="dark"] .conv-modal .conv-mail .err {
-    color: #e66c5f
-}
-[data-theme="dark"] .prof-form .err {
     color: #e66c5f
 }
 [data-theme="dark"] .foco-ring.is-pausa .val {
