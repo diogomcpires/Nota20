@@ -569,6 +569,10 @@
     calendar: '<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',
     search: '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
     moon: '<path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/>',
+    leaf: '<path d="M11 20A7 7 0 0 1 4 13c0-6 6-9 16-9 0 10-3 16-9 16z"/><path d="M4 21c2-4 5-7 9-9"/>',
+    wind: '<path d="M3 8h11a3 3 0 1 0-3-3M3 12h15a3 3 0 1 1-3 3M3 16h7"/>',
+    play: '<path d="M7 4v16l13-8z"/>',
+    pause: '<path d="M8 4v16M16 4v16"/>',
     volume: '<path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/>'
   };
   const ic = (name, extra = "") => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" ${extra}>${P[name] || ""}</svg>`;
@@ -1194,7 +1198,7 @@
     if (view.startsWith("m-")) renderMateria(view.slice(2));
     else if (view.startsWith("t-")) renderTopic(view.slice(2));
     else if (view.startsWith("e-")) renderExam(view.slice(2));
-    else ({ inicio: renderHome, estudar: renderStudy, exercicios: renderExercicios, testes: renderTestes, ranking: renderRanking, exames: renderExams, provaveis: renderProvaveis, simulado: renderSim, duvidas: renderTutor, plano: renderPlano, treino: renderTreino, erros: renderErros, cabula: renderCabula, pais: renderPais, professores: renderProfessores, termos: renderTermos, conta: renderConta, desafio: renderDesafio, revisao: renderRevisao, parcerias: renderParcerias, "parcerias-admin": renderParcAdmin }[view] || renderHome)();
+    else ({ inicio: renderHome, estudar: renderStudy, exercicios: renderExercicios, testes: renderTestes, ranking: renderRanking, exames: renderExams, provaveis: renderProvaveis, simulado: renderSim, duvidas: renderTutor, plano: renderPlano, treino: renderTreino, erros: renderErros, cabula: renderCabula, pais: renderPais, professores: renderProfessores, pausa: renderPausa, termos: renderTermos, conta: renderConta, desafio: renderDesafio, revisao: renderRevisao, parcerias: renderParcerias, "parcerias-admin": renderParcAdmin }[view] || renderHome)();
     enhance(app);
     renderPromo();
     if (anchor) {
@@ -1642,6 +1646,7 @@
         <a class="${feito ? "" : "novo"}" href="#desafio"><span class="tile bg-yellow">${icFill("bolt")}</span><span><b>Desafio do dia</b><span>${feito ? `Feito: ${desHoje().res.filter(Boolean).length}/${DES_N}` : "5 perguntas · 2 min"}</span></span></a>
         <a class="${nr ? "novo" : ""}" href="#revisao"><span class="tile bg-violet">${ic("layers")}</span><span><b>Revisão de hoje</b><span>${nr ? `${nr} para rever` : "Tudo em dia"}</span></span></a>        ${(() => { const T = store.get("teste", null), d = T ? Math.round((new Date(T.data + "T00:00:00") - new Date(dkey(new Date()) + "T00:00:00")) / 864e5) : -1;
           return `<a class="${d >= 0 && d <= 3 ? "novo" : ""}" href="#testes"><span class="tile bg-blue">${ic("calendar")}</span><span><b>${d >= 0 ? `Teste ${d === 0 ? "hoje" : d === 1 ? "amanhã" : `daqui a ${d} dias`}` : "Teste da escola"}</b><span>${d >= 0 ? esc(T.tit) : "Cria um plano para o teu teste"}</span></span></a>`; })()}
+        <a href="#pausa"><span class="tile bg-mint">${ic("leaf")}</span><span><b>Modo foco</b><span>${FOCO.ativo() ? `A decorrer · ${FOCO.texto()}` : "25 min de estudo com o Lince"}</span></span></a>
       </div></div>`;
   }
   /* convite à compra, nos sítios onde o aluno acabou de ver valor */
@@ -2459,7 +2464,7 @@
      MENU LATERAL (computador, dentro da app)
      ============================================================ */
   const SIDE = [
-    ["Organizar", [["plano", "#plano", "compass", "Plano até ao exame"], ["testes", "#testes", "calendar", "Teste da escola"]]],
+    ["Organizar", [["plano", "#plano", "compass", "Plano até ao exame"], ["testes", "#testes", "calendar", "Teste da escola"], ["pausa", "#pausa", "leaf", "Foco e pausa"]]],
     ["Estudar", [["estudar", "#estudar", "book", "Tópicos"], ["exercicios", "#exercicios", "pen", "Exercícios"], ["desafio", "#desafio", "bolt", "Desafio do dia"], ["treino", "#treino", "target", "Treino rápido"], ["revisao", "#revisao", "layers", "Revisão"], ["erros", "#erros", "check", "Os meus erros"]]],
     ["Exame", [["exames", "#exames", "file", "Exames resolvidos"], ["simulado", "#simulado", "timer", "Simulado"], ["provaveis", "#provaveis", "flame", "Prováveis 2027"]]],
     ["Mais", [["duvidas", "#duvidas", "sparkle", "Lince IA"], ["ranking", "#ranking", "trophy", "Ranking"], ["parcerias", "#parcerias", "star", "Parcerias"]]],
@@ -2853,6 +2858,167 @@
         <button class="btn btn-ghost btn-sm" type="button" data-act="copy-share">Copiar texto</button></div>
       <button class="btn btn-soft btn-sm" type="button" data-act="modal-close">Fechar</button>`);
   }
+  /* ---------- foco e pausa: temporizador com o Lince, respiração e véspera do exame ---------- */
+  const FOCO = (() => {
+    const PRESETS = { "25": [25, 5], "50": [50, 10], "15": [15, 3] };
+    let s = store.get("foco", null);
+    if (!s || !PRESETS[s.preset]) s = { preset: "25", modo: "foco", fim: 0, resto: 25 * 60e3, hoje: { dia: today(), n: 0, min: 0 } };
+    let tick = 0;
+    const dur = (m) => PRESETS[s.preset][m === "foco" ? 0 : 1] * 60e3;
+    const guardar = () => store.set("foco", s);
+    const restante = () => (s.fim ? Math.max(0, s.fim - Date.now()) : s.resto);
+    const mmss = (ms) => { const t = Math.ceil(ms / 1000); return `${String(Math.floor(t / 60)).padStart(2, "0")}:${String(t % 60).padStart(2, "0")}`; };
+    const hoje = () => { if (s.hoje.dia !== today()) s.hoje = { dia: today(), n: 0, min: 0 }; return s.hoje; };
+    function som() {
+      try { const A = window.AudioContext || window.webkitAudioContext; if (!A) return; const a = new A();
+        [0, 0.22, 0.44].forEach((t, i) => { const o = a.createOscillator(), g = a.createGain(); o.type = "sine"; o.frequency.value = [660, 880, 990][i]; g.gain.setValueAtTime(0.0001, a.currentTime + t); g.gain.exponentialRampToValueAtTime(0.18, a.currentTime + t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, a.currentTime + t + 0.2); o.connect(g); g.connect(a.destination); o.start(a.currentTime + t); o.stop(a.currentTime + t + 0.22); });
+      } catch (e) { /* sem som */ }
+    }
+    function avisar(tit, txt) {
+      som();
+      try { if (document.visibilityState !== "visible" && "Notification" in window && Notification.permission === "granted") new Notification(tit, { body: txt, icon: "assets/icon-192.png" }); } catch (e) { /* */ }
+      toast(`<span class="tl">${lince()}</span><div><b>${tit}</b><span>${txt}</span>${s.modo === "pausa" ? `<a class="btn btn-soft btn-sm" href="#pausa" style="margin-top:8px">${ic("wind")} Respirar 1 minuto</a>` : ""}</div>`, 9000);
+    }
+    function acabou() {
+      if (s.modo === "foco") {
+        const h = hoje(); h.n += 1; h.min += PRESETS[s.preset][0];
+        addXP(10, `foco:${today()}:${h.n}`);
+        GC.event("foco-sessao");
+        s.modo = "pausa"; s.resto = dur("pausa"); s.fim = Date.now() + s.resto; /* a pausa começa sozinha */
+        avisar("Boa! Hora da pausa 🌿", `${PRESETS[s.preset][1]} minutos para descansar: levanta-te, bebe água, olha para longe do ecrã. +10 XP`);
+      } else {
+        s.modo = "foco"; s.resto = dur("foco"); s.fim = 0;
+        avisar("A pausa acabou", "Quando estiveres pronto, começa mais uma sessão de foco.");
+      }
+      guardar();
+    }
+    function atualizar() {
+      if (s.fim && Date.now() >= s.fim) acabou();
+      const chip = document.getElementById("top-foco");
+      if (chip) {
+        const on = !!s.fim;
+        chip.hidden = !on || /^#pausa/.test(location.hash); /* na própria página o tempo já está à vista */
+        document.body.classList.toggle("foco-on", on);
+        if (on) chip.innerHTML = `${ic(s.modo === "foco" ? "leaf" : "wind")}<span>${s.modo === "foco" ? "Foco" : "Pausa"} <b>${mmss(restante())}</b></span>`;
+        chip.classList.toggle("is-pausa", s.modo === "pausa");
+      }
+      const r = document.getElementById("foco-ring");
+      if (r) {
+        const tot = dur(s.modo), f = 1 - restante() / tot;
+        r.style.setProperty("--p", String(Math.max(0, Math.min(1, f))));
+        r.classList.toggle("is-pausa", s.modo === "pausa"); r.classList.toggle("on", !!s.fim);
+        const t = document.getElementById("foco-t"); if (t) t.textContent = mmss(restante());
+        const m = document.getElementById("foco-m"); if (m) m.textContent = s.modo === "foco" ? (s.fim ? "Foco. Telemóvel longe!" : "Pronto para estudar?") : "Pausa: descansa a cabeça";
+        const b = document.getElementById("foco-go"); if (b) b.innerHTML = s.fim ? `${ic("pause")} Pausar` : `${ic("play")} ${restante() < dur(s.modo) ? "Continuar" : s.modo === "foco" ? "Começar foco" : "Começar pausa"}`;
+        const h = hoje(), e = document.getElementById("foco-hoje"); if (e) e.innerHTML = h.n ? `Hoje: <b>${h.n}</b> sessã${h.n === 1 ? "o" : "es"} de foco · <b>${h.min}</b> min` : "Ainda sem sessões de foco hoje.";
+      }
+      clearTimeout(tick);
+      if (s.fim) tick = setTimeout(atualizar, 1000 - (Date.now() % 1000) + 20);
+    }
+    function alternar() {
+      if (s.fim) { s.resto = restante(); s.fim = 0; }
+      else {
+        s.fim = Date.now() + s.resto;
+        try { if ("Notification" in window && Notification.permission === "default") Notification.requestPermission(); } catch (e) { /* */ }
+        GC.event(s.modo === "foco" ? "foco-comecar" : "pausa-comecar");
+      }
+      guardar(); atualizar();
+    }
+    function repor() { s.modo = "foco"; s.fim = 0; s.resto = dur("foco"); guardar(); atualizar(); }
+    function preset(p) { if (!PRESETS[p] || s.fim) return; s.preset = p; s.resto = dur(s.modo); guardar(); atualizar(); }
+    function saltar() { s.fim = Date.now(); atualizar(); }
+    setTimeout(atualizar, 0);
+    document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") atualizar(); });
+    addEventListener("hashchange", () => setTimeout(atualizar, 0));
+    return { atualizar, alternar, repor, preset, saltar, ativo: () => !!s.fim, texto: () => `${s.modo === "foco" ? "foco" : "pausa"} ${mmss(restante())}`, estado: () => s, PRESETS };
+  })();
+
+  /* respiração guiada de 1 minuto: inspira 4 s, segura 2 s, expira 6 s (5 vezes) */
+  let respT = 0;
+  function respirar(b) {
+    const box = document.getElementById("resp"); if (!box) return;
+    clearTimeout(respT);
+    if (box.classList.contains("on")) { box.classList.remove("on", "in", "hold", "out"); $("#resp-txt").textContent = "Pronto?"; b.innerHTML = `${ic("play")} Começar (1 min)`; return; }
+    box.classList.add("on"); b.innerHTML = `${ic("pause")} Parar`; GC.event("respirar");
+    const fases = [["in", "Inspira pelo nariz…", 4000], ["hold", "Segura…", 2000], ["out", "Expira devagar pela boca…", 6000]];
+    let i = 0, ciclo = 0;
+    const passo = () => {
+      if (!document.body.contains(box) || !box.classList.contains("on")) return;
+      if (ciclo >= 5) { box.classList.remove("on", "in", "hold", "out"); $("#resp-txt").textContent = "Muito bem. Volta ao estudo com calma 💙"; b.innerHTML = `${ic("play")} Repetir`; addXP(5, `respirar:${today()}`); return; }
+      const [cls, txt, ms] = fases[i];
+      box.classList.remove("in", "hold", "out"); box.classList.add(cls);
+      box.style.setProperty("--fase", ms + "ms");
+      $("#resp-txt").textContent = txt;
+      const pr = document.getElementById("resp-prog"); if (pr) pr.style.width = `${Math.round(((ciclo * 12000 + fases.slice(0, i).reduce((a, f) => a + f[2], 0)) / 60000) * 100)}%`;
+      i = (i + 1) % 3; if (i === 0) ciclo++;
+      respT = setTimeout(passo, ms);
+    };
+    passo();
+  }
+
+  function renderPausa() {
+    const s = FOCO.estado();
+    app.innerHTML = `<div class="wrap pausa" style="padding-bottom:60px">
+      <div class="page-head"><span class="eyebrow">${ic("leaf", 'width="18" height="18"')} Foco e pausa</span><h1>Estuda com foco, descansa a sério</h1>
+        <p>Blocos curtos de estudo com pausas a sério rendem mais do que horas seguidas. O Lince marca o tempo por ti.</p></div>
+      <div class="pausa-grid">
+        <section class="card foco-card rv">
+          <div class="foco-ring" id="foco-ring">${lince()}<svg class="fr-arc" viewBox="0 0 120 120" aria-hidden="true"><circle class="trk" cx="60" cy="60" r="54"/><circle class="val" cx="60" cy="60" r="54"/></svg></div>
+          <div class="foco-info">
+            <div class="foco-t" id="foco-t" role="timer" aria-live="off">25:00</div>
+            <div class="foco-m" id="foco-m"></div>
+            <div class="foco-pre" role="group" aria-label="Duração">${Object.entries(FOCO.PRESETS).map(([k, [a, b]]) => `<button type="button" class="${s.preset === k ? "on" : ""}" data-act="foco-preset" data-p="${k}" ${s.fim ? "disabled" : ""}>${a}/${b} min</button>`).join("")}</div>
+            <div class="row"><button class="btn btn-primary" id="foco-go" type="button" data-act="foco-go"></button><button class="btn btn-ghost btn-sm" type="button" data-act="foco-saltar">Saltar</button><button class="btn btn-ghost btn-sm" type="button" data-act="foco-repor">Recomeçar</button></div>
+            <p class="small muted" id="foco-hoje" style="font-weight:700;margin:0"></p>
+            <p class="small muted" style="font-weight:600;margin:0">Podes mudar de página: o tempo continua no topo. Cada sessão de foco completa dá +10 XP.</p>
+          </div>
+        </section>
+        <section class="card resp-card rv">
+          <h2>${ic("wind")} Respirar 1 minuto</h2>
+          <p class="muted" style="font-weight:600">Para os nervos antes de um teste ou quando a cabeça já não aguenta. Segue o círculo.</p>
+          <div class="resp" id="resp"><div class="resp-c">${lince()}</div></div>
+          <p class="resp-txt" id="resp-txt" aria-live="polite">Pronto?</p>
+          <div class="resp-bar"><i id="resp-prog"></i></div>
+          <button class="btn btn-soft" type="button" data-act="respirar">${ic("play")} Começar (1 min)</button>
+        </section>
+      </div>
+      <section class="section" style="padding:34px 0 0">
+        <div class="section-head rv"><h2>Na pausa, faz isto</h2><p>5 minutos chegam, se forem mesmo uma pausa.</p></div>
+        <div class="grid grid-3">
+          ${[["bg-blue", "arrow", "Levanta-te e mexe-te", "Dá uma volta pela casa, alonga as costas e os ombros. O corpo também esteve parado."],
+             ["bg-mint", "leaf", "Água e janela", "Bebe um copo de água e olha para longe, pela janela. Os olhos agradecem."],
+             ["bg-coral", "x", "Nada de redes", "Se abrires o TikTok, os 5 minutos passam a 30. Guarda o scroll para o fim do estudo."]]
+            .map(([c, i, t, x]) => `<div class="card feat rv"><div class="tile ${c}">${ic(i)}</div><h3>${t}</h3><p class="muted" style="font-weight:600">${x}</p></div>`).join("")}
+        </div>
+      </section>
+      <section class="card vespera rv" id="vespera">
+        <span class="eyebrow">${ic("calendar", 'width="18" height="18"')} Véspera e dia do exame</span>
+        <h2>Para chegares ao exame tranquilo</h2>
+        <div class="vesp-grid">
+          <div><h3>Na véspera</h3><ul>
+            <li>Revê só os resumos e a tua lista de erros. Não comeces matéria nova.</li>
+            <li>Prepara o material e o documento de identificação na mesa, antes de jantar.</li>
+            <li>Deita-te à hora normal. Dormir bem vale mais do que uma hora extra de estudo.</li></ul></div>
+          <div><h3>No dia</h3><ul>
+            <li>Toma o pequeno-almoço e chega à escola com tempo.</li>
+            <li>Leva caneta ou esferográfica de tinta azul ou preta (leva duas) e o documento de identificação. O corretor não é permitido.</li>
+            <li>Confirma o material permitido na norma do Júri Nacional de Exames para o teu ano.</li></ul></div>
+          <div><h3>Durante a prova</h3><ul>
+            <li>Lê a prova toda primeiro e começa pelo que sabes melhor.</li>
+            <li>Sugestão para 120 minutos: Grupo I ~55 min, Grupo II ~20 min, Grupo III ~35 min e 10 min para rever.</li>
+            <li>No texto do Grupo III, faz um plano de 2 minutos antes de escrever e conta as palavras.</li></ul></div>
+        </div>
+      </section>
+      <section class="card ansiedade rv">
+        <h2>${ic("chat")} Quando os nervos apertam</h2>
+        <p>Algum nervosismo é normal e até ajuda a concentrar. Se der um branco: pousa a caneta, respira três vezes devagar e passa para a pergunta seguinte. Muitas vezes a resposta volta sozinha.</p>
+        <p>Experimenta o <b>5-4-3-2-1</b>: repara em 5 coisas que vês, 4 que sentes, 3 que ouves, 2 cheiros e 1 sabor. Traz a cabeça de volta ao momento.</p>
+        <p class="muted" style="font-weight:600">Se a ansiedade não te deixa estudar ou dormir há vários dias, fala com alguém de confiança, com o psicólogo da escola ou liga para o SNS 24 (808 24 24 24), que também tem apoio psicológico.</p>
+      </section>
+    </div>`;
+    FOCO.atualizar();
+  }
+
   /* ---------- para professores: acesso grátis + código de turma ---------- */
   function renderProfessores() {
     const d = String(PARC_DESC || "3 €").replace(/^[−-]/, "");
@@ -4123,6 +4289,11 @@
       case "conta-sair": CONTA.sair().then(() => { chipConta(); toast(`<span class="tl">${lince()}</span><div><b>Sessão terminada</b><span>O teu progresso continua guardado na conta.</span></div>`); route(); }); break;
       case "conta-apagar": if (confirm("Apagar a conta e o progresso guardado? Não dá para desfazer.")) { a.disabled = true; CONTA.apagar().then(() => { chipConta(); toast(`<span class="tl">${lince()}</span><div><b>Conta apagada</b><span>Os teus dados foram removidos.</span></div>`); location.hash = "#inicio"; }).catch(() => { a.disabled = false; a.textContent = "Não foi possível. Tenta mais tarde."; }); } break;
       case "convidar": convidar(); break;
+      case "foco-go": FOCO.alternar(); break;
+      case "foco-repor": FOCO.repor(); break;
+      case "foco-saltar": FOCO.saltar(); break;
+      case "foco-preset": FOCO.preset(a.dataset.p); $$(".foco-pre button").forEach((x) => x.classList.toggle("on", x === a)); break;
+      case "respirar": respirar(a); break;
       case "convite-wa": GC.event("convite-whatsapp"); break;
       case "convite-share": { if (!meuConv) break; navigator.share({ title: "Nota20", text: conviteTexto(meuConv.codigo) }).then(() => GC.event("convite-partilha")).catch(() => {}); break; }
       case "convite-copiar": case "convite-copiar-link": {
