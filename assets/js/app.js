@@ -712,6 +712,35 @@
       <button class="btn btn-soft btn-sm" type="button" data-act="modal-close">Agora não</button>`);
   }
 
+  /* ---------- avisos ao vivo no Discord (só nos momentos de compra) ---------- */
+  const AOVIVO = (() => {
+    const ativo = CONTA.on && !C.MODO_DEMO && /^https?:$/.test(location.protocol) && !/claude|localhost|127\.0\.0\.1/.test(location.hostname);
+    let sessao = ""; try { sessao = sessionStorage.getItem("n20:sessao") || ""; if (!sessao) { sessao = Math.random().toString(36).slice(2, 12) + Date.now().toString(36); sessionStorage.setItem("n20:sessao", sessao); } } catch (e) { sessao = Math.random().toString(36).slice(2, 14); }
+    const q = new URLSearchParams(location.search);
+    let fonte = q.get("utm_source") || q.get("ref") || "";
+    try { if (!fonte && document.referrer && new URL(document.referrer).host !== location.host) fonte = new URL(document.referrer).host.replace(/^www\./, ""); } catch (e) { /* sem origem */ }
+    try { if (fonte) sessionStorage.setItem("n20:fonte", fonte); else fonte = sessionStorage.getItem("n20:fonte") || ""; } catch (e) { /* */ }
+    /* keepalive: o pedido sai mesmo que a página mude logo a seguir para o pagamento */
+    const enviar = (tipo, extra) => {
+      if (!ativo) return;
+      const h = { "Content-Type": "application/json", apikey: C.SUPABASE_KEY };
+      try { const ref = new URL(C.SUPABASE_URL).host.split(".")[0], s = JSON.parse(localStorage.getItem(`sb-${ref}-auth-token`) || "null"); if (s && s.access_token && s.expires_at * 1000 > Date.now()) h.Authorization = `Bearer ${s.access_token}`; } catch (e) { /* sem sessão */ }
+      try {
+        fetch(`${C.SUPABASE_URL}/rest/v1/rpc/site_alerta`, { method: "POST", keepalive: true, headers: h,
+          body: JSON.stringify({ p_tipo: tipo, p_sessao: sessao, p_extra: { disp: innerWidth < 760 ? "telemóvel" : "computador", fonte: fonte.slice(0, 40), ...(extra || {}) } }) }).catch(() => {});
+      } catch (e) { /* sem rede */ }
+    };
+    let t = 0;
+    const vigiarPrecos = () => {
+      clearTimeout(t);
+      if (!/^#precos/.test(location.hash)) return;
+      t = setTimeout(() => { if (/^#precos/.test(location.hash) && document.visibilityState === "visible") enviar("precos-2min"); }, 120000);
+    };
+    addEventListener("hashchange", vigiarPrecos);
+    setTimeout(vigiarPrecos, 0);
+    return { checkout: (codigo) => enviar("checkout", codigo ? { codigo: String(codigo).slice(0, 20) } : {}), pack: () => enviar("pack-checkout") };
+  })();
+
   /* ---------- convida um amigo: 7 dias do Completo para os dois ---------- */
   const CONV_MAX = 5;
   let meuConv = null, convEmail = "";
@@ -3900,9 +3929,12 @@
     const buy = ev.target.closest("a[data-buy]");
     if (buy) {
       GC.event("comprar-clique");
-      if (CONTA.on && !CONTA.user) { ev.preventDefault(); closeModal(); openLogin("comprar", () => { location.href = payHref(); }); return; }
+      const cod = () => { const pc = parceiroAtivo(); return pc ? pc.codigo : ""; };
+      if (CONTA.on && !CONTA.user) { ev.preventDefault(); closeModal(); openLogin("comprar", () => { AOVIVO.checkout(cod()); location.href = payHref(); }); return; }
       buy.href = payHref();
+      AOVIVO.checkout(cod());
     }
+    if (ev.target.closest("a[data-pack]")) AOVIVO.pack();
     const jump = ev.target.closest("[data-jump]");
     if (jump) { ev.preventDefault(); const t = document.getElementById(jump.dataset.jump); if (t) t.scrollIntoView({ behavior: "smooth" }); return; }
     const a = ev.target.closest("[data-act]");
