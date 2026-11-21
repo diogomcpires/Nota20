@@ -22,7 +22,7 @@ window.N20_PARCEIROS = [
   { nome: "Letícia Parra", tiktok: "@leticiaa.parraa", instagram: "@leticia.parraa", codigo: "PARRA20" },
   { nome: "Mary Afonso", descricao: "Vida de estudante", tiktok: "@maryybtww", instagram: "@maryy__btww", codigo: "MARY20", foto: "assets/parceiros/mary-afonso.jpg" },
   { nome: "Gonçalo Araújo", tiktok: "@gongas_0052", instagram: "@gon.m.a_", codigo: "GONGAS20", foto: "assets/parceiros/goncalo-araujo.jpg" },
-  { nome: "Simão", codigo: "SIMAO20" },
+  { nome: "Simão Alves", tiktok: "@_simaoalves_", instagram: "@__simaoalves__", codigo: "SIMAO20" },
   /* ---- códigos escondidos ---- */
   { nome: "Nota20", codigo: "CONVITE3", oculto: true, tipo: "promo" }
 ];
