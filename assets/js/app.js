@@ -1224,10 +1224,10 @@
       ${syms.map(([s, x, y, sz, d]) => `<span class="sym" aria-hidden="true" style="left:${x}%;top:${y}%;font-size:${sz}rem;animation-delay:${d}s">${s}</span>`).join("")}
       <div class="wrap">
         <div>
-          <span class="pill"><span class="dot"></span>Exame Nacional de Português · Prova ${C.PROVA}</span>
+          <span class="pill"><span class="dot"></span>Português · 10.º ao 12.º · Exame ${C.PROVA}</span>
           <h1>Não sabes por onde <span class="grad-text">começar</span>?<span class="l2">Aqui tens tudo organizado.</span>
             <svg class="squiggle" viewBox="0 0 420 18" preserveAspectRatio="none" aria-hidden="true"><path d="M4 12 C 60 2, 110 18, 170 9 S 290 2, 416 10"/></svg></h1>
-          <p class="lead">Diz-nos quanto tempo tens e recebes um <b>plano de estudo dia a dia</b> até ao exame: resumos, ${nExercicios} exercícios com resolução, <b>${REAL.length} exames nacionais resolvidos</b>, simulados com tempo e um explicador para as dúvidas.</p>
+          <p class="lead">Do 10.º ao 12.º ano, para os <b>testes da escola</b> e para o <b>Exame Nacional</b>. Diz-nos quanto tempo tens e recebes um <b>plano de estudo dia a dia</b>: resumos, ${nExercicios} exercícios com resolução, <b>${REAL.length} exames nacionais resolvidos</b>, simulados com tempo e um explicador para as dúvidas.</p>
           ${madeBy("hero-made")}
           <a class="hero-ia" href="#duvidas"><span class="hi-ic">${ic("sparkle")}</span><span><b>Com IA:</b> o Lince tira-te dúvidas a qualquer hora e corrige os teus textos pelos critérios do IAVE.</span><span class="hi-btn">Experimentar ${ic("arrow")}</span></a>
           <div class="row">

@@ -1,7 +1,7 @@
 {
-  "name": "Nota20 · Exame de Português",
+  "name": "Nota20 · Português",
   "short_name": "Nota20",
-  "description": "Plano de estudo, resumos, exercícios, exames resolvidos e simulados para o Exame Nacional de Português (639).",
+  "description": "Português do 10.º ao 12.º ano: testes da escola e Exame Nacional (639). Resumos, exercícios, exames resolvidos e simulados.",
   "lang": "pt-PT",
   "start_url": "./#plano",
   "scope": "./",
