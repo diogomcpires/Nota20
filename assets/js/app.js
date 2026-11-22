@@ -1342,8 +1342,8 @@
     <section class="section" data-lead-wrap ${leadsOn() || store.get("lead", false) ? "" : "hidden"}>
       <div class="wrap">
         <div class="lead-band rv">
-          <div><span class="eyebrow">${ic("mail", 'width="18" height="18"')} Dicas por email</span><h2>Uma dica por semana até ao exame</h2>
-            <p>O que estudar em cada fase, os erros que mais tiram pontos e os avisos importantes (calendário, critérios). No máximo um email por semana.</p></div>
+          <div><span class="eyebrow">${ic("mail", 'width="18" height="18"')} Guia grátis em PDF</span><h2>Os temas mais prováveis para o exame de 2027</h2>
+            <p>Analisámos as 10 provas de 2020 a 2026, tema a tema. Recebe o guia no teu email e, a seguir, 4 emails curtos com os erros que mais tiram pontos e um plano até junho.</p></div>
           <div data-lead-slot="home">${leadHTML("home")}</div>
         </div>
       </div>
@@ -2601,8 +2601,8 @@
           <div class="card pl-side ps-verde rv"><span class="tile bg-mint">${ic("chat")}</span><h3>Mostra aos teus pais</h3>
             <p class="small muted" style="font-weight:600">Envia por WhatsApp o que já fizeste esta semana.</p>
             <button class="btn btn-ghost btn-sm" type="button" data-act="share-progress">Enviar o progresso</button></div>
-          <div class="card rv" data-lead-wrap ${leadsOn() || store.get("lead", false) ? "" : "hidden"}><h3>${ic("mail", 'width="20" height="20" style="vertical-align:-4px"')} Dicas por email</h3>
-            <p class="small muted" style="font-weight:600">Uma dica por semana, até ao exame.</p><div data-lead-slot="plano">${leadHTML("plano")}</div></div>
+          <div class="card rv" data-lead-wrap ${leadsOn() || store.get("lead", false) ? "" : "hidden"}><h3>${ic("mail", 'width="20" height="20" style="vertical-align:-4px"')} Guia grátis: temas prováveis 2027</h3>
+            <p class="small muted" style="font-weight:600">O PDF com os temas que mais saíram de 2020 a 2026, no teu email.</p><div data-lead-slot="plano">${leadHTML("plano")}</div></div>
           ${installHTML()}
         </aside>
       </div>
@@ -2667,8 +2667,8 @@
             <select id="pl-hora">${["07:30", "13:00", "15:00", "17:00", "18:00", "19:00", "20:00", "21:00", "22:00"].map((h) => `<option ${(cfg.hora || "18:00") === h ? "selected" : ""}>${h}</option>`).join("")}</select>
             <button class="btn btn-ghost btn-sm" type="button" data-act="ics" style="margin-top:10px">${ic("calendar")} Adicionar ao calendário</button>
             <p class="small muted" style="margin:8px 0 0">Funciona com o Google Calendar, o Calendário do iPhone e o Outlook.</p></div>
-          <div class="card rv" data-lead-wrap ${leadsOn() || store.get("lead", false) ? "" : "hidden"}><h3>${ic("mail", 'width="20" height="20" style="vertical-align:-4px"')} Dicas por email</h3>
-            <p class="small muted" style="font-weight:600">Uma dica por semana, até ao exame.</p><div data-lead-slot="plano">${leadHTML("plano")}</div></div>
+          <div class="card rv" data-lead-wrap ${leadsOn() || store.get("lead", false) ? "" : "hidden"}><h3>${ic("mail", 'width="20" height="20" style="vertical-align:-4px"')} Guia grátis: temas prováveis 2027</h3>
+            <p class="small muted" style="font-weight:600">O PDF com os temas que mais saíram de 2020 a 2026, no teu email.</p><div data-lead-slot="plano">${leadHTML("plano")}</div></div>
           <div class="card rv"><h3>${ic("chat", 'width="20" height="20" style="vertical-align:-4px"')} Pais</h3>
             <p class="small muted" style="font-weight:600">Envia aos teus pais o que já fizeste, por WhatsApp.</p>
             <button class="btn btn-ghost btn-sm" type="button" data-act="share-progress">Enviar o progresso</button></div>
@@ -2706,13 +2706,13 @@
   /* ---------- Email e testadores ---------- */
   const leadsOn = () => !!(C.LEADS_ENDPOINT || CONTA.on || (RV.db && RV.uid && RV.canWrite !== false));
   function leadHTML(origem, tester) {
-    if (store.get(tester ? "leadTester" : "lead", false)) return `<div class="lead-done">${ic("check")} ${tester ? "Já estás inscrito como testador. Obrigado!" : "Já estás inscrito. Obrigado!"}</div>`;
+    if (store.get(tester ? "leadTester" : "lead", false)) return `<div class="lead-done">${ic("check")} ${tester ? "Já estás inscrito como testador. Obrigado!" : "Já pediste o guia: vê o teu email. Obrigado!"}</div>`;
     if (!leadsOn()) return "";
     return `<form class="lead-form" data-origem="${origem}">
       <div class="lead-row"><label class="sr" for="lead-${origem}">Email</label><input type="email" id="lead-${origem}" name="email" required maxlength="120" placeholder="o.teu@email.com" autocomplete="email">
-        <button class="btn btn-primary btn-sm" type="submit">${tester ? "Quero testar" : "Inscrever"}</button></div>
+        <button class="btn btn-primary btn-sm" type="submit">${tester ? "Quero testar" : "Quero o guia"}</button></div>
       ${tester ? `<input type="hidden" name="tester" value="1">` : ""}
-      <label class="consent"><input type="checkbox" name="ok"><span>Aceito receber emails da Nota20 sobre a preparação para o exame e posso cancelar quando quiser. <button type="button" class="linklike" data-act="privacidade">Como tratamos os teus dados</button></span></label>
+      <label class="consent"><input type="checkbox" name="ok"><span>Aceito receber o guia e até 5 emails da Nota20 sobre a preparação para o exame. Cancelo com um clique quando quiser. <button type="button" class="linklike" data-act="privacidade">Como tratamos os teus dados</button></span></label>
       <p class="small lead-msg" aria-live="polite"></p></form>`;
   }
   function refreshLeads() {
@@ -2733,7 +2733,7 @@
       else throw new Error("sem destino");
       store.set(data.tester ? "leadTester" : "lead", true);
       GC.event(data.tester ? "email-testador" : "email-dicas");
-      form.outerHTML = `<div class="lead-done">${ic("check")} ${data.tester ? "Inscrição recebida! Vamos contactar-te por email." : "Feito! A primeira dica chega ao teu email."}</div>`;
+      form.outerHTML = `<div class="lead-done">${ic("check")} ${data.tester ? "Inscrição recebida! Vamos contactar-te por email." : "Feito! O guia está a caminho do teu email (vê também a pasta de spam ou promoções)."}</div>`;
     } catch (e) { msg.textContent = "Não foi possível enviar agora. Tenta mais tarde."; }
   }
   function openPrivacy() {
