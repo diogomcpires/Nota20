@@ -2719,7 +2719,37 @@
     $$("[data-lead-slot]").forEach((el) => { el.innerHTML = leadHTML(el.dataset.leadSlot, el.dataset.tester === "1"); });
     $$("[data-lead-wrap]").forEach((el) => { el.hidden = !(leadsOn() || store.get("lead", false)); });
   }
+  /* caixa do guia grátis: aparece uma vez por visita a quem ainda não deixou o email nem tem conta,
+     depois de ~30 s na app ou ao abrir a 3.ª página. Fechada, só volta 7 dias depois. Nunca tapa o ecrã. */
+  function leadPop() {
+    try {
+      if (!leadsOn() || store.get("lead", false) || CONTA.user || C.MODO_DEMO) return;
+      if (Date.now() < store.get("leadPopAte", 0) || ssGet("n20:leadpop")) return;
+    } catch (e) { return; }
+    let feito = false, vistas = 0;
+    const bloqueada = () => /^#(precos|conta|pausa|termos|parcerias-admin)/.test(location.hash) || !!$(".modal-bg") || document.hidden;
+    const tentar = () => {
+      if (feito || CONTA.user || store.get("lead", false)) return;
+      if (bloqueada()) { setTimeout(tentar, 15000); return; }
+      feito = true; ssSet("n20:leadpop", "1"); removeEventListener("hashchange", contar);
+      const el = document.createElement("aside");
+      el.className = "lead-pop"; el.setAttribute("role", "dialog"); el.setAttribute("aria-label", "Guia grátis: os temas mais prováveis para 2027");
+      el.innerHTML = `<button class="lp-x" type="button" aria-label="Fechar">×</button>
+        <span class="lp-eb">${ic("mail", 'width="16" height="16"')} Guia grátis em PDF</span>
+        <h3>Os temas mais prováveis para o exame de 2027</h3>
+        <p>Analisámos as 10 provas de 2020 a 2026. Recebe o guia no teu email.</p>${leadHTML("popup")}`;
+      document.body.appendChild(el);
+      const fechar = () => { store.set("leadPopAte", Date.now() + 7 * 864e5); el.classList.add("out"); setTimeout(() => el.remove(), 250); removeEventListener("keydown", esc); GC.event("guia-popup-fechado"); };
+      const esc = (e) => { if (e.key === "Escape") fechar(); };
+      $(".lp-x", el).addEventListener("click", fechar); addEventListener("keydown", esc);
+      GC.event("guia-popup-visto");
+    };
+    const contar = () => { if (++vistas >= 2) tentar(); };
+    addEventListener("hashchange", contar);
+    setTimeout(tentar, 30000);
+  }
   async function submitLead(form) {
+    const pop = form.closest(".lead-pop");
     const msg = $(".lead-msg", form);
     const email = form.email.value.trim();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) { msg.textContent = "Confirma o email."; return; }
@@ -2734,6 +2764,7 @@
       store.set(data.tester ? "leadTester" : "lead", true);
       GC.event(data.tester ? "email-testador" : "email-dicas");
       form.outerHTML = `<div class="lead-done">${ic("check")} ${data.tester ? "Inscrição recebida! Vamos contactar-te por email." : "Feito! O guia está a caminho do teu email (vê também a pasta de spam ou promoções)."}</div>`;
+      if (pop) setTimeout(() => { pop.classList.add("out"); setTimeout(() => pop.remove(), 250); }, 5000);
     } catch (e) { msg.textContent = "Não foi possível enviar agora. Tenta mais tarde."; }
   }
   function openPrivacy() {
@@ -4475,7 +4506,7 @@
       if (ssGet("n20:pos-login") === "comprar" && C.PAYMENT_LINK && !unlocked()) { ssSet("n20:pos-login", ""); location.href = payHref(); return; }
       if (!ssGet("n20:conv-msg")) toast(`<span class="tl">${lince()}</span><div><b>Sessão iniciada</b><span>O teu progresso fica guardado na conta.</span></div>`, 5000);
     } else if (CONTA.voltouGoogle === "erro") toast(`<span class="tl">${lince()}</span><div><b>Não foi possível entrar com a Google</b><span>Tenta outra vez ou usa o código por email.</span></div>`);
-  }).then(regressoPagamento).catch(() => {}).then(() => { lerConviteURL(); mostrarConvMsg(); avisoFimConvite(); topoSet(); });
+  }).then(regressoPagamento).catch(() => {}).then(() => { lerConviteURL(); mostrarConvMsg(); avisoFimConvite(); topoSet(); leadPop(); });
   { const pp = new URLSearchParams(location.search).get("p"); if (pp) usarParceiro(pp.slice(0, 40), false); }
   { const cod = new URLSearchParams(location.search).get("codigo"); if (cod) abrirCodigo(cod.slice(0, 40)); }
   initReviews();
