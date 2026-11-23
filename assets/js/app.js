@@ -2763,7 +2763,7 @@
       else throw new Error("sem destino");
       store.set(data.tester ? "leadTester" : "lead", true);
       GC.event(data.tester ? "email-testador" : "email-dicas");
-      form.outerHTML = `<div class="lead-done">${ic("check")} ${data.tester ? "Inscrição recebida! Vamos contactar-te por email." : "Feito! O guia está a caminho do teu email (vê também a pasta de spam ou promoções)."}</div>`;
+      form.outerHTML = `<div class="lead-done">${ic("check")} ${data.tester ? "Inscrição recebida! Vamos contactar-te por email." : "Feito! O guia está a caminho do teu email. Se aparecer nas Promoções, arrasta-o para a Principal para receberes os próximos."}</div>`;
       if (pop) setTimeout(() => { pop.classList.add("out"); setTimeout(() => pop.remove(), 250); }, 5000);
     } catch (e) { msg.textContent = "Não foi possível enviar agora. Tenta mais tarde."; }
   }
