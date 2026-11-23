@@ -2618,6 +2618,21 @@ html { overflow-x: clip; }
 @media (max-width: 899px) { .lead-pop { right: 10px; left: 10px; width: auto; bottom: calc(70px + env(safe-area-inset-bottom)); } }
 @media (prefers-reduced-motion: reduce) { .lead-pop { animation: none; } .lead-pop.out { transition: none; } }
 
+/* v5.7 · ferramentas grátis na página inicial e diagnóstico */
+.hero-gratis { margin: 8px 0 0; font-size: 0.9rem; font-weight: 700; color: var(--muted); }
+.ferr-sec { padding-top: 34px; padding-bottom: 10px; }
+.ferr { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.ferr a { display: grid; gap: 6px; align-content: start; background: var(--surface); border: 2px solid var(--line); border-radius: 22px; padding: 18px; text-decoration: none; color: var(--ink); box-shadow: var(--shadow); transition: transform .18s ease, border-color .18s ease; }
+.ferr a:hover { transform: translateY(-2px); border-color: var(--blue); }
+.ferr .ic { width: 44px; height: 44px; border-radius: 14px; display: grid; place-items: center; color: #fff; }
+.ferr b { font: 800 1.08rem/1.2 var(--f-display); }
+.ferr small { color: var(--muted); font-weight: 600; font-size: 0.9rem; }
+@media (max-width: 760px) { .ferr { grid-template-columns: 1fr; } .ferr a { grid-template-columns: 44px 1fr; column-gap: 12px; } .ferr .ic { grid-row: span 2; } }
+@media (prefers-reduced-motion: reduce) { .ferr a { transition: none; } }
+
+#diag-res .des-quad { flex-wrap: wrap; justify-content: center; gap: 6px; }
+#diag-res .des-quad i { width: 30px; height: 30px; }
+
 /* ==== TEMA ESCURO GERADO (tools/gerar-escuro.js) · não editar à mão ==== */
 [data-theme="dark"] h4 {
     color: #698eed

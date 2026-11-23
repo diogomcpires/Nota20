@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="pt-PT"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Calculadora da média do secundário e notas de entrada 2026 | Nota20</title><meta name="description" content="Calcula a média do secundário com as regras atuais (disciplinas trienais, bienais e anuais, exames a 25%), a nota de candidatura e compara com as notas do último colocado de 2026 em todos os cursos públicos."><link rel="canonical" href="https://nota20app.pt/ferramentas/calculadora-media.html">
+<meta property="og:type" content="website"><meta property="og:site_name" content="Nota20"><meta property="og:title" content="Calculadora da média do secundário e notas de entrada 2026 | Nota20"><meta property="og:description" content="Calcula a média do secundário com as regras atuais (disciplinas trienais, bienais e anuais, exames a 25%), a nota de candidatura e compara com as notas do último colocado de 2026 em todos os cursos públicos."><meta property="og:url" content="https://nota20app.pt/ferramentas/calculadora-media.html"><meta property="og:image" content="https://nota20app.pt/assets/og.jpg"><meta property="og:locale" content="pt_PT">
+<link rel="icon" href="/favicon.ico" sizes="48x48"><link rel="icon" href="../assets/favicon-48.png" type="image/png" sizes="48x48"><link rel="apple-touch-icon" href="../assets/apple-touch-icon.png"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Figtree:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>*{box-sizing:border-box}body{margin:0;font-family:Figtree,system-ui,sans-serif;color:#141a3c;background:#f3f7ff;line-height:1.6}
+a{color:#1a4fd6}.top{background:#fff;border-bottom:1px solid #e0e7f6}.top div,.w{max-width:760px;margin:0 auto;padding:0 20px}
+.top div{display:flex;align-items:center;justify-content:space-between;height:64px}.logo{font-family:'Bricolage Grotesque',Figtree,sans-serif;font-weight:800;font-size:26px;letter-spacing:-.04em;color:#141a3c;text-decoration:none}.logo b{color:#2d6bff}
+.btn{display:inline-block;background:#2d6bff;color:#fff;font-weight:800;text-decoration:none;padding:12px 18px;border-radius:14px;box-shadow:0 4px 0 #1a4fd6}.btn.y{background:#ffc72c;color:#2a1f00;box-shadow:0 4px 0 #e9a800}.btn.sm{padding:9px 14px;font-size:15px}
+.crumbs{font-size:14px;color:#5c6489;margin:26px 0 6px}h1{font-family:'Bricolage Grotesque',Figtree,sans-serif;font-size:clamp(30px,5vw,44px);line-height:1.05;letter-spacing:-.03em;margin:0 0 8px}
+.sub{color:#5c6489;font-weight:600;margin:0 0 22px}h2{font-family:'Bricolage Grotesque',Figtree,sans-serif;font-size:24px;letter-spacing:-.02em;margin:34px 0 10px}
+.card{background:#fff;border:1px solid #e0e7f6;border-radius:20px;padding:18px 22px}.note{background:#fff5d4;border-color:#ffe08a}.chip{display:inline-block;font-size:13px;font-weight:800;border-radius:99px;padding:3px 10px;background:#e9f0ff;color:#1a4fd6;margin:0 6px 6px 0}.chip.g{background:#e2f8ee;color:#0c9660}
+ul.pts{padding-left:20px}ul.pts li{margin-bottom:8px}.lock{color:#5c6489;font-weight:600}.provas li{margin-bottom:4px}
+.cta{background:#2d6bff;color:#fff;border-radius:24px;padding:24px;margin:34px 0}.cta h2{margin:0 0 6px;color:#fff}.cta p{margin:0 0 16px;opacity:.92}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}.grid a{display:block;background:#fff;border:1px solid #e0e7f6;border-radius:16px;padding:12px 14px;text-decoration:none;color:#141a3c;font-weight:700}.grid a small{display:block;color:#5c6489;font-weight:600}
+details{background:#fff;border:1px solid #e0e7f6;border-radius:16px;padding:12px 16px;margin-top:10px}summary{font-weight:800;cursor:pointer}ol.op{padding-left:22px}
+footer{color:#5c6489;font-size:14px;padding:30px 0 110px}
+.go{display:flex;gap:14px;align-items:center;flex-wrap:wrap;background:#e9f0ff;border:2px solid #b9cdfb;border-radius:20px;padding:16px 18px;margin:14px 0}.go p{margin:0;flex:1 1 260px;font-weight:600}.go b{color:#1a4fd6}
+.buy{background:#fff8e0;border:2px solid #ffd45c;border-radius:22px;padding:20px 22px;margin:28px 0}.buy h3{font-family:'Bricolage Grotesque',Figtree,sans-serif;font-size:22px;margin:0 0 8px}.buy ul{margin:0 0 14px;padding-left:20px}.buy li{margin-bottom:4px;font-weight:600}.buy small{display:block;color:#7a5b00;font-weight:700;margin-top:10px}
+.bar{position:fixed;left:0;right:0;bottom:0;background:#141a3c;color:#fff;z-index:9;box-shadow:0 -6px 20px rgba(0,0,0,.18)}.bar div{max-width:760px;margin:0 auto;padding:10px 20px;display:flex;align-items:center;gap:12px}.bar span{flex:1;font-weight:700;font-size:15px;line-height:1.25}.bar span small{display:block;font-weight:600;opacity:.75}
+.top nav{display:flex;gap:8px}
+.hero{display:flex;gap:14px;align-items:center;background:#fff;border:2px solid #b9cdfb;border-radius:22px;padding:14px 16px;margin:18px 0 6px}.hero img{width:86px;height:86px;flex:none}.hero .bub{flex:1}.hero p{margin:0 0 10px;font-weight:700;font-size:17px}.hero .bts{display:flex;gap:8px;flex-wrap:wrap}
+@media(max-width:560px){.hero img{width:64px;height:64px}.hero p{font-size:15.5px}}@media(max-width:560px){.top nav .btn:first-child{display:none}.top nav .btn{white-space:nowrap}}</style><style>
+.tool{background:#fff;border:1px solid #e0e7f6;border-radius:22px;padding:18px;margin:16px 0;box-shadow:0 6px 20px rgba(19,32,74,.06)}
+.tool h2{margin-top:0}
+.row{display:grid;grid-template-columns:1fr 96px 74px 92px 30px;gap:6px;align-items:center;margin:6px 0}
+.row input,.row select,.f input,.f select,textarea{font:inherit;font-size:15px;padding:9px 10px;border:1.5px solid #d6def0;border-radius:11px;background:#fff;color:#13204a;min-width:0;width:100%}
+.row .x{border:0;background:none;color:#7a84a8;font-size:20px;cursor:pointer}
+.hd{font-size:12px;font-weight:800;color:#7a84a8;text-transform:uppercase;letter-spacing:.04em}
+.f{display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin:10px 0}.f label{display:grid;gap:4px;font-size:13px;font-weight:800;color:#5c6489;flex:1 1 120px}
+.res{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:14px 0}
+.res div{background:#eef3ff;border-radius:16px;padding:12px 14px}.res b{display:block;font:800 30px/1.1 'Bricolage Grotesque',Figtree,sans-serif;color:#1a4fd6}.res span{font-size:13px;font-weight:700;color:#5c6489}
+.lst{display:grid;gap:6px;margin-top:10px}.it{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;background:#f7f9ff;border:1px solid #e6ecf9;border-radius:14px;padding:10px 12px}
+.it b{font-size:15px}.it small{display:block;color:#5c6489;font-weight:600}.it a{font-size:12.5px;font-weight:700}
+.nt{text-align:right;font-weight:800;white-space:nowrap}.nt small{font-weight:700}.ok{color:#0f8a5f}.no{color:#c2410c}
+.pill2{display:inline-block;border-radius:99px;padding:3px 10px;font-size:12px;font-weight:800;background:#e9f0ff;color:#1a4fd6;margin:2px 4px 2px 0;cursor:pointer;border:0}
+.pill2.on{background:#1a4fd6;color:#fff}
+textarea{min-height:260px;line-height:1.6;resize:vertical}
+.bar2{height:10px;border-radius:99px;background:#e6ecf9;overflow:hidden;margin:6px 0}.bar2 i{display:block;height:100%;background:#2d6bff;border-radius:99px;transition:width .2s}
+.st{font-weight:800;font-size:17px;margin:6px 0}
+@media (max-width:560px){.row{grid-template-columns:1.1fr 1fr 1fr 26px;padding:8px 0;border-bottom:1px solid #eef2fa}.row>input:first-child{grid-column:1/-1;font-weight:700}.row input,.row select{font-size:14px;padding:8px 7px}.row.hd{display:none}}
+</style><script type="application/ld+json">[{"@context":"https://schema.org","@type":"WebApplication","name":"Calculadora da média do secundário e das notas de entrada","description":"Calcula a média do secundário com as regras atuais (disciplinas trienais, bienais e anuais, exames a 25%), a nota de candidatura e compara com as notas do último colocado de 2026 em todos os cursos públicos.","url":"https://nota20app.pt/ferramentas/calculadora-media.html","inLanguage":"pt-PT","applicationCategory":"EducationalApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"EUR"}},{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Nota20","item":"https://nota20app.pt/"},{"@type":"ListItem","position":2,"name":"Ferramentas","item":"https://nota20app.pt/ferramentas/"},{"@type":"ListItem","position":3,"name":"Calculadora da média","item":"https://nota20app.pt/ferramentas/calculadora-media.html"}]},{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Quanto vale o exame nacional na média do secundário?","acceptedAnswer":{"@type":"Answer","text":"Nas disciplinas em que fazes exame, o exame vale 25% da classificação final da disciplina e a nota interna vale 75%: CFD = (7,5 × CIF + 2,5 × exame) / 10."}},{"@type":"Question","name":"As disciplinas contam todas o mesmo na média?","acceptedAnswer":{"@type":"Answer","text":"Não. Com as regras atuais, as disciplinas trienais contam 3 vezes, as bienais 2 vezes e as anuais 1 vez na média final do curso."}},{"@type":"Question","name":"Como sei a fórmula de candidatura de um curso?","acceptedAnswer":{"@type":"Answer","text":"Cada curso fixa as provas de ingresso e o peso da média e das provas. Está no Guia da Candidatura da DGES; na calculadora, cada curso tem o link «Provas de ingresso e fórmula»."}},{"@type":"Question","name":"A nota do último colocado é a nota mínima para entrar?","acceptedAnswer":{"@type":"Answer","text":"Não exatamente. É a nota de quem entrou em último lugar na 1.ª fase desse ano. Muda todos os anos, por isso serve como referência."}}]}]</script>
+</head><body>
+<header class="top"><div><a class="logo" href="../"><img src="../assets/lince.svg" alt="" width="40" height="40" style="vertical-align:-10px;margin-right:6px">Nota<b>20</b></a><nav><a class="btn sm" href="../#plano">Plano grátis</a><a class="btn sm y" href="../#precos">Desbloquear tudo</a></nav></div></header>
+<main class="w">
+<p class="crumbs"><a href="../">Nota20</a> › <a href="./">Ferramentas</a> › Calculadora da média</p>
+<h1>Calculadora da média do secundário e das notas de entrada</h1>
+<p class="sub">Calcula a tua média, a nota de candidatura e vê em que cursos terias entrado em 2026</p>
+<div class="tool" id="calc">
+<h2>1. As tuas notas</h2>
+<p class="small" style="margin:0 0 8px">Escolhe o teu curso e põe a classificação interna final (CIF) de cada disciplina, de 0 a 20. Nas disciplinas em que fazes exame nacional, põe a nota do exame (0 a 200).</p>
+<div id="cursos"></div>
+<div class="row hd"><span>Disciplina</span><span>Duração</span><span>CIF</span><span>Exame</span><span></span></div>
+<div id="linhas"></div>
+<button class="btn sm" type="button" id="add" style="margin-top:6px">+ Juntar disciplina</button>
+<h2 style="margin-top:22px">2. Provas de ingresso e fórmula do curso</h2>
+<p class="small" style="margin:0 0 6px">Cada curso escolhe as provas de ingresso e o peso da média e das provas. Vê a fórmula do curso que queres no link «Provas de ingresso e fórmula» de cada curso, mais abaixo.</p>
+<div class="f"><label>Prova de ingresso 1 (0–200)<input id="p1" type="number" min="0" max="200" step="1" inputmode="numeric" placeholder="ex.: 165"></label>
+<label>Prova de ingresso 2 (opcional)<input id="p2" type="number" min="0" max="200" step="1" inputmode="numeric" placeholder="ex.: 150"></label>
+<label>Peso da média do secundário<select id="peso"><option value="50">50% média · 50% provas</option><option value="60">60% média · 40% provas</option><option value="65">65% média · 35% provas</option><option value="55">55% média · 45% provas</option><option value="45">45% média · 55% provas</option><option value="40">40% média · 60% provas</option></select></label></div>
+<div class="res"><div><b id="rMed">–</b><span>Média do secundário (0–20)</span></div><div><b id="rSec">–</b><span>Média para a candidatura (0–200)</span></div><div><b id="rCand">–</b><span>Nota de candidatura (0–200)</span></div></div>
+<p class="small" id="rNota" style="margin:0"></p>
+</div>
+<div class="tool" id="cmp">
+<h2>3. Em que cursos terias entrado em 2026?</h2>
+<p class="small" style="margin:0 0 8px">Nota do último colocado de cada curso público na 1.ª fase de 2026 (contingente geral). Procura um curso, uma faculdade ou uma cidade.</p>
+<div class="f"><label style="flex:3 1 220px">Procurar<input id="q" type="search" placeholder="ex.: Medicina, Direito Lisboa, Engenharia Informática Porto" autocomplete="off"></label>
+<label style="flex:1 1 150px">Mostrar<select id="so"><option value="todos">Todos</option><option value="entro">Onde entrarias</option><option value="perto">Faltam até 10 pontos</option></select></label></div>
+<p class="small" id="cont" style="margin:4px 0 0"></p>
+<div class="lst" id="lista"></div>
+<p class="small" style="margin-top:10px">Fonte: IES/DGES, Concurso Nacional de Acesso 2026, 1.ª fase. A nota do último colocado muda todos os anos e só é uma referência. Para entrar contam também as provas de ingresso exigidas, as notas mínimas e os pré-requisitos de cada curso.</p>
+</div>
+<div class="go"><p><b>O exame de Português conta para a média e muitas vezes como prova de ingresso.</b> Na Nota20 tens um plano até ao exame, exercícios com correção e os exames de 2020 a 2026 resolvidos.</p><a class="btn sm y" href="../#plano">Criar o meu plano grátis</a></div>
+<h2>Como se calcula a média do secundário</h2>
+<p>Para os alunos que terminam o secundário a partir de 2025/2026 (cursos científico-humanísticos):</p>
+<ul class="pts"><li><b>Classificação final de cada disciplina (CFD):</b> é a classificação interna final (CIF). Nas disciplinas em que fazes exame nacional, o exame vale 25%: CFD = (7,5 × CIF + 2,5 × exame) / 10, com o exame na escala de 0 a 20.</li>
+<li><b>Média final do curso:</b> as disciplinas trienais contam 3 vezes, as bienais 2 vezes e as anuais 1 vez. Média = (3 × soma das trienais + 2 × soma das bienais + soma das anuais) / (3 × n.º de trienais + 2 × n.º de bienais + n.º de anuais).</li>
+<li><b>Exames obrigatórios:</b> Português e mais dois exames à tua escolha.</li>
+<li><b>Nota de candidatura:</b> média do secundário (de 0 a 200) e provas de ingresso, com os pesos que cada curso fixa.</li></ul>
+<p class="small">Esta calculadora dá uma estimativa. A escola faz os arredondamentos oficiais e o cálculo final da tua média.</p>
+<h2>Perguntas frequentes</h2><details><summary>Quanto vale o exame nacional na média do secundário?</summary><p>Nas disciplinas em que fazes exame, o exame vale 25% da classificação final da disciplina e a nota interna vale 75%: CFD = (7,5 × CIF + 2,5 × exame) / 10.</p></details><details><summary>As disciplinas contam todas o mesmo na média?</summary><p>Não. Com as regras atuais, as disciplinas trienais contam 3 vezes, as bienais 2 vezes e as anuais 1 vez na média final do curso.</p></details><details><summary>Como sei a fórmula de candidatura de um curso?</summary><p>Cada curso fixa as provas de ingresso e o peso da média e das provas. Está no Guia da Candidatura da DGES; na calculadora, cada curso tem o link «Provas de ingresso e fórmula».</p></details><details><summary>A nota do último colocado é a nota mínima para entrar?</summary><p>Não exatamente. É a nota de quem entrou em último lugar na 1.ª fase desse ano. Muda todos os anos, por isso serve como referência.</p></details>
+<h2>Mais ferramentas e guias</h2><div class="grid">
+<a href="calculadora-media.html">Calculadora da média<small>Média do secundário e notas de entrada</small></a>
+<a href="contador-de-palavras.html">Contador de palavras<small>Para o texto de opinião do exame</small></a>
+<a href="../guias/o-que-sai-exame-portugues-2027.html">O que sai em 2027<small>Os temas mais prováveis</small></a>
+<a href="../guias/texto-de-opiniao-exemplo.html">Texto de opinião: exemplo<small>Estrutura e exemplo comentado</small></a></div>
+</main><footer class="w">Feita por um aluno do Técnico que teve 19,5 no exame de Português. <a href="../#termos">Termos e privacidade</a> · <a href="../guias/">Guias</a> · <a href="../resumos/">Resumos</a></footer>
+<div class="bar"><div><span>🎯 Sobe a nota do exame de Português<small>Plano grátis, feito à tua medida</small></span><a class="btn sm y" href="../#plano">Começar grátis</a></div></div>
+<script>
+(function(){
+var K="n20:calcMedia",S={};try{S=JSON.parse(localStorage.getItem(K)||"{}")}catch(e){}
+var CUR={
+ ct:["Ciências e Tecnologias",[["Português","T"],["Língua Estrangeira","B"],["Filosofia","B"],["Educação Física","T"],["Matemática A","T"],["Física e Química A","B"],["Biologia e Geologia","B"],["Opção do 12.º ano (1)","A"],["Opção do 12.º ano (2)","A"]]],
+ cse:["Ciências Socioeconómicas",[["Português","T"],["Língua Estrangeira","B"],["Filosofia","B"],["Educação Física","T"],["Matemática A","T"],["Economia A","B"],["Geografia A ou História B","B"],["Opção do 12.º ano (1)","A"],["Opção do 12.º ano (2)","A"]]],
+ lh:["Línguas e Humanidades",[["Português","T"],["Língua Estrangeira","B"],["Filosofia","B"],["Educação Física","T"],["História A","T"],["Geografia A","B"],["MACS ou Literatura Portuguesa","B"],["Opção do 12.º ano (1)","A"],["Opção do 12.º ano (2)","A"]]],
+ av:["Artes Visuais",[["Português","T"],["Língua Estrangeira","B"],["Filosofia","B"],["Educação Física","T"],["Desenho A","T"],["Geometria Descritiva A","B"],["História da Cultura e das Artes","B"],["Opção do 12.º ano (1)","A"],["Opção do 12.º ano (2)","A"]]]};
+var $=function(i){return document.getElementById(i)},cur=S.cur||"ct",linhas=S.linhas||null,D=null;
+function sem(s){return(s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase()}
+function guarda(){try{localStorage.setItem(K,JSON.stringify({cur:cur,linhas:ler(),p1:$("p1").value,p2:$("p2").value,peso:$("peso").value,q:$("q").value,so:$("so").value}))}catch(e){}}
+function pintaCursos(){$("cursos").innerHTML=Object.keys(CUR).map(function(k){return '<button type="button" class="pill2'+(k===cur?" on":"")+'" data-c="'+k+'">'+CUR[k][0]+'</button>'}).join("")}
+function linhaHTML(l){return '<div class="row"><input aria-label="Disciplina" value="'+(l[0]||"").replace(/"/g,"&quot;")+'"><select aria-label="Duração"><option value="T"'+(l[1]==="T"?" selected":"")+'>Trienal</option><option value="B"'+(l[1]==="B"?" selected":"")+'>Bienal</option><option value="A"'+(l[1]==="A"?" selected":"")+'>Anual</option></select><input aria-label="CIF" type="number" min="0" max="20" step="1" inputmode="numeric" placeholder="CIF" value="'+(l[2]==null?"":l[2])+'"><input aria-label="Exame" type="number" min="0" max="200" step="1" inputmode="numeric" placeholder="Exame" value="'+(l[3]==null?"":l[3])+'"><button type="button" class="x" aria-label="Tirar">×</button></div>'}
+function pintaLinhas(ls){$("linhas").innerHTML=ls.map(linhaHTML).join("")}
+function ler(){return[].map.call(document.querySelectorAll("#linhas .row"),function(r){var i=r.querySelectorAll("input,select");return[i[0].value,i[1].value,i[2].value===""?null:+i[2].value,i[3].value===""?null:+i[3].value]})}
+function n1(x){return(Math.round(x*10)/10).toLocaleString("pt-PT",{minimumFractionDigits:1,maximumFractionDigits:1})}
+var cand=null;
+function calc(){
+ var ls=ler(),num=0,den=0,falta=0,w={T:3,B:2,A:1};
+ ls.forEach(function(l){if(l[2]==null||isNaN(l[2])){falta++;return}var cif=Math.max(0,Math.min(20,l[2]));var cfd=l[3]!=null&&!isNaN(l[3])?Math.round((7.5*cif+2.5*Math.max(0,Math.min(200,l[3]))/10)/10):Math.round(cif);num+=w[l[1]]*cfd;den+=w[l[1]]});
+ if(!den){$("rMed").textContent=$("rSec").textContent=$("rCand").textContent="–";$("rNota").textContent="Põe as tuas notas para veres a média.";cand=null;filtra();return}
+ var med=Math.round(num/den*10)/10,sec=med*10;$("rMed").textContent=n1(med);$("rSec").textContent=n1(sec);
+ var p1=parseFloat($("p1").value),p2=parseFloat($("p2").value),ps=[p1,p2].filter(function(x){return!isNaN(x)}).map(function(x){return Math.max(0,Math.min(200,x))});
+ if(ps.length){var pm=ps.reduce(function(a,b){return a+b},0)/ps.length,pw=+$("peso").value/100;cand=Math.round((pw*sec+(1-pw)*pm)*10)/10;$("rCand").textContent=n1(cand)}else{cand=null;$("rCand").textContent="–"}
+ $("rNota").textContent=(falta?"Faltam "+falta+" notas: a média conta só as disciplinas preenchidas. ":"")+(cand==null?"Põe a nota das provas de ingresso para veres a nota de candidatura.":"");
+ guarda();filtra();
+}
+function filtra(){
+ if(!D){$("lista").innerHTML='<p class="small">A carregar os cursos…</p>';return}
+ var q=sem($("q").value).split(/\s+/).filter(Boolean),so=$("so").value,out=[];
+ for(var i=0;i<D.c.length;i++){var c=D.c[i],inst=D.inst[c[0]],txt=sem(c[3]+" "+inst);
+  if(q.length&&!q.every(function(t){return txt.indexOf(t)>=0}))continue;
+  if(c[7]==null&&so!=="todos")continue;
+  if(cand!=null&&so==="entro"&&!(cand>=c[7]))continue;
+  if(cand!=null&&so==="perto"&&!(c[7]>cand&&c[7]-cand<=10))continue;
+  out.push(c)}
+ out.sort(function(a,b){return(b[7]||0)-(a[7]||0)});
+ $("cont").textContent=out.length+" cursos"+(cand==null&&so!=="todos"?" (calcula primeiro a tua nota de candidatura)":"")+(out.length>60?" · a mostrar os primeiros 60":"");
+ $("lista").innerHTML=out.slice(0,60).map(function(c){var inst=D.inst[c[0]],u=c[7],dif=cand!=null&&u!=null?cand-u:null;
+  var nt=u==null?'<span class="small">sem colocados pelo contingente geral</span>':'<span>'+n1(u)+'</span>'+(dif==null?'':'<small class="'+(dif>=0?"ok":"no")+'"><br>'+(dif>=0?"entravas (+"+n1(dif)+")":"faltam "+n1(-dif))+'</small>');
+  return '<div class="it"><div><b>'+c[3]+'</b><small>'+inst+' · '+c[4]+'</small><a href="https://www.dges.gov.pt/guias/detcursopi.asp?codc='+c[2]+'&code='+c[1]+'" target="_blank" rel="noopener">Provas de ingresso e fórmula (DGES) ↗</a></div><div class="nt">'+nt+'</div></div>'}).join("")||'<p class="small">Nenhum curso encontrado.</p>';
+}
+pintaCursos();pintaLinhas(linhas||CUR[cur][1]);
+if(S.p1)$("p1").value=S.p1;if(S.p2)$("p2").value=S.p2;if(S.peso)$("peso").value=S.peso;if(S.q)$("q").value=S.q;if(S.so)$("so").value=S.so;
+$("cursos").addEventListener("click",function(e){var b=e.target.closest("[data-c]");if(!b)return;cur=b.dataset.c;pintaCursos();var velhas=ler();pintaLinhas(CUR[cur][1].map(function(d){var v=velhas.filter(function(x){return x[0]===d[0]})[0];return[d[0],d[1],v?v[2]:null,v?v[3]:null]}));calc()});
+$("linhas").addEventListener("input",calc);$("linhas").addEventListener("change",calc);
+$("linhas").addEventListener("click",function(e){if(e.target.classList.contains("x")){e.target.parentNode.remove();calc()}});
+$("add").addEventListener("click",function(){$("linhas").insertAdjacentHTML("beforeend",linhaHTML(["","A",null,null]));});
+["p1","p2","peso"].forEach(function(i){$(i).addEventListener("input",calc)});
+$("q").addEventListener("input",function(){guarda();filtra()});$("so").addEventListener("change",function(){guarda();filtra()});
+fetch("dados/ultimos-colocados-2026.json").then(function(r){return r.json()}).then(function(j){D=j;filtra()}).catch(function(){$("lista").innerHTML='<p class="small">Não foi possível carregar os cursos. Tenta recarregar a página.</p>'});
+calc();
+})();
+</script>
+</body></html>

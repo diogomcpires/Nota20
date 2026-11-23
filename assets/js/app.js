@@ -1198,7 +1198,7 @@
     if (view.startsWith("m-")) renderMateria(view.slice(2));
     else if (view.startsWith("t-")) renderTopic(view.slice(2));
     else if (view.startsWith("e-")) renderExam(view.slice(2));
-    else ({ inicio: renderHome, estudar: renderStudy, exercicios: renderExercicios, testes: renderTestes, ranking: renderRanking, exames: renderExams, provaveis: renderProvaveis, simulado: renderSim, duvidas: renderTutor, plano: renderPlano, treino: renderTreino, erros: renderErros, cabula: renderCabula, pais: renderPais, pausa: renderPausa, termos: renderTermos, conta: renderConta, desafio: renderDesafio, revisao: renderRevisao, parcerias: renderParcerias, "parcerias-admin": renderParcAdmin }[view] || renderHome)();
+    else ({ inicio: renderHome, estudar: renderStudy, exercicios: renderExercicios, testes: renderTestes, ranking: renderRanking, exames: renderExams, provaveis: renderProvaveis, simulado: renderSim, duvidas: renderTutor, plano: renderPlano, treino: renderTreino, erros: renderErros, cabula: renderCabula, pais: renderPais, pausa: renderPausa, termos: renderTermos, conta: renderConta, desafio: renderDesafio, diagnostico: renderDiagnostico, revisao: renderRevisao, parcerias: renderParcerias, "parcerias-admin": renderParcAdmin }[view] || renderHome)();
     enhance(app);
     renderPromo();
     if (anchor) {
@@ -1231,9 +1231,10 @@
           ${madeBy("hero-made")}
           <a class="hero-ia" href="#duvidas"><span class="hi-ic">${ic("sparkle")}</span><span><b>Com IA:</b> o Lince tira-te dúvidas a qualquer hora e corrige os teus textos pelos critérios do IAVE.</span><span class="hi-btn">Experimentar ${ic("arrow")}</span></a>
           <div class="row">
-            <a class="btn btn-primary btn-shine" href="#plano">Cria o teu plano de estudo ${ic("arrow")}</a>
-            <a class="btn btn-ghost" href="#provaveis"><span style="color:var(--coral)">${icFill("flame")}</span> Tópicos prováveis 2027</a>
+            <a class="btn btn-primary btn-shine" href="#diagnostico">${ic("target")} Faz o diagnóstico de 2 minutos</a>
+            <a class="btn btn-ghost" href="#plano">${ic("calendar")} Cria o teu plano de estudo</a>
           </div>
+          <p class="hero-gratis">Grátis e sem conta: 8 perguntas de exame e ficas a saber por onde começar.</p>
           <div class="facts">
             <span><span style="color:var(--violet)">${ic("book")}</span>${TOPICS.length} tópicos</span>
             <span><span style="color:var(--mint)">${ic("check")}</span>${nExercicios} exercícios</span>
@@ -1255,6 +1256,17 @@
     </section>
 
     <div class="marquee" aria-label="Tópicos"><div class="track">${marq}${marq.replace(/<a /g, '<a tabindex="-1" aria-hidden="true" ')}</div></div>
+
+    <section class="section ferr-sec" id="gratis">
+      <div class="wrap">
+        <div class="section-head center rv"><span class="eyebrow">${icFill("star")} Grátis, sem conta</span><h2>Experimenta já</h2></div>
+        <div class="ferr rv">
+          <a href="#diagnostico"><span class="ic bg-blue">${ic("target")}</span><b>Diagnóstico de 2 minutos</b><small>8 perguntas de exame e ficas a saber por onde começar</small></a>
+          <a href="ferramentas/calculadora-media.html"><span class="ic bg-mint">${ic("trophy")}</span><b>Calculadora da média</b><small>A tua média e os cursos onde terias entrado em 2026</small></a>
+          <a href="ferramentas/contador-de-palavras.html"><span class="ic bg-coral">${ic("pen")}</span><b>Contador de palavras</b><small>Com as regras do exame para o texto de opinião</small></a>
+        </div>
+      </div>
+    </section>
 
     <section class="section" id="comecar">
       <div class="wrap">
@@ -1325,7 +1337,7 @@
         <p class="small muted custo-fonte">Preço médio de uma explicação: ${C.EXPLICACAO_HORA} €/hora (Fixando, 2026). As explicações continuam a ser ótimas; a Nota20 serve para estudares todos os dias, entre aulas.</p>
       </div>
     </section>
-    <section class="section alt" id="avaliacoes">
+    <section class="section alt" id="avaliacoes" hidden>
       <div class="wrap">
         <div class="section-head rv"><span class="eyebrow">${icFill("star")} Avaliações</span><h2>O que dizem os alunos</h2></div>
         <div id="reviews-slot">${reviewsHTML()}</div>
@@ -1493,9 +1505,11 @@
       html += `<div class="reviews-sum"><span style="font-family:var(--f-display);font-size:2.8rem;font-weight:700" class="num">${avg.toFixed(1).replace(".", ",")}</span><span class="stars" aria-label="${avg.toFixed(1)} em 5">${starStr(Math.round(avg))}</span><span class="muted" style="font-weight:700">${list.length} ${list.length === 1 ? "avaliação" : "avaliações"}</span></div>
         <div class="grid grid-3 mt">${list.slice(0, 12).map((r) => `<div class="card review"><span class="stars">${starStr(r.estrelas)}</span><p style="margin:0;font-weight:600">${esc(r.texto.slice(0, 500))}</p><span class="who small">${esc((r.nome || "Aluno").slice(0, 40))}</span>${RV.isOwner ? `<button class="btn btn-soft btn-sm" data-act="del-review" data-id="${esc(r.id)}" type="button">Apagar</button>` : ""}</div>`).join("")}</div>`;
     } else {
-      html += `<div class="empty">${lince()}<span>Ainda não há avaliações. As primeiras aparecem aqui assim que os alunos as deixarem.</span></div>`;
+      html += `<div class="empty">${lince()}<span>Sê o primeiro a dizer o que achas da Nota20: a tua opinião ajuda outros alunos a decidir.</span></div>`;
     }
     const uidRV = RV.mode === "sb" ? (CONTA.user && CONTA.user.id) : RV.uid;
+    /* sem avaliações, a secção só aparece a quem pode escrever a primeira (nunca «ainda não há avaliações» a quem visita) */
+    setTimeout(() => { const s = document.getElementById("avaliacoes"); if (s) s.hidden = !list.length && !(RV.state === "ready" && uidRV && RV.canWrite !== false); }, 0);
     if (RV.mode === "sb" && RV.state === "ready" && !uidRV) {
       html += `<p class="muted mt" style="font-weight:600">Usaste a Nota20? <button type="button" class="linklike" data-act="login" data-m="avaliar">Entra com o teu email</button> e deixa a tua avaliação. Só alunos com conta podem avaliar, para as avaliações serem reais.</p>`;
     } else if (RV.state === "ready" && uidRV && RV.canWrite !== false) {
@@ -3515,6 +3529,9 @@
       store.set("desafio", s);
       QZ = { kind, d: s.d, keys: desafioKeys(s.d), i: s.res.length, res: s.res.slice(), t0: s.t0 };
       GC.event("desafio-comecar");
+    } else if (kind === "diag") {
+      QZ = { kind, keys: diagKeys(), i: 0, res: [], t0: Date.now() };
+      GC.event("diag-comecar");
     } else {
       const keys = srsDue().slice(0, 10);
       if (!keys.length) return;
@@ -3523,6 +3540,54 @@
     }
     QZ.answered = false;
     qzRender();
+  }
+
+  /* ---------- diagnóstico de 2 minutos: 1 pergunta de exame por cada tema que mais sai ---------- */
+  const DIAG_TEMAS = ["funcoes-sintaticas", "pessoa-ortonimo", "oracoes", "heteronimos", "recursos-expressivos", "os-maias", "coesao", "lusiadas"];
+  function diagKeys() {
+    const idx = itemIndex(), r = rng(Date.now() % 1e9), out = [];
+    DIAG_TEMAS.forEach((id) => {
+      const ks = [...idx.keys()].filter((k) => k.startsWith(`t-${id}-`) && idx.get(k).item.tipo === "mc" && !idx.get(k).item.texto);
+      if (ks.length) out.push(ks[Math.floor(r() * ks.length)]);
+    });
+    return out;
+  }
+  function renderDiagnostico(agora) {
+    const d = store.get("diag", null), idx = itemIndex();
+    const head = `<div class="page-head"><span class="eyebrow">${ic("target")} Diagnóstico grátis</span><h1>Em que ponto estás a Português?</h1>
+      <p>8 perguntas de exame, uma de cada tema que mais sai. Demora 2 minutos e no fim sabes por onde começar. Não precisas de conta.</p></div>`;
+    if (!d || !d.res || !d.res.length) {
+      app.innerHTML = `<div class="wrap" style="max-width:820px;padding-bottom:60px">${head}
+        <div class="card des-intro rv">${lince("des-l")}
+          <div class="des-facts"><div><b>8</b><span>perguntas</span></div><div><b>2 min</b><span>em média</span></div><div><b>0 €</b><span>sem conta</span></div></div>
+          <p class="muted" style="font-weight:700;margin:0">Funções sintáticas, orações, Pessoa, Os Maias, Os Lusíadas e mais: os temas das provas de 2020 a 2026.</p>
+          <button class="btn btn-primary btn-shine" type="button" data-act="qz-start" data-k="diag">${ic("target")} Começar o diagnóstico</button>
+        </div></div>`;
+      return;
+    }
+    const ok = d.res.filter(Boolean).length, n = d.res.length;
+    const itens = d.keys.map((k, i) => ({ k, ok: d.res[i], e: idx.get(k) })).filter((x) => x.e);
+    const fracos = itens.filter((x) => !x.ok).slice(0, 3);
+    const frase = ok === n ? "Excelente! Estás muito bem preparado nestes temas." : ok >= 6 ? "Muito bom. Tens uma boa base: falta afinar poucos temas." : ok >= 4 ? "Estás a meio caminho. Com um plano, isto sobe depressa." : "Há muito a ganhar. A boa notícia: estes temas aprendem-se com treino.";
+    app.innerHTML = `<div class="wrap" style="max-width:820px;padding-bottom:60px">${head}
+      <div class="card des-res rv" id="diag-res">
+        <span class="eyebrow">${icFill("trophy")} O teu diagnóstico</span>
+        <div class="des-score"><b>${ok}</b><span>/${n}</span></div>
+        <div class="des-quad" aria-hidden="true">${d.res.map((x) => `<i class="${x ? "ok" : "no"}"></i>`).join("")}</div>
+        <p class="des-frase">${frase}</p>
+        ${fracos.length ? `<p class="muted" style="font-weight:800;margin:0 0 8px">Começa por aqui:</p><div class="row" style="justify-content:center">${fracos.map((x) => `<a class="btn btn-soft btn-sm" href="${x.e.href}">${esc(x.e.label)} ${ic("arrow")}</a>`).join("")}</div>` : ""}
+        <div class="row" style="justify-content:center;margin-top:10px"><a class="btn btn-primary btn-shine" href="#plano">${ic("calendar")} Criar o meu plano grátis</a>
+        ${CONTA.on && !CONTA.user ? `<button class="btn btn-ghost" type="button" data-act="login" data-m="diag">Guardar o progresso (conta grátis)</button>` : ""}</div>
+      </div>
+      <h2 class="des-h">Tema a tema</h2>
+      <div class="des-list">${itens.map((x) => `<div class="des-it ${x.ok ? "ok" : "no"}"><span class="fi">${ic(x.ok ? "check" : "x")}</span><div><b>${esc(x.e.label)}</b><span>${esc(strip(x.e.item.enunciado)).slice(0, 140)}</span><a href="${x.e.href}">${x.ok ? "Rever na mesma" : "Estudar este tema"} ${ic("arrow")}</a></div></div>`).join("")}</div>
+      <div class="row mt" style="justify-content:center"><button class="btn btn-ghost btn-sm" type="button" data-act="qz-start" data-k="diag">${REDO_SVG} Fazer outro diagnóstico</button><a class="btn btn-soft btn-sm" href="#desafio">${icFill("bolt")} Desafio do dia</a></div>
+    </div>`;
+    if (agora) {
+      const el = document.getElementById("diag-res"), [x, y] = centerOf(el);
+      addXP(15, "diag:" + today(), x, Math.min(y, 300));
+      if (ok >= 6) confetti(x, Math.min(y, 320), ok === n ? 40 : 22);
+    }
   }
   function qzRender() {
     ITEMS.clear();
@@ -3535,7 +3600,7 @@
       <div class="qz-top"><a class="qz-x" href="#estudar" aria-label="Sair">${ic("x")}</a>
         <div class="qz-dots" role="img" aria-label="Pergunta ${QZ.i + 1} de ${n}">${dots}</div>
         <span class="qz-n">${QZ.i + 1}/${n}</span></div>
-      <div class="qz-lab"><span class="eyebrow">${isD ? icFill("bolt") + " Desafio do dia" : ic("layers", 'width="18" height="18"') + " Revisão"}</span><span class="chip">${isD ? `${GRUPOS[e.grupo].nome} · ${GRUPOS[e.grupo].desc}` : esc(e.label)}</span></div>
+      <div class="qz-lab"><span class="eyebrow">${isD ? icFill("bolt") + " Desafio do dia" : QZ.kind === "diag" ? ic("target", 'width="18" height="18"') + " Diagnóstico" : ic("layers", 'width="18" height="18"') + " Revisão"}</span><span class="chip">${isD ? `${GRUPOS[e.grupo].nome} · ${GRUPOS[e.grupo].desc}` : esc(e.label)}</span></div>
       ${renderItem(e.item, key, String(QZ.i + 1), {})}
       <div id="qz-next" class="qz-next"></div>
     </div>`;
@@ -3568,6 +3633,11 @@
       if (s) { s.seg = Math.min(seg, 3599); store.set("desafio", s); const h = desHist(); h[s.d] = res.filter(Boolean).length; const ks = Object.keys(h).sort().slice(-90); const h2 = {}; ks.forEach((k) => { h2[k] = h[k]; }); store.set("desafioHist", h2); }
       GC.event("desafio-fim");
       renderDesafio(true);
+    } else if (kind === "diag") {
+      store.set("diag", { d: today(), keys: ultimoQZ, res, seg });
+      GC.event("diag-fim");
+      if (location.hash !== "#diagnostico") history.replaceState(null, "", "#diagnostico");
+      renderDiagnostico(true);
     } else {
       GC.event("revisao-fim");
       renderRevisao(res);
