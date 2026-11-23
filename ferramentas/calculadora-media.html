@@ -71,6 +71,7 @@ textarea{min-height:260px;line-height:1.6;resize:vertical}
 <div class="lst" id="lista"></div>
 <p class="small" style="margin-top:10px">Fonte: IES/DGES, Concurso Nacional de Acesso 2026, 1.ª fase. A nota do último colocado muda todos os anos e só é uma referência. Para entrar contam também as provas de ingresso exigidas, as notas mínimas e os pré-requisitos de cada curso.</p>
 </div>
+<div class="go"><p><b>Queres ver tudo mais rápido?</b> Na app da Nota20 pões só a tua média e vês logo em quantos cursos entravas, com filtros por área e partilha do resultado.</p><a class="btn sm y" href="../#media">Abrir na app</a></div>
 <div class="go"><p><b>O exame de Português conta para a média e muitas vezes como prova de ingresso.</b> Na Nota20 tens um plano até ao exame, exercícios com correção e os exames de 2020 a 2026 resolvidos.</p><a class="btn sm y" href="../#plano">Criar o meu plano grátis</a></div>
 <h2>Como se calcula a média do secundário</h2>
 <p>Para os alunos que terminam o secundário a partir de 2025/2026 (cursos científico-humanísticos):</p>
@@ -97,7 +98,7 @@ var CUR={
  av:["Artes Visuais",[["Português","T"],["Língua Estrangeira","B"],["Filosofia","B"],["Educação Física","T"],["Desenho A","T"],["Geometria Descritiva A","B"],["História da Cultura e das Artes","B"],["Opção do 12.º ano (1)","A"],["Opção do 12.º ano (2)","A"]]]};
 var $=function(i){return document.getElementById(i)},cur=S.cur||"ct",linhas=S.linhas||null,D=null;
 function sem(s){return(s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase()}
-function guarda(){try{localStorage.setItem(K,JSON.stringify({cur:cur,linhas:ler(),p1:$("p1").value,p2:$("p2").value,peso:$("peso").value,q:$("q").value,so:$("so").value}))}catch(e){}}
+var MED=null;function guarda(){try{localStorage.setItem(K,JSON.stringify({cur:cur,linhas:ler(),p1:$("p1").value,p2:$("p2").value,peso:$("peso").value,q:$("q").value,so:$("so").value,med:MED}))}catch(e){}}
 function pintaCursos(){$("cursos").innerHTML=Object.keys(CUR).map(function(k){return '<button type="button" class="pill2'+(k===cur?" on":"")+'" data-c="'+k+'">'+CUR[k][0]+'</button>'}).join("")}
 function linhaHTML(l){return '<div class="row"><input aria-label="Disciplina" value="'+(l[0]||"").replace(/"/g,"&quot;")+'"><select aria-label="Duração"><option value="T"'+(l[1]==="T"?" selected":"")+'>Trienal</option><option value="B"'+(l[1]==="B"?" selected":"")+'>Bienal</option><option value="A"'+(l[1]==="A"?" selected":"")+'>Anual</option></select><input aria-label="CIF" type="number" min="0" max="20" step="1" inputmode="numeric" placeholder="CIF" value="'+(l[2]==null?"":l[2])+'"><input aria-label="Exame" type="number" min="0" max="200" step="1" inputmode="numeric" placeholder="Exame" value="'+(l[3]==null?"":l[3])+'"><button type="button" class="x" aria-label="Tirar">×</button></div>'}
 function pintaLinhas(ls){$("linhas").innerHTML=ls.map(linhaHTML).join("")}
@@ -108,7 +109,7 @@ function calc(){
  var ls=ler(),num=0,den=0,falta=0,w={T:3,B:2,A:1};
  ls.forEach(function(l){if(l[2]==null||isNaN(l[2])){falta++;return}var cif=Math.max(0,Math.min(20,l[2]));var cfd=l[3]!=null&&!isNaN(l[3])?Math.round((7.5*cif+2.5*Math.max(0,Math.min(200,l[3]))/10)/10):Math.round(cif);num+=w[l[1]]*cfd;den+=w[l[1]]});
  if(!den){$("rMed").textContent=$("rSec").textContent=$("rCand").textContent="–";$("rNota").textContent="Põe as tuas notas para veres a média.";cand=null;filtra();return}
- var med=Math.round(num/den*10)/10,sec=med*10;$("rMed").textContent=n1(med);$("rSec").textContent=n1(sec);
+ var med=Math.round(num/den*10)/10,sec=med*10;MED=med;$("rMed").textContent=n1(med);$("rSec").textContent=n1(sec);
  var p1=parseFloat($("p1").value),p2=parseFloat($("p2").value),ps=[p1,p2].filter(function(x){return!isNaN(x)}).map(function(x){return Math.max(0,Math.min(200,x))});
  if(ps.length){var pm=ps.reduce(function(a,b){return a+b},0)/ps.length,pw=+$("peso").value/100;cand=Math.round((pw*sec+(1-pw)*pm)*10)/10;$("rCand").textContent=n1(cand)}else{cand=null;$("rCand").textContent="–"}
  $("rNota").textContent=(falta?"Faltam "+falta+" notas: a média conta só as disciplinas preenchidas. ":"")+(cand==null?"Põe a nota das provas de ingresso para veres a nota de candidatura.":"");

@@ -1198,7 +1198,7 @@
     if (view.startsWith("m-")) renderMateria(view.slice(2));
     else if (view.startsWith("t-")) renderTopic(view.slice(2));
     else if (view.startsWith("e-")) renderExam(view.slice(2));
-    else ({ inicio: renderHome, estudar: renderStudy, exercicios: renderExercicios, testes: renderTestes, ranking: renderRanking, exames: renderExams, provaveis: renderProvaveis, simulado: renderSim, duvidas: renderTutor, plano: renderPlano, treino: renderTreino, erros: renderErros, cabula: renderCabula, pais: renderPais, pausa: renderPausa, termos: renderTermos, conta: renderConta, desafio: renderDesafio, diagnostico: renderDiagnostico, revisao: renderRevisao, parcerias: renderParcerias, "parcerias-admin": renderParcAdmin }[view] || renderHome)();
+    else ({ inicio: renderHome, estudar: renderStudy, exercicios: renderExercicios, testes: renderTestes, ranking: renderRanking, exames: renderExams, provaveis: renderProvaveis, simulado: renderSim, duvidas: renderTutor, plano: renderPlano, treino: renderTreino, erros: renderErros, cabula: renderCabula, pais: renderPais, pausa: renderPausa, termos: renderTermos, conta: renderConta, desafio: renderDesafio, diagnostico: renderDiagnostico, media: renderMedia, revisao: renderRevisao, parcerias: renderParcerias, "parcerias-admin": renderParcAdmin }[view] || renderHome)();
     enhance(app);
     renderPromo();
     if (anchor) {
@@ -1262,7 +1262,7 @@
         <div class="section-head center rv"><span class="eyebrow">${icFill("star")} Grátis, sem conta</span><h2>Experimenta já</h2></div>
         <div class="ferr rv">
           <a href="#diagnostico"><span class="ic bg-blue">${ic("target")}</span><b>Diagnóstico de 2 minutos</b><small>8 perguntas de exame e ficas a saber por onde começar</small></a>
-          <a href="ferramentas/calculadora-media.html"><span class="ic bg-mint">${ic("trophy")}</span><b>Calculadora da média</b><small>A tua média e os cursos onde terias entrado em 2026</small></a>
+          <a href="#media"><span class="ic bg-mint">${ic("trophy")}</span><b>Em que curso entravas?</b><small>Põe a tua média e vê onde entravas em 2026</small></a>
           <a href="ferramentas/contador-de-palavras.html"><span class="ic bg-coral">${ic("pen")}</span><b>Contador de palavras</b><small>Com as regras do exame para o texto de opinião</small></a>
         </div>
       </div>
@@ -2480,7 +2480,7 @@
   const SIDE = [
     ["Organizar", [["plano", "#plano", "compass", "Plano até ao exame"], ["testes", "#testes", "calendar", "Teste da escola"], ["pausa", "#pausa", "leaf", "Foco e pausa"]]],
     ["Estudar", [["estudar", "#estudar", "book", "Tópicos"], ["exercicios", "#exercicios", "pen", "Exercícios"], ["desafio", "#desafio", "bolt", "Desafio do dia"], ["treino", "#treino", "target", "Treino rápido"], ["revisao", "#revisao", "layers", "Revisão"], ["erros", "#erros", "check", "Os meus erros"]]],
-    ["Exame", [["exames", "#exames", "file", "Exames resolvidos"], ["simulado", "#simulado", "timer", "Simulado"], ["provaveis", "#provaveis", "flame", "Prováveis 2027"]]],
+    ["Exame", [["exames", "#exames", "file", "Exames resolvidos"], ["simulado", "#simulado", "timer", "Simulado"], ["provaveis", "#provaveis", "flame", "Prováveis 2027"], ["media", "#media", "trophy", "Média e entrada"]]],
     ["Mais", [["duvidas", "#duvidas", "sparkle", "Lince IA"], ["ranking", "#ranking", "trophy", "Ranking"], ["parcerias", "#parcerias", "star", "Parcerias"]]],
   ];
   const SEM_SIDE = new Set(["inicio", "termos", "conta", "parcerias-admin"]);
@@ -3552,6 +3552,111 @@
     });
     return out;
   }
+  /* ---------- média e entrada no superior: em que curso entravas? ---------- */
+  let MD = null, mdProm = null;
+  const MD_AREAS = ["Medicina", "Enfermagem", "Psicologia", "Direito", "Engenharia Informática", "Gestão", "Arquitetura", "Economia", "Ciências da Comunicação", "Educação Básica"];
+  const md1 = (x) => (Math.round(x * 10) / 10).toLocaleString("pt-PT", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  const mdSem = (s) => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+  function mdDados() {
+    if (MD) return Promise.resolve(MD);
+    if (!mdProm) mdProm = fetch("ferramentas/dados/ultimos-colocados-2026.json").then((r) => r.json()).then((j) => (MD = j)).catch(() => { mdProm = null; return null; });
+    return mdProm;
+  }
+  function mdEstado() {
+    const s = store.get("media", null);
+    if (s) return s;
+    let m = "";
+    try { const t = JSON.parse(localStorage.getItem("n20:calcMedia") || "{}"); if (t.med) m = String(t.med); } catch (e) { /* sem dados da calculadora */ }
+    return { m, p: "", w: "50", f: "entro", q: "" };
+  }
+  function mdCand(s) {
+    const m = parseFloat(String(s.m).replace(",", ".")), p = parseFloat(String(s.p).replace(",", "."));
+    if (isNaN(m) || m < 9.5 || m > 20) return null;
+    const sec = m * 10;
+    if (isNaN(p)) return Math.round(sec * 10) / 10;
+    const w = (+s.w || 50) / 100;
+    return Math.round((w * sec + (1 - w) * Math.max(0, Math.min(200, p))) * 10) / 10;
+  }
+  function renderMedia() {
+    const s = mdEstado();
+    app.innerHTML = `<div class="wrap md" style="max-width:900px;padding-bottom:70px">
+      <div class="page-head"><span class="eyebrow">${icFill("trophy")} Média e entrada no superior</span><h1>Em que curso <span class="hl">entravas</span>?</h1>
+        <p>Põe a tua média e vê, em segundos, em que cursos terias entrado em 2026. São as notas do último colocado de ${MD ? MD.c.length : "1170"} cursos públicos.</p></div>
+      <div class="card md-in rv">
+        <label class="md-big"><span>A tua média do secundário</span>
+          <span class="md-num"><input id="md-m" type="number" inputmode="decimal" min="9.5" max="20" step="0.1" placeholder="15,0" value="${esc(s.m)}" aria-label="A tua média do secundário, de 9,5 a 20"><b>/20</b></span></label>
+        <input id="md-r" type="range" min="9.5" max="20" step="0.1" value="${esc(s.m || 15)}" aria-label="Ajustar a média">
+        <details class="md-mais"${s.p ? " open" : ""}><summary>Afinar com a nota das provas de ingresso</summary><div class="md-opt">
+          <label>Nota nas provas de ingresso <small>(0–200, opcional)</small><input id="md-p" type="number" inputmode="numeric" min="0" max="200" step="1" placeholder="igual à média" value="${esc(s.p)}"></label>
+          <label>Peso da média na candidatura<select id="md-w">${["50", "60", "65", "55", "45", "40"].map((v) => `<option value="${v}"${v === String(s.w) ? " selected" : ""}>${v}% média · ${100 - v}% provas</option>`).join("")}</select></label>
+        </div></details>
+        <p class="small muted" style="margin:0">Não sabes a tua média? <a href="ferramentas/calculadora-media.html">Calcula-a disciplina a disciplina</a>.</p>
+      </div>
+      <div class="card md-res rv" id="md-res" aria-live="polite"></div>
+      <div class="md-ctl">
+        <div class="md-f" role="tablist">${[["entro", "Onde entras"], ["perto", "Quase lá"], ["todos", "Todos"]].map(([k, t]) => `<button type="button" class="pill${s.f === k ? " on" : ""}" data-mdf="${k}" role="tab" aria-selected="${s.f === k}">${t}</button>`).join("")}</div>
+        <input id="md-q" type="search" placeholder="Procurar curso, faculdade ou cidade" value="${esc(s.q)}" autocomplete="off" aria-label="Procurar curso, faculdade ou cidade">
+        <div class="md-areas">${MD_AREAS.map((a) => `<button type="button" class="chip" data-mda="${esc(a)}">${esc(a)}</button>`).join("")}</div>
+      </div>
+      <p class="small muted" id="md-cont"></p>
+      <div class="md-lista" id="md-lista"><p class="small muted">A carregar os cursos…</p></div>
+      <div class="card md-go rv"><div><b>O exame de Português vale 25% da tua nota final de Português e é prova de ingresso em muitos cursos.</b><span>Cada valor a mais no exame aproxima-te do curso que queres.</span></div>
+        <div class="row"><a class="btn btn-primary btn-shine" href="#diagnostico">${ic("target")} Diagnóstico grátis</a><a class="btn btn-ghost" href="#plano">${ic("calendar")} Criar o meu plano</a></div></div>
+      <p class="small muted">Fonte: IES/DGES, Concurso Nacional de Acesso 2026, 1.ª fase, contingente geral. A nota do último colocado muda todos os anos e é só uma referência: cada curso tem também provas de ingresso, notas mínimas e, por vezes, pré-requisitos. Sem nota das provas, assumimos que tens nas provas o mesmo que na média.</p>
+    </div>`;
+    const $m = document.getElementById("md-m"), $r = document.getElementById("md-r"), $p = document.getElementById("md-p"), $w = document.getElementById("md-w"), $q = document.getElementById("md-q");
+    let enviado = false;
+    const ler = () => ({ m: $m.value, p: $p.value, w: $w.value, q: $q.value, f: (app.querySelector("[data-mdf].on") || {}).dataset?.mdf || "entro" });
+    const atual = () => { const e = ler(); store.set("media", e); mdPinta(e); if (!enviado && mdCand(e) != null) { enviado = true; GC.event("media-calcular"); } };
+    $m.addEventListener("input", () => { if ($m.value) $r.value = $m.value; atual(); });
+    $r.addEventListener("input", () => { $m.value = (+$r.value).toFixed(1); atual(); });
+    [$p, $w].forEach((el) => el.addEventListener("input", atual));
+    $q.addEventListener("input", atual);
+    app.querySelector(".md-f").addEventListener("click", (ev) => { const b = ev.target.closest("[data-mdf]"); if (!b) return; app.querySelectorAll("[data-mdf]").forEach((x) => { x.classList.toggle("on", x === b); x.setAttribute("aria-selected", x === b); }); atual(); });
+    app.querySelector(".md-areas").addEventListener("click", (ev) => { const b = ev.target.closest("[data-mda]"); if (!b) return; $q.value = $q.value === b.dataset.mda ? "" : b.dataset.mda; app.querySelectorAll("[data-mda]").forEach((x) => x.classList.toggle("on", x.dataset.mda === $q.value)); atual(); });
+    app.querySelectorAll("[data-mda]").forEach((x) => x.classList.toggle("on", x.dataset.mda === $q.value));
+    mdPinta(s);
+    mdDados().then(() => { if (location.hash.slice(1).split(/[/?]/)[0] === "media") mdPinta(ler()); });
+  }
+  function mdPinta(s) {
+    const res = document.getElementById("md-res"), lista = document.getElementById("md-lista"), cont = document.getElementById("md-cont");
+    if (!res || !lista) return;
+    const cand = mdCand(s);
+    if (!MD) { res.innerHTML = cand == null ? `<p class="md-vazio">${lince("md-l")}<span>Põe a tua média (de 9,5 a 20) para veres onde entravas.</span></p>` : `<p class="muted">A carregar os cursos…</p>`; return; }
+    const com = MD.c.filter((c) => c[7] != null);
+    const entra = cand == null ? [] : com.filter((c) => cand >= c[7]);
+    const perto = cand == null ? [] : com.filter((c) => c[7] > cand && c[7] - cand <= 10);
+    if (cand == null) {
+      res.innerHTML = `<p class="md-vazio">${lince("md-l")}<span>Põe a tua média (de 9,5 a 20) para veres onde entravas.</span></p>`;
+    } else {
+      const top = entra.slice().sort((a, b) => b[7] - a[7])[0];
+      res.innerHTML = `<div class="md-big-res"><span>Com <b>${md1(cand)}</b> de nota de candidatura entravas em</span>
+        <strong>${entra.length}</strong><span>de ${com.length} cursos</span></div>
+        <div class="md-stats"><div><span>Quase lá</span><b>${perto.length} cursos</b><span>a menos de 1 valor</span></div><div><span>O mais exigente onde entras</span><b>${top ? esc(top[3]) : "–"}</b><span>${top ? esc(MD.inst[top[0]]) + " · " + md1(top[7]) : ""}</span></div></div>
+        <button class="btn btn-soft btn-sm" type="button" data-act="media-share">${ic("arrow")} Partilhar o meu resultado</button>`;
+    }
+    const q = mdSem(s.q).split(/\s+/).filter(Boolean);
+    let out = (s.f === "entro" && cand != null ? entra : s.f === "perto" && cand != null ? perto : MD.c).filter((c) => !q.length || q.every((t) => mdSem(c[3] + " " + MD.inst[c[0]]).includes(t)));
+    out = out.slice().sort((a, b) => (b[7] || 0) - (a[7] || 0));
+    if (cont) cont.textContent = `${out.length} cursos${out.length > 80 ? " · a mostrar os primeiros 80" : ""}${cand == null && s.f !== "todos" ? " · põe a tua média para filtrar" : ""}`;
+    lista.innerHTML = out.slice(0, 80).map((c) => {
+      const u = c[7], dif = cand != null && u != null ? cand - u : null, sobra = c[6] < c[5];
+      const est = u == null ? `<span class="md-tag">sem colocados</span>` : dif == null ? "" : dif >= 0 ? `<span class="md-tag ok">entravas · +${md1(dif)}</span>` : `<span class="md-tag no">faltam ${md1(-dif)}</span>`;
+      return `<div class="md-it"><div class="md-it-t"><b>${esc(c[3])}</b><small>${esc(MD.inst[c[0]])}</small>
+        <a href="https://www.dges.gov.pt/guias/detcursopi.asp?codc=${esc(c[2])}&code=${esc(c[1])}" target="_blank" rel="noopener">Provas de ingresso ↗</a>${sobra && u != null ? ` <small class="md-sobra">sobraram vagas</small>` : ""}</div>
+        <div class="md-it-n"><b>${u == null ? "–" : md1(u)}</b>${est}</div></div>`;
+    }).join("") || `<p class="small muted">Nenhum curso encontrado. Experimenta outra pesquisa ou o separador «Todos».</p>`;
+  }
+  async function mdPartilha() {
+    const s = mdEstado(), cand = mdCand(s);
+    if (cand == null || !MD) return;
+    const n = MD.c.filter((c) => c[7] != null && cand >= c[7]).length;
+    const txt = `Com ${md1(cand)} de nota de candidatura entrava em ${n} cursos em 2026 😮\nVê onde tu entravas: ${SITE()}#media`;
+    GC.event("media-partilhar");
+    if (navigator.share && !inFrame) { try { await navigator.share({ text: txt }); return; } catch (e) { if (e && e.name === "AbortError") return; } }
+    try { await navigator.clipboard.writeText(txt); toast("Copiado! Cola onde quiseres."); } catch (e) { /* sem clipboard */ }
+  }
+
   function renderDiagnostico(agora) {
     const d = store.get("diag", null), idx = itemIndex();
     const head = `<div class="page-head"><span class="eyebrow">${ic("target")} Diagnóstico grátis</span><h1>Em que ponto estás a Português?</h1>
@@ -4336,6 +4441,7 @@
       case "foco-preset": FOCO.preset(a.dataset.p); $$(".foco-pre button").forEach((x) => x.classList.toggle("on", x === a)); break;
       case "respirar": respirar(a); break;
       case "convite-wa": GC.event("convite-whatsapp"); break;
+      case "media-share": mdPartilha(); break;
       case "convite-share": { if (!meuConv) break; navigator.share({ title: "Nota20", text: conviteTexto(meuConv.codigo) }).then(() => GC.event("convite-partilha")).catch(() => {}); break; }
       case "convite-copiar": case "convite-copiar-link": {
         if (!meuConv) break;
