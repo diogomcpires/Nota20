@@ -1207,8 +1207,21 @@
         if (t) { t.scrollIntoView({ block: "start" }); t.classList.add("flash"); setTimeout(() => t.classList.remove("flash"), 2200); }
         else window.scrollTo({ top: 0, behavior: "instant" });
       });
-    } else if (scrollTo) requestAnimationFrame(() => { const t = document.getElementById(scrollTo); if (t) t.scrollIntoView(); });
+    } else if (scrollTo) requestAnimationFrame(() => { const t = document.getElementById(scrollTo); if (t) segueAlvo(t); });
     else window.scrollTo({ top: 0, behavior: "instant" });
+  }
+  /* mantém a secção no topo enquanto o que está acima ainda carrega (avaliações, contas, promoções);
+     pára assim que o aluno mexe na página */
+  let segueFim = null;
+  function segueAlvo(t) {
+    if (segueFim) segueFim();
+    const ir = () => { if (t.isConnected) t.scrollIntoView({ block: "start", behavior: "instant" }); };
+    ir();
+    const ro = new ResizeObserver(ir); ro.observe(app);
+    const parar = () => { ro.disconnect(); clearTimeout(tm); ["wheel", "touchstart", "keydown", "mousedown"].forEach((e) => window.removeEventListener(e, parar, true)); segueFim = null; };
+    const tm = setTimeout(parar, 4000);
+    ["wheel", "touchstart", "keydown", "mousedown"].forEach((e) => window.addEventListener(e, parar, { capture: true, passive: true }));
+    segueFim = parar;
   }
 
   /* ---------- Início ---------- */
@@ -4301,6 +4314,9 @@
      EVENTOS
      ============================================================ */
   document.addEventListener("click", (ev) => {
+    /* link para a página onde já estás (ex.: «Desbloquear» com #precos já na barra): o browser não muda nada, por isso vamos lá à mão */
+    const mesma = ev.target.closest('a[href^="#"]');
+    if (mesma && mesma.getAttribute("href") === location.hash && !mesma.hasAttribute("data-jump")) setTimeout(route, 0);
     const buy = ev.target.closest("a[data-buy]");
     if (buy) {
       GC.event("comprar-clique");
