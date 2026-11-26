@@ -2684,6 +2684,23 @@ html { overflow-x: clip; }
 .md-mais summary { cursor: pointer; font-weight: 800; color: var(--blue); font-size: 0.92rem; }
 .md-mais[open] summary { margin-bottom: 10px; }
 
+/* v5.9 · vídeo de uma aluna na página inicial */
+.vsara-sec { padding-top: 26px; padding-bottom: 10px; }
+.vsara { display: grid; grid-template-columns: 260px 1fr; gap: 34px; align-items: center; max-width: 900px; }
+.vsara-ph { position: relative; width: 260px; aspect-ratio: 9 / 16; border: 0; padding: 0; border-radius: 30px; overflow: hidden; cursor: pointer; background: #0f172a url(../video/sara-capa.jpg) center / cover; box-shadow: 0 0 0 6px #0f172a, var(--shadow); }
+.vsara-ph video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.vsara-play { position: absolute; left: 50%; top: 50%; width: 74px; height: 74px; margin: -37px 0 0 -37px; border-radius: 50%; background: rgba(255,255,255,.92); color: var(--blue); display: grid; place-items: center; font-size: 30px; padding-left: 6px; box-shadow: 0 10px 30px rgba(0,0,0,.35); transition: transform .18s ease; }
+.vsara-ph:hover .vsara-play { transform: scale(1.08); }
+.vsara-tx h2 { margin: 8px 0 10px; }
+.vsara-tx p { color: var(--muted); font-weight: 600; margin: 0 0 18px; }
+.vsara-full { display: block; width: min(86vw, 380px); max-height: 78vh; aspect-ratio: 9 / 16; border-radius: 22px; background: #000; margin: 0 auto; }
+.modal:has(.vsara-full) { background: transparent; box-shadow: none; padding: 0; width: auto; }
+@media (max-width: 700px) { .vsara { grid-template-columns: 1fr; justify-items: center; text-align: center; gap: 20px; } .vsara-ph { width: 220px; } }
+@media (prefers-reduced-motion: reduce) { .vsara-play { transition: none; } }
+
+.modal-x { position: absolute; top: -14px; right: -14px; width: 40px; height: 40px; border-radius: 50%; border: 0; background: #fff; color: #0f172a; font-size: 26px; line-height: 1; cursor: pointer; box-shadow: 0 6px 18px rgba(0,0,0,.3); z-index: 2; }
+.modal:has(.vsara-full) { position: relative; }
+
 /* ==== TEMA ESCURO GERADO (tools/gerar-escuro.js) · não editar à mão ==== */
 [data-theme="dark"] h4 {
     color: #698eed
@@ -3439,5 +3456,13 @@ html { overflow-x: clip; }
 }
 [data-theme="dark"] .md-mais summary {
     color: #6491fb
+}
+[data-theme="dark"] .vsara-play {
+    background: rgba(22, 27, 54, 0.92);
+    color: #6491fb
+}
+[data-theme="dark"] .modal-x {
+    background: #161b36;
+    color: #d9e1f2
 }
 /* ==== FIM DO TEMA ESCURO GERADO ==== */

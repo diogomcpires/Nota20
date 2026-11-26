@@ -1281,6 +1281,21 @@
       </div>
     </section>
 
+    <section class="section vsara-sec" id="video-aluna">
+      <div class="wrap vsara rv">
+        <button class="vsara-ph" type="button" data-act="video-sara" aria-label="Ver o vídeo da Sara com som">
+          <video muted loop playsinline preload="none" poster="assets/video/sara-capa.jpg" data-src="assets/video/sara-loop.mp4" aria-hidden="true"></video>
+          <span class="vsara-play">▶</span>
+        </button>
+        <div class="vsara-tx">
+          <span class="eyebrow">${icFill("star")} Uma aluna a mostrar a app</span>
+          <h2>Vê a Nota20 em 50 segundos</h2>
+          <p>A Sara, aluna do secundário, mostra como cria o plano até ao exame, estuda os temas e treina com as perguntas mais prováveis.</p>
+          <button class="btn btn-primary btn-shine" type="button" data-act="video-sara">▶ Ver o vídeo com som</button>
+        </div>
+      </div>
+    </section>
+
     <section class="section" id="comecar">
       <div class="wrap">
         <div class="section-head center rv"><span class="eyebrow">${ic("compass", 'width="18" height="18"')} Começa aqui</span>
@@ -1391,6 +1406,7 @@
       </div>
     </section>`;
     restorePractice("home-demo");
+    vsaraLoop();
   }
 
   function previsaoTeaser() {
@@ -3670,6 +3686,12 @@
     try { await navigator.clipboard.writeText(txt); toast("Copiado! Cola onde quiseres."); } catch (e) { /* sem clipboard */ }
   }
 
+  function vsaraLoop() {
+    const v = document.querySelector(".vsara-ph video"); if (!v || v.dataset.on) return;
+    if (REDUCED) return;
+    const io = new IntersectionObserver((es) => { es.forEach((e) => { if (e.isIntersecting) { if (!v.src) v.src = v.dataset.src; v.play().catch(() => {}); } else v.pause(); }); }, { threshold: 0.35 });
+    io.observe(v); v.dataset.on = "1";
+  }
   function renderDiagnostico(agora) {
     const d = store.get("diag", null), idx = itemIndex();
     const head = `<div class="page-head"><span class="eyebrow">${ic("target")} Diagnóstico grátis</span><h1>Em que ponto estás a Português?</h1>
@@ -4458,6 +4480,11 @@
       case "respirar": respirar(a); break;
       case "convite-wa": GC.event("convite-whatsapp"); break;
       case "media-share": mdPartilha(); break;
+      case "video-sara": {
+        GC.event("video-sara-ver");
+        openModal(`<button class="modal-x" type="button" data-act="modal-close" aria-label="Fechar">×</button><video class="vsara-full" src="assets/video/sara.mp4" poster="assets/video/sara-capa.jpg" controls autoplay playsinline></video>`);
+        break;
+      }
       case "convite-share": { if (!meuConv) break; navigator.share({ title: "Nota20", text: conviteTexto(meuConv.codigo) }).then(() => GC.event("convite-partilha")).catch(() => {}); break; }
       case "convite-copiar": case "convite-copiar-link": {
         if (!meuConv) break;
