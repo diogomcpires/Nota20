@@ -1282,16 +1282,12 @@
     </section>
 
     <section class="section vsara-sec" id="video-aluna">
-      <div class="wrap vsara rv">
-        <button class="vsara-ph" type="button" data-act="video-sara" aria-label="Ver o vídeo da Sara com som">
-          <video muted loop playsinline preload="none" poster="assets/video/sara-capa.jpg" data-src="assets/video/sara-loop.mp4" aria-hidden="true"></video>
-          <span class="vsara-play">▶</span>
-        </button>
-        <div class="vsara-tx">
-          <span class="eyebrow">${icFill("star")} Uma aluna a mostrar a app</span>
-          <h2>Vê a Nota20 em 50 segundos</h2>
-          <p>A Sara, aluna do secundário, mostra como cria o plano até ao exame, estuda os temas e treina com as perguntas mais prováveis.</p>
-          <button class="btn btn-primary btn-shine" type="button" data-act="video-sara">▶ Ver o vídeo com som</button>
+      <div class="wrap">
+        <div class="section-head center rv"><span class="eyebrow">${icFill("star")} Alunos a mostrar a app</span><h2>Vê a Nota20 em menos de 1 minuto</h2><p>Toca num vídeo para o veres com som.</p></div>
+        <div class="vsara rv">
+          ${[["sara", "Sara", "o plano até ao exame, os temas e os prováveis"], ["edu", "Edu", "os testes da escola, o Exame Previsto e os exames resolvidos"]].map(([k, nome, d]) => `<button class="vsara-card" type="button" data-act="video-aluno" data-v="${k}" aria-label="Ver o vídeo do ${nome} com som">
+            <span class="vsara-ph" style="background-image:url(assets/video/${k}-capa.jpg)"><video muted loop playsinline preload="none" poster="assets/video/${k}-capa.jpg" data-src="assets/video/${k}-loop.mp4" aria-hidden="true"></video><span class="vsara-play">▶</span></span>
+            <b>${nome}</b><small>Mostra ${d}</small></button>`).join("")}
         </div>
       </div>
     </section>
@@ -3687,10 +3683,9 @@
   }
 
   function vsaraLoop() {
-    const v = document.querySelector(".vsara-ph video"); if (!v || v.dataset.on) return;
     if (REDUCED) return;
-    const io = new IntersectionObserver((es) => { es.forEach((e) => { if (e.isIntersecting) { if (!v.src) v.src = v.dataset.src; v.play().catch(() => {}); } else v.pause(); }); }, { threshold: 0.35 });
-    io.observe(v); v.dataset.on = "1";
+    const io = new IntersectionObserver((es) => { es.forEach((e) => { const v = e.target; if (e.isIntersecting) { if (!v.src) v.src = v.dataset.src; v.play().catch(() => {}); } else v.pause(); }); }, { threshold: 0.35 });
+    document.querySelectorAll(".vsara-ph video").forEach((v) => { if (!v.dataset.on) { io.observe(v); v.dataset.on = "1"; } });
   }
   function renderDiagnostico(agora) {
     const d = store.get("diag", null), idx = itemIndex();
@@ -4480,9 +4475,10 @@
       case "respirar": respirar(a); break;
       case "convite-wa": GC.event("convite-whatsapp"); break;
       case "media-share": mdPartilha(); break;
-      case "video-sara": {
-        GC.event("video-sara-ver");
-        openModal(`<button class="modal-x" type="button" data-act="modal-close" aria-label="Fechar">×</button><video class="vsara-full" src="assets/video/sara.mp4" poster="assets/video/sara-capa.jpg" controls autoplay playsinline></video>`);
+      case "video-aluno": {
+        const v = a.dataset.v === "edu" ? "edu" : "sara";
+        GC.event("video-" + v + "-ver");
+        openModal(`<button class="modal-x" type="button" data-act="modal-close" aria-label="Fechar">×</button><video class="vsara-full" src="assets/video/${v}.mp4" poster="assets/video/${v}-capa.jpg" controls autoplay playsinline></video>`);
         break;
       }
       case "convite-share": { if (!meuConv) break; navigator.share({ title: "Nota20", text: conviteTexto(meuConv.codigo) }).then(() => GC.event("convite-partilha")).catch(() => {}); break; }
