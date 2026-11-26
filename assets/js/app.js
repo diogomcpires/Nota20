@@ -1179,7 +1179,6 @@
     return false;
   }
   function routeNow() {
-    if (!routedOnce2 && !location.hash && abrirEmEstudar()) history.replaceState(history.state, "", location.pathname + location.search + "#estudar");
     routedOnce2 = true;
     const h = decodeURIComponent(location.hash.slice(1)) || "inicio";
     GC.page(h);
@@ -1198,6 +1197,7 @@
     if (view.startsWith("m-")) renderMateria(view.slice(2));
     else if (view.startsWith("t-")) renderTopic(view.slice(2));
     else if (view.startsWith("e-")) renderExam(view.slice(2));
+    if (/^[tme]-/.test(view)) { const h1 = app.querySelector("h1"); store.set("ultimo", { h: "#" + view, tit: h1 ? h1.textContent.trim().slice(0, 80) : "" }); }
     else ({ inicio: renderHome, estudar: renderStudy, exercicios: renderExercicios, testes: renderTestes, ranking: renderRanking, exames: renderExams, provaveis: renderProvaveis, simulado: renderSim, duvidas: renderTutor, plano: renderPlano, treino: renderTreino, erros: renderErros, cabula: renderCabula, pais: renderPais, pausa: renderPausa, termos: renderTermos, conta: renderConta, desafio: renderDesafio, diagnostico: renderDiagnostico, media: renderMedia, revisao: renderRevisao, parcerias: renderParcerias, "parcerias-admin": renderParcAdmin }[view] || renderHome)();
     enhance(app);
     renderPromo();
@@ -1228,62 +1228,77 @@
   const groupColor = { I: "bg-violet", II: "bg-blue", III: "bg-coral" };
 
   function renderHome() {
-    const free = TOPICS.filter((t) => t.free);
-    const sample = TOPICS.find((t) => t.id === "funcoes-sintaticas").exercicios[1];
-    const syms = [["«»", 8, 12, 2.2, 0], ["Aa", 46, 6, 1.6, -2], ["¶", 90, 20, 2.4, -4], ["?", 4, 70, 2.6, -1], ["§", 52, 86, 1.8, -5], ["!", 94, 72, 2.2, -3], ["“ ”", 70, 4, 1.8, -6]];
-    const marq = TOPICS.map((t) => `<a href="#t-${t.id}"><span class="ti ${groupColor[t.grupo]}">${ic(GRUPOS[t.grupo].icon)}</span>${esc(t.titulo)}</a>`).join("");
+    const ult = store.get("ultimo", null);
+    const novo = !st.xp && !ult;
+    const lv = level(), sk = streak(), prox = 100 - (st.xp % 100);
+    const fd = exameDate && exameDate > new Date() ? Math.ceil((exameDate - new Date()) / 864e5) : 0;
+    const ACTS = [
+      ["blue", "calendar", "Plano até ao exame", "O que estudar em cada dia, feito para ti", "#plano"],
+      ["violet", "book", "Estudar a matéria", `${TOPICS.length} tópicos com resumos e pontos-chave`, "#estudar"],
+      ["mint", "check", "Exercícios", `${nExercicios} exercícios com resolução`, "#exercicios"],
+      ["coral", "file", "Exames resolvidos", `${REAL.length} exames do IAVE, item a item`, "#exames"]
+    ];
+    const DEST = [
+      ["pink", icFill("flame"), "Prováveis 2027", "#provaveis"],
+      ["mint", ic("trophy"), "Em que curso entravas?", "#media"],
+      ["blue", ic("target"), "Diagnóstico de 2 min", "#diagnostico"],
+      ["yellow", icFill("bolt"), "Desafio do dia", "#desafio"],
+      ["violet", ic("calendar"), "Testes da escola", "#testes"],
+      ["coral", ic("timer"), "Simulado com tempo", "#simulado"]
+    ];
+    const IA_SUG = ["Explica-me Os Maias em 5 pontos", "Corrige o meu texto de opinião", "Faz-me 5 perguntas de funções sintáticas", "Qual é a diferença entre Caeiro e Reis?"];
     app.innerHTML = `
-    <section class="hero">
-      ${syms.map(([s, x, y, sz, d]) => `<span class="sym" aria-hidden="true" style="left:${x}%;top:${y}%;font-size:${sz}rem;animation-delay:${d}s">${s}</span>`).join("")}
+    <section class="hm-top">
       <div class="wrap">
-        <div>
-          <span class="pill"><span class="dot"></span>Português · 10.º ao 12.º · Exame ${C.PROVA}</span>
-          <h1>Não sabes por onde <span class="grad-text">começar</span>?<span class="l2">Aqui tens tudo organizado.</span>
-            <svg class="squiggle" viewBox="0 0 420 18" preserveAspectRatio="none" aria-hidden="true"><path d="M4 12 C 60 2, 110 18, 170 9 S 290 2, 416 10"/></svg></h1>
-          <p class="lead">Do 10.º ao 12.º ano, para os <b>testes da escola</b> e para o <b>Exame Nacional</b>. Diz-nos quanto tempo tens e recebes um <b>plano de estudo dia a dia</b>: resumos, ${nExercicios} exercícios com resolução, <b>${REAL.length} exames nacionais resolvidos</b>, simulados com tempo e um explicador para as dúvidas.</p>
-          ${madeBy("hero-made")}
-          <a class="hero-ia" href="#duvidas"><span class="hi-ic">${ic("sparkle")}</span><span><b>Com IA:</b> o Lince tira-te dúvidas a qualquer hora e corrige os teus textos pelos critérios do IAVE.</span><span class="hi-btn">Experimentar ${ic("arrow")}</span></a>
-          <div class="row">
-            <a class="btn btn-primary btn-shine" href="#diagnostico">${ic("target")} Faz o diagnóstico de 2 minutos</a>
-            <a class="btn btn-ghost" href="#plano">${ic("calendar")} Cria o teu plano de estudo</a>
+        ${novo ? `<div class="hm-hi rv">
+            <div><span class="pill"><span class="dot"></span>Português · 10.º ao 12.º · Exame ${C.PROVA}</span>
+              <h1>Olá! Por onde queres <span class="grad-text">começar</span>?</h1>
+              <p class="lead">Resumos, ${nExercicios} exercícios com resolução, ${REAL.length} exames nacionais resolvidos e o Lince, o explicador com IA. Tudo organizado para os testes e para o exame.</p>
+              <div class="row"><a class="btn btn-primary btn-shine" href="#diagnostico">${ic("target")} Diagnóstico de 2 minutos</a><a class="btn btn-ghost" href="#plano">${ic("calendar")} Criar o meu plano</a></div>
+              <p class="hero-gratis">Grátis e sem conta.</p>${madeBy("hm-made")}</div>
+            <div class="hm-lince">${lince()}</div>
+          </div>`
+        : `<div class="hm-hi back rv">
+            <div><h1>Olá de novo! 👋</h1><p class="lead">${fd ? `Faltam <b>${fd} dias</b> para o exame. ` : ""}Em que vamos trabalhar hoje?</p></div>
+            <div class="hm-stats">
+              <div><span class="ic bg-violet">${icFill("star")}</span><b>Nível ${lv}</b><small>faltam ${prox} XP</small></div>
+              <div><span class="ic bg-yellow" style="color:#3a2a00">${icFill("bolt")}</span><b>${st.xp} XP</b><small>no total</small></div>
+              <div><span class="ic bg-coral">${icFill("flame")}</span><b>${sk} ${sk === 1 ? "dia" : "dias"}</b><small>seguidos</small></div>
+            </div>
           </div>
-          <p class="hero-gratis">Grátis e sem conta: 8 perguntas de exame e ficas a saber por onde começar.</p>
-          <div class="facts">
-            <span><span style="color:var(--violet)">${ic("book")}</span>${TOPICS.length} tópicos</span>
-            <span><span style="color:var(--mint)">${ic("check")}</span>${nExercicios} exercícios</span>
-            <span><span style="color:var(--coral)">${ic("file")}</span>${REAL.length} exames resolvidos</span>
-            <span><span style="color:var(--pink)">${icFill("flame")}</span>Previsão 2027</span>
-            <span><span style="color:var(--yellow-d)">${ic("timer")}</span>${SIMS.length} simulados com tempo</span>
-            ${G ? `<span><span style="color:var(--mint)">${ic("shield")}</span>Garantia de ${G} dias</span>` : ""}
-          </div>
-        </div>
-        <div class="stage">
-          <div class="orbit"><a href="#estudar" aria-label="Estudar os tópicos" data-tip="Tópicos">${ic("book")}</a><a href="#t-texto-opiniao/exercicios" aria-label="Escrever e corrigir um texto" data-tip="Escrita">${ic("pen")}</a><a href="#simulado" aria-label="Fazer um simulado" data-tip="Simulado">${ic("trophy")}</a><a href="#provaveis" aria-label="Tópicos prováveis 2027" data-tip="2027">${ic("star")}</a></div>
-          <div class="blob"></div>
-          ${lince()}
-          <a class="fcard blue a" href="#desafio"><span class="ic bg-yellow" style="color:#3a2a00">${icFill("bolt")}</span><div>Desafio do dia<small>5 perguntas · ganha pontos</small></div>${ic("arrow")}</a>
-          <a class="fcard b" href="#duvidas"><span class="ic bg-violet">${ic("sparkle")}</span><div>Explicador IA<small>pergunta já</small></div>${ic("arrow")}</a>
-          <a class="fcard c" href="#treino"><span class="ic bg-coral">${icFill("flame")}</span><div>Treino rápido<small>não quebres a sequência</small></div>${ic("arrow")}</a>
+          ${ult && ult.h ? `<a class="hm-cont rv" href="${esc(ult.h)}"><span class="ic bg-blue">${ic("arrow")}</span><span><small>Continua onde paraste</small><b>${esc(ult.tit || "O teu último tema")}</b></span><span class="btn btn-primary btn-sm">Continuar</span></a>` : ""}`}
+      </div>
+    </section>
+
+    <section class="section hm-sec" id="comecar">
+      <div class="wrap">
+        <h2 class="hm-h">${ic("compass", 'width="22" height="22"')} O que queres fazer?</h2>
+        <div class="hm-acts">
+          ${ACTS.map(([c, i, t, d, h]) => `<a class="hm-act ${c} rv" href="${h}"><span class="ic bg-${c}">${ic(i)}</span><b>${t}</b><small>${d}</small><span class="go">${ic("arrow")}</span></a>`).join("")}
         </div>
       </div>
     </section>
 
-    <div class="marquee" aria-label="Tópicos"><div class="track">${marq}${marq.replace(/<a /g, '<a tabindex="-1" aria-hidden="true" ')}</div></div>
-
-    <section class="section ferr-sec" id="gratis">
+    <section class="section hm-sec">
       <div class="wrap">
-        <div class="section-head center rv"><span class="eyebrow">${icFill("star")} Grátis, sem conta</span><h2>Experimenta já</h2></div>
-        <div class="ferr rv">
-          <a href="#diagnostico"><span class="ic bg-blue">${ic("target")}</span><b>Diagnóstico de 2 minutos</b><small>8 perguntas de exame e ficas a saber por onde começar</small></a>
-          <a href="#media"><span class="ic bg-mint">${ic("trophy")}</span><b>Em que curso entravas?</b><small>Põe a tua média e vê onde entravas em 2026</small></a>
-          <a href="ferramentas/contador-de-palavras.html"><span class="ic bg-coral">${ic("pen")}</span><b>Contador de palavras</b><small>Com as regras do exame para o texto de opinião</small></a>
-        </div>
+        <form class="hm-ia rv" id="hm-ia">
+          <div class="hm-ia-h">${lince()}<div><b>O que vamos estudar hoje?</b><small>Pergunta ao Lince, o explicador com IA. Responde na hora, com exemplos.</small></div></div>
+          <div class="hm-ia-in"><label class="sr" for="hm-ask">A tua pergunta ao Lince</label><input id="hm-ask" type="text" placeholder="A tua dúvida…" autocomplete="off"><button class="btn btn-primary btn-sm" type="submit">${ic("sparkle")} Perguntar</button></div>
+          <div class="hm-ia-sug">${IA_SUG.map((q) => `<button type="button" class="chip" data-act="hm-ia" data-q="${esc(q)}">${esc(q)}</button>`).join("")}</div>
+        </form>
+      </div>
+    </section>
+
+    <section class="section hm-sec">
+      <div class="wrap">
+        <h2 class="hm-h">${icFill("star")} Em destaque</h2>
+        <div class="hm-dest rv">${DEST.map(([c, i, t, h]) => `<a href="${h}"><span class="ic bg-${c}"${c === "yellow" ? ' style="color:#3a2a00"' : ""}>${i}</span><b>${t}</b></a>`).join("")}</div>
       </div>
     </section>
 
     <section class="section vsara-sec" id="video-aluna">
       <div class="wrap">
-        <div class="section-head center rv"><span class="eyebrow">${icFill("star")} Alunos a mostrar a app</span><h2>Vê a Nota20 em menos de 1 minuto</h2><p>Toca num vídeo para o veres com som.</p></div>
+        <h2 class="hm-h">${icFill("star")} Alunos a mostrar a app</h2>
         <div class="vsara rv">
           ${[["sara", "Sara", "o plano até ao exame, os temas e os prováveis"], ["edu", "Edu", "os testes da escola, o Exame Previsto e os exames resolvidos"]].map(([k, nome, d]) => `<button class="vsara-card" type="button" data-act="video-aluno" data-v="${k}" aria-label="Ver o vídeo do ${nome} com som">
             <span class="vsara-ph" style="background-image:url(assets/video/${k}-capa.jpg)"><video muted loop playsinline preload="none" poster="assets/video/${k}-capa.jpg" data-src="assets/video/${k}-loop.mp4" aria-hidden="true"></video><span class="vsara-play">▶</span></span>
@@ -1292,75 +1307,8 @@
       </div>
     </section>
 
-    <section class="section" id="comecar">
-      <div class="wrap">
-        <div class="section-head center rv"><span class="eyebrow">${ic("compass", 'width="18" height="18"')} Começa aqui</span>
-          <h2>Nós organizamos. Tu só tens de seguir.</h2>
-          <p>Quatro passos, pela ordem certa. Cada um leva-te diretamente ao que tens de fazer.</p></div>
-        <div class="steps">
-          ${[
-            ["bg-violet", "target", "Percebe o exame", "3 grupos, 200 pontos e os tópicos de cada um.", "#estudar", "Ver os grupos"],
-            ["bg-blue", "book", "Estuda por tópicos", `${TOPICS.length} tópicos com resumo, pontos-chave e exercícios.`, "#estudar", "Abrir os tópicos"],
-            ["bg-coral", "file", "Treina com exames reais", `${REAL.length} exames (${anosTxt}) resolvidos item a item e o Exame Previsto 2027.`, "#exames", "Ver exames"],
-            ["bg-yellow", "timer", "Faz o simulado", "120 minutos, como no dia, com nota no fim.", "#simulado", "Fazer simulado"]
-          ].map(([c, i, t, d, href, cta], n) => `<a class="step rv" href="${href}"><span class="sn">${n + 1}</span><span class="tile ${c}">${ic(i)}</span><h3>${t}</h3><p>${d}</p><span class="go">${cta} ${ic("arrow")}</span></a>`).join("")}
-        </div>
-      </div>
-    </section>
+    ${novo ? "" : `<section class="section" style="padding:0 0 10px"><div class="wrap">${conviteHTML()}</div></section>`}
 
-    ${previsaoTeaser()}
-
-    <section class="section" style="padding:0 0 10px">
-      <div class="wrap">${tempoHTML()}${conviteHTML()}<a class="pais-band rv" href="#pais"><span class="tile bg-violet">${ic("shield")}</span><span><b>É pai ou mãe?</b><span>O exame de Português é o único obrigatório para todos. Veja como a Nota20 ajuda o seu filho a preparar-se.</span></span>${ic("arrow")}</a></div>
-    </section>
-
-    <section class="section alt" id="como-funciona">
-      <div class="wrap">
-        <div class="section-head center rv"><span class="eyebrow">${ic("sparkle", 'width="18" height="18"')} O que tens</span><h2>Tudo para chegares ao 20.</h2></div>
-        <div class="grid grid-3 feats">
-          ${[
-            ["bg-violet", "book", "Resumos e pontos-chave", "Cada obra e cada conteúdo de gramática explicado de forma simples, com o essencial marcado."],
-            ["bg-mint", "check", "Exercícios com resolução", "Acertas, ganhas XP. Erras, vês logo porquê. Respostas abertas com proposta de resolução."],
-            ["bg-coral", "file", "Exames nacionais resolvidos", `${REAL.length} exames (${anosTxt}), item a item, cada item ligado à matéria que tens de rever.`],
-            ["bg-pink", "flame", "Tópicos prováveis 2027", `O que saiu nas últimas ${H.provas.length} provas, o que falta sair e um Exame Previsto feito com isso.`],
-            ["bg-yellow", "timer", "Simulado cronometrado", "120 minutos + 30 de tolerância e nota final com a regra dos 3 melhores opcionais."],
-            ["bg-blue", "chat", "Explicador a qualquer hora", "Pergunta o que não percebeste e recebe uma explicação com exemplos, na hora."],
-            ["bg-violet", "sparkle", "Correção das tuas respostas", "Escreve, carrega em «Corrigir com IA» e vê a cotação estimada e o que falta."],
-            ["bg-yellow", "bolt", "Desafio do dia", "5 perguntas novas todos os dias, iguais para todos. Dois minutos para manter a matéria fresca e desafiar os amigos."],
-            ["bg-mint", "layers", "Revisão inteligente", "Cada pergunta volta no dia certo, mesmo antes de a esqueceres. As que erras voltam mais cedo."]
-          ].map(([c, i, t, d]) => `<div class="card feat rv"><div class="tile ${c}">${ic(i)}</div><h3>${t}</h3><p class="muted" style="font-weight:600">${d}</p></div>`).join("")}
-        </div>
-      </div>
-    </section>
-
-    <section class="section">
-      <div class="wrap demo-wrap">
-        <div class="rv">
-          <div class="speech">Experimenta um item de gramática como os do exame. Cada resposta certa vale <span style="color:var(--yellow-d)">+10 XP</span>.</div>
-          <div style="width:170px;margin:22px 0 0 10px">${lince()}</div>
-        </div>
-        <div class="rv">${(() => { reg("home-demo", sample, {}); return renderItem(sample, "home-demo", "1"); })()}
-          <p class="muted" style="font-weight:600">Grátis: ${free.map((t) => `<a href="#t-${t.id}">${esc(t.titulo)}</a>`).join(" e ")} ${free.length === 1 ? "completo" : "completos"}, e ${LIM.exercicios} exercícios para experimentares.</p></div>
-      </div>
-    </section>
-
-    <section class="section" id="custo">
-      <div class="wrap">
-        <div class="section-head center rv"><span class="eyebrow">${ic("target", 'width="18" height="18"')} Quanto custa preparar o exame</span>
-          <h2>Menos do que uma hora e meia de explicação.</h2>
-          <p>Uma explicação custa, em média, ${C.EXPLICACAO_HORA} € por hora em Portugal. A Nota20 custa ${esc(C.PRECO)} uma vez e dá-te o ano inteiro.</p></div>
-        <div class="custo-grid">
-          <div class="custo-c rv"><span class="k">Explicações</span><b>${C.EXPLICACAO_HORA * C.EXPLICACAO_SEMANAS} €</b><span class="d">1 hora por semana, de agora até ao exame (cerca de ${C.EXPLICACAO_SEMANAS} semanas)</span>
-            <ul><li>${ic("x")}Uma hora por semana, à hora marcada</li><li>${ic("x")}Dúvidas só na próxima aula</li><li>${ic("check")}Atenção individual</li></ul></div>
-          <div class="custo-c rv"><span class="k">Apps de IA genéricas</span><b>${C.APP_IA_MES * C.APP_IA_MESES} €</b><span class="d">assinatura de cerca de ${C.APP_IA_MES} € por mês durante ${C.APP_IA_MESES} meses</span>
-            <ul><li>${ic("x")}Não seguem o programa português</li><li>${ic("x")}Sem exames do IAVE nem critérios de correção</li><li>${ic("check")}Disponíveis a qualquer hora</li></ul></div>
-          <div class="custo-c main rv"><span class="flag">A escolha certa</span><span class="k">Nota20 Completo</span><b>${esc(C.PRECO)}</b><span class="d">pagamento único, sem mensalidades, até ao fim da 2.ª fase</span>
-            <ul><li>${ic("check")}Todo o programa do 10.º ao 12.º do exame 639</li><li>${ic("check")}${REAL.length} exames do IAVE resolvidos e os critérios oficiais</li><li>${ic("check")}Explicador e correção com IA a qualquer hora</li><li>${ic("check")}Garantia de ${G || 14} dias</li></ul>
-            ${unlocked() ? "" : `<a class="btn btn-primary" href="#precos">Ver o plano Completo ${ic("arrow")}</a>`}</div>
-        </div>
-        <p class="small muted custo-fonte">Preço médio de uma explicação: ${C.EXPLICACAO_HORA} €/hora (Fixando, 2026). As explicações continuam a ser ótimas; a Nota20 serve para estudares todos os dias, entre aulas.</p>
-      </div>
-    </section>
     <section class="section alt" id="avaliacoes" hidden>
       <div class="wrap">
         <div class="section-head rv"><span class="eyebrow">${icFill("star")} Avaliações</span><h2>O que dizem os alunos</h2></div>
@@ -1368,18 +1316,18 @@
       </div>
     </section>
 
-    <section class="section" id="precos">
+    ${unlocked() ? "" : `<section class="section" id="precos">
       <div class="wrap">
-        <div class="section-head center rv"><span class="eyebrow">${ic("crown", 'width="18" height="18"')} Preços</span><h2>Um pagamento. Acesso até ao exame.</h2><p>Sem subscrição e sem renovação automática.</p>${madeBy("center")}</div>
+        <div class="section-head center rv"><span class="eyebrow">${ic("crown", 'width="18" height="18"')} Preços</span><h2>Um pagamento. Acesso até ao exame.</h2><p>Sem subscrição e sem renovação automática. Custa menos do que uma hora e meia de explicação.</p></div>
         ${plansHTML()}
       </div>
-    </section>
+    </section>`}
 
     <section class="section" data-lead-wrap ${leadsOn() || store.get("lead", false) ? "" : "hidden"}>
       <div class="wrap">
         <div class="lead-band rv">
           <div><span class="eyebrow">${ic("mail", 'width="18" height="18"')} Guia grátis em PDF</span><h2>Os temas mais prováveis para o exame de 2027</h2>
-            <p>Analisámos as 10 provas de 2020 a 2026, tema a tema. Recebe o guia no teu email e, a seguir, 4 emails curtos com os erros que mais tiram pontos e um plano até junho.</p></div>
+            <p>Analisámos as 10 provas de 2020 a 2026, tema a tema. Recebe o guia no teu email.</p></div>
           <div data-lead-slot="home">${leadHTML("home")}</div>
         </div>
       </div>
@@ -1389,20 +1337,17 @@
       <div class="wrap" style="max-width:840px">
         <div class="section-head center rv"><span class="eyebrow">${ic("chat", 'width="18" height="18"')} Perguntas frequentes</span><h2>Antes de começares</h2></div>
         ${FAQ.map(([q, a]) => `<details><summary>${q}</summary><p>${a}</p></details>`).join("")}
-      </div>
-    </section>
-
-    <section class="section">
-      <div class="wrap">
-        <div class="cta-band rv">
-          <div><h2>Não sabes por onde começar? Começa pelo passo 1.</h2><p>${nFree} tópicos grátis, sem criar conta.</p>
-            <div class="row" style="margin-top:20px"><a class="btn btn-yellow btn-shine" href="#comecar">Começar pelo passo 1 ${ic("arrow")}</a></div></div>
-          ${lince()}
-        </div>
+        <p class="small muted" style="text-align:center;margin-top:18px">É pai ou mãe? <a href="#pais">Veja como a Nota20 ajuda o seu filho</a>.</p>
       </div>
     </section>`;
-    restorePractice("home-demo");
+    const f = document.getElementById("hm-ia");
+    if (f) f.addEventListener("submit", (e) => { e.preventDefault(); hmPerguntar($("#hm-ask").value); });
     vsaraLoop();
+  }
+  function hmPerguntar(q) {
+    q = String(q || "").trim(); if (!q) { const i = $("#hm-ask"); if (i) i.focus(); return; }
+    GC.event("inicio-ia-perguntar");
+    ssSet("n20:ask", q); ssSet("n20:askGo", "1"); location.hash = "#duvidas";
   }
 
   function previsaoTeaser() {
@@ -4474,6 +4419,7 @@
       case "foco-preset": FOCO.preset(a.dataset.p); $$(".foco-pre button").forEach((x) => x.classList.toggle("on", x === a)); break;
       case "respirar": respirar(a); break;
       case "convite-wa": GC.event("convite-whatsapp"); break;
+      case "hm-ia": hmPerguntar(a.dataset.q); break;
       case "media-share": mdPartilha(); break;
       case "video-aluno": {
         const v = a.dataset.v === "edu" ? "edu" : "sara";
