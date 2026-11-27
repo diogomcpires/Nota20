@@ -42,7 +42,7 @@ window.N20_CONFIG = {
   PAYMENT_LINK_MES: "https://buy.stripe.com/aFa4gy6VI3FW7nngag4c805",
   PRECO_MES: "4,99 €",
   /* oferta de saída: código promocional de 10% criado na Stripe. Vazio = desligada. */
-  CODIGO_SAIDA: "",
+  CODIGO_SAIDA: "VOLTA10",
 
   /* Códigos de acesso (hash SHA-256 em hexadecimal). Ver README para gerar. */
   ACCESS_CODE_HASHES: [],
