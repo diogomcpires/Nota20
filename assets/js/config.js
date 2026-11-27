@@ -39,7 +39,7 @@ window.N20_CONFIG = {
   PACK_PRECO: "4,99 €",
   PAYMENT_LINK: "https://buy.stripe.com/dRmbJ06VIdgw2334ry4c800",
   /* plano mensal (subscrição na Stripe). Vazio = não aparece. */
-  PAYMENT_LINK_MES: "",
+  PAYMENT_LINK_MES: "https://buy.stripe.com/aFa4gy6VI3FW7nngag4c805",
   PRECO_MES: "4,99 €",
   /* oferta de saída: código promocional de 10% criado na Stripe. Vazio = desligada. */
   CODIGO_SAIDA: "",
