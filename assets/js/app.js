@@ -733,21 +733,20 @@
     }[reason] || ["Desbloqueia o plano Completo", ""];
     const s = streak(), certas = Object.values(st.res).filter((r) => r.ok).length;
     const pay = C.PAYMENT_LINK
-      ? `<a class="btn btn-primary btn-shine" href="${esc(payHref())}" rel="noopener" data-buy>Desbloquear tudo · ${esc(C.PRECO)}</a>`
-      : `<a class="btn btn-primary btn-shine" href="#precos" data-act="modal-close">Desbloquear tudo · ${esc(C.PRECO)}</a>`;
+      ? `<a class="btn btn-primary btn-shine" href="${esc(payHref())}" rel="noopener" data-buy>Comprar</a>`
+      : `<a class="btn btn-primary btn-shine" href="#precos" data-act="modal-close">Ver planos</a>`;
     openModal(`<div class="pw-head">${lince()}<div><h3>${M[0]}</h3><p class="muted" style="margin:6px 0 0;font-weight:600">${M[1]}</p></div></div>
       <div class="pw-stats"><div><b>${st.xp}</b><span>XP</span></div><div><b>${s}</b><span>dias seguidos</span></div><div><b>${certas}</b><span>respostas certas</span></div></div>
       ${s > 0 ? `<p class="pw-loss">${icFill("flame")} Não percas a tua sequência de ${s} ${s === 1 ? "dia" : "dias"}.</p>` : ""}
       <ul class="pw-list"><li>Todos os ${TOPICS.length} tópicos e ${nExercicios} exercícios</li><li>${REAL.length} exames nacionais resolvidos (${anosTxt}) e ${SIMS.length} simulados</li><li>Exame Previsto 2027 e previsão completa dos tópicos</li><li>Explicador e correção com IA, sem os limites do plano grátis</li></ul>
-      ${priceLine()}
-      ${saidaHTML()}
-      ${testeBtn("btn-yellow")}
-      ${pay}
-      ${mesBtn()}
-      <p class="small muted buy-terms">Pagamento único${C.PAYMENT_LINK_MES ? " ou mensal" : ""}. Ao comprar, aceitas os <a href="#termos" data-act="modal-close">Termos e condições</a>.</p>
-      ${G ? `<div class="guarantee">${ic("shield")}<span><b>Garantia de ${G} dias</b>Se não gostares, devolvemos o dinheiro.</span></div>` : ""}
-      ${conviteHTML()}
-      <button class="btn btn-soft btn-sm" type="button" data-act="modal-close">Agora não</button>`);
+      ${saidaHTML()}${parcAvisoHTML()}
+      <div class="pw-opts${C.PAYMENT_LINK_MES ? "" : " so1"}">
+        <div class="pw-opt main"><span class="pw-tag">Melhor opção</span><b>Completo</b><span class="pw-pr">${esc(C.PRECO)}</span><small>pagamento único<br>acesso até ao exame</small>${pay}</div>
+        ${C.PAYMENT_LINK_MES ? `<div class="pw-opt"><span class="pw-tag lt">Flexível</span><b>Mensal</b><span class="pw-pr">${esc(C.PRECO_MES || "4,99 €")}<em>/mês</em></span><small>renova todos os meses<br>cancelas quando quiseres</small><a class="btn btn-ghost" href="${esc(payHref(C.PAYMENT_LINK_MES))}" rel="noopener" data-buy data-mes>Subscrever</a></div>` : ""}
+      </div>
+      ${testeDisp() ? `<button class="pw-teste" type="button" data-act="teste">${icFill("bolt")}<span>Ainda não sabes? <b>Experimenta tudo 7 dias grátis</b>, sem cartão.</span></button>` : ""}
+      <p class="small muted buy-terms">${G ? `Garantia de ${G} dias no pagamento único. ` : ""}Ao comprar, aceitas os <a href="#termos" data-act="modal-close">Termos e condições</a>.</p>
+      <button class="btn btn-soft btn-sm pw-nao" type="button" data-act="modal-close">Agora não</button>`);
   }
 
   /* ---------- avisos ao vivo no Discord (só nos momentos de compra) ---------- */
@@ -1244,6 +1243,11 @@
     else if (view.startsWith("e-")) renderExam(view.slice(2));
     if (/^[tme]-/.test(view)) { const h1 = app.querySelector("h1"); store.set("ultimo", { h: "#" + view, tit: h1 ? h1.textContent.trim().slice(0, 80) : "" }); }
     else ({ inicio: renderHome, estudar: renderStudy, exercicios: renderExercicios, testes: renderTestes, ranking: renderRanking, exames: renderExams, provaveis: renderProvaveis, simulado: renderSim, duvidas: renderTutor, plano: renderPlano, treino: renderTreino, erros: renderErros, cabula: renderCabula, pais: renderPais, pausa: renderPausa, termos: renderTermos, conta: renderConta, desafio: renderDesafio, diagnostico: renderDiagnostico, media: renderMedia, revisao: renderRevisao, parcerias: renderParcerias, "parcerias-admin": renderParcAdmin }[view] || renderHome)();
+    {
+      const UP = { plano: "plano", provaveis: "provaveis", exames: "exames", media: "media", conta: "conta" }[view];
+      const w = UP && !unlocked() ? app.querySelector(".wrap") : null;
+      if (w && !w.querySelector(".upsell")) w.insertAdjacentHTML("beforeend", upsellHTML(UP).replace("upsell up2 rv", "upsell up2"));
+    }
     enhance(app);
     renderPromo();
     if (anchor) {
@@ -1300,7 +1304,7 @@
               <h1>Olá! Por onde queres <span class="grad-text">começar</span>?</h1>
               <p class="lead">Resumos, ${nExercicios} exercícios com resolução, ${REAL.length} exames nacionais resolvidos e o Lince, o explicador com IA. Tudo organizado para os testes e para o exame.</p>
               <div class="row"><a class="btn btn-primary btn-shine" href="#diagnostico">${ic("target")} Diagnóstico de 2 minutos</a><a class="btn btn-ghost" href="#plano">${ic("calendar")} Criar o meu plano</a></div>
-              <p class="hero-gratis">Grátis e sem conta.${testeDisp() ? ` <button class="lnk-teste" type="button" data-act="teste">Ou experimenta tudo 7 dias grátis ${ic("arrow")}</button>` : ""}</p>${madeBy("hm-made")}</div>
+              <p class="hero-gratis">Grátis e sem conta.</p>${testeDisp() ? `<button class="hero-teste" type="button" data-act="teste">${icFill("bolt")}<span><b>Experimenta tudo 7 dias grátis</b> · sem cartão</span>${ic("arrow")}</button>` : ""}${madeBy("hm-made")}</div>
             <div class="hm-lince">${lince()}</div>
           </div>`
         : `<div class="hm-hi back rv">
@@ -1705,12 +1709,18 @@
       estudar: [`Desbloqueia os outros ${nF} tópicos`, `Todos os resumos, ${nExercicios} exercícios, ${REAL.length} exames resolvidos e os simulados.`],
       topico: ["Gostaste deste tópico?", `Os outros ${nF} têm o mesmo: resumo, pontos-chave, como sai no exame e exercícios resolvidos.`],
       desafio: ["Queres treinar mais do que 5 por dia?", `O plano Completo tem ${nExercicios} exercícios, treino sem limites e ${REAL.length} exames nacionais resolvidos.`],
-      plano: ["O teu plano inclui tópicos do plano Completo", `Para o seguires até ao fim precisas de todos os ${TOPICS.length} tópicos, exames e simulados.`]
-    }[onde];
-    return `<div class="upsell rv"><span class="tile bg-yellow">${icFill("crown")}</span>
-      <div><b>${txt[0]}</b><span>${txt[1]}</span><span class="up-p"><b>${esc(C.PRECO)}</b> · pagamento único${G ? ` · garantia de ${G} dias` : ""}</span></div>
-      <a class="btn btn-primary btn-sm" href="#precos" data-up="${onde}">Ver plano Completo ${ic("arrow")}</a></div>`;
+      plano: ["Segue o teu plano até ao fim", `O plano usa todos os ${TOPICS.length} tópicos, os exames resolvidos e os simulados do plano Completo.`],
+      provaveis: ["Vê a previsão completa", `Todos os tópicos ordenados, com o motivo de cada um, e o Exame Previsto 2027 resolvido.`],
+      exames: ["Todos os exames resolvidos", `${REAL.length} exames nacionais (${anosTxt}) resolvidos item a item e ${SIMS.length} simulados com nota.`],
+      media: ["Sobe a nota de Português", `Plano até ao exame, ${nExercicios} exercícios e ${REAL.length} exames resolvidos para chegares à média que precisas.`],
+      conta: ["Desbloqueia o plano Completo", `Todos os tópicos, exames resolvidos, simulados e a IA sem os limites do plano grátis.`]
+    }[onde] || ["Desbloqueia o plano Completo", ""];
+    const t = testeDisp();
+    return `<div class="upsell up2 rv"><span class="tile bg-yellow">${icFill("crown")}</span>
+      <div><b>${txt[0]}</b><span>${txt[1]}</span><span class="up-p"><b>${esc(C.PRECO)}</b> até ao exame${C.PAYMENT_LINK_MES ? ` · ou <b>${esc(C.PRECO_MES || "4,99 €")}</b>/mês` : ""}</span></div>
+      <div class="up-btns">${t ? `<button class="btn btn-yellow btn-sm" type="button" data-act="teste">${icFill("bolt")} 7 dias grátis</button>` : ""}<a class="btn ${t ? "btn-ghost" : "btn-primary"} btn-sm" href="#precos" data-up="${onde}">Ver planos ${ic("arrow")}</a></div></div>`;
   }
+
   /* iniciais do tópico para o bloco de cor (OM, PV, FL…) */
   const PEQ = new Set(["de", "da", "do", "das", "dos", "e", "a", "o", "as", "os", "na", "no", "em"]);
   function iniciais(tit) {
@@ -2542,8 +2552,11 @@
       tu.classList.toggle("is-pack", pk);
       if (pk) { tu.href = packHref(); tu.setAttribute("data-pack", ""); tu.setAttribute("rel", "noopener"); tu.removeAttribute("data-act"); }
       else { tu.href = "#precos"; tu.removeAttribute("data-pack"); }
-      tu.querySelector(".lg").innerHTML = pk ? `Pack de IA · ${esc(C.PACK_PRECO || "4,99 €")}` : "Plano Completo";
-      tu.querySelector(".sh").textContent = pk ? "+IA" : "Upgrade";
+      const tt = !pk && testeDisp();
+      if (tt) tu.setAttribute("data-act", "teste"); else if (!pk) tu.removeAttribute("data-act");
+      tu.classList.toggle("is-teste", tt);
+      tu.querySelector(".lg").innerHTML = pk ? `Pack de IA · ${esc(C.PACK_PRECO || "4,99 €")}` : tt ? "7 dias grátis" : "Plano Completo";
+      tu.querySelector(".sh").textContent = pk ? "+IA" : tt ? "Grátis" : "Upgrade";
     }
     if (pc) { pc.hidden = unlocked() || !PARC_VIS.length; const d = String(PARC_DESC || "").replace(/^[−-]/, ""); if (d) { pc.querySelector(".lg").textContent = `Códigos −${d}`; pc.querySelector(".sh").textContent = `−${d}`; } }
     const me = document.querySelector("#side-nav .sn-me");
@@ -2570,7 +2583,11 @@
       up.hidden = pk && !C.PACK_LINK;
       up.classList.toggle("is-pack", pk);
       if (pk && C.PACK_LINK) { up.href = packHref(); up.setAttribute("data-pack", ""); up.setAttribute("rel", "noopener"); up.innerHTML = `<span class="sn-ic">${icFill("bolt")}</span><span><b>Pack de IA · ${esc(C.PACK_PRECO || "4,99 €")}</b><small>+100 perguntas e +20 correções</small></span>`; }
-      else if (!pk) { up.href = "#precos"; up.removeAttribute("data-pack"); up.innerHTML = `<span class="sn-ic">${icFill("bolt")}</span><span><b>Plano Completo</b><small>Desbloqueia tudo</small></span>`; }
+      else if (!pk) {
+        up.href = "#precos"; up.removeAttribute("data-pack");
+        if (testeDisp()) { up.setAttribute("data-act", "teste"); up.innerHTML = `<span class="sn-ic">${icFill("bolt")}</span><span><b>7 dias grátis</b><small>Experimenta o Completo</small></span>`; }
+        else { up.removeAttribute("data-act"); up.innerHTML = `<span class="sn-ic">${icFill("bolt")}</span><span><b>Plano Completo</b><small>${esc(C.PRECO)} até ao exame</small></span>`; }
+      }
     }
   }
 
