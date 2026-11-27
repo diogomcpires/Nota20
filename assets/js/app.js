@@ -1363,7 +1363,7 @@
 
     ${unlocked() ? "" : `<section class="section" id="precos">
       <div class="wrap">
-        <div class="section-head center rv"><span class="eyebrow">${ic("crown", 'width="18" height="18"')} Preços</span><h2>Um pagamento. Acesso até ao exame.</h2><p>Sem subscrição e sem renovação automática. Custa menos do que uma hora e meia de explicação.</p></div>
+        <div class="section-head center rv"><span class="eyebrow">${ic("crown", 'width="18" height="18"')} Preços</span><h2>Escolhe o teu plano.</h2><p>Começa grátis, paga uma vez até ao exame ou mês a mês. O plano Completo custa menos do que uma hora e meia de explicação.</p></div>
         ${plansHTML()}
       </div>
     </section>`}
@@ -1434,7 +1434,7 @@
     ["Como funciona o plano de estudo?", "Escolhes os dias e o tempo que tens por dia. A Nota20 distribui os tópicos pela ordem dos mais prováveis, com treinos, textos do Grupo III, exames e simulados. Se falhares um dia, o plano reorganiza-se. Podes adicionar as sessões ao calendário do telemóvel."],
     ["Dá para usar como app no telemóvel?", "Sim. No Android, abre a Nota20 no Chrome e escolhe «Instalar app». No iPhone, abre no Safari, toca em Partilhar e depois em «Adicionar ao ecrã principal»."],
     ["Preciso de criar conta?", CONTA.on ? "Não, o plano grátis funciona sem conta e o progresso fica guardado neste navegador. Se criares conta (grátis, só com o email, sem palavra-passe), o progresso fica guardado e continuas em qualquer dispositivo. Para comprar o plano Completo, a conta é necessária: assim o acesso fica sempre contigo." : "Não. O teu progresso, o XP e os dias seguidos ficam guardados neste navegador. Se mudares de telemóvel ou apagares os dados do navegador, não passam contigo."],
-    ["Como funciona o pagamento?", `Pagamento único de ${C.PRECO}, sem subscrição. O acesso dura até ${C.ACESSO_ATE}.`],
+    ["Como funciona o pagamento?", `Podes escolher: pagamento único de ${C.PRECO}, sem subscrição, com acesso até ${C.ACESSO_ATE}${C.PAYMENT_LINK_MES ? `; ou ${C.PRECO_MES || "4,99 €"} por mês, que renova sozinho e cancelas quando quiseres` : ""}. Também podes experimentar o Completo 7 dias grátis, sem cartão.`],
     ["Serve para Português Língua Não Materna?", "Não. A Nota20 está pensada para a prova 639 (Português, 12.º ano)."]
   ];
 
@@ -1442,48 +1442,63 @@
     const pay = C.PAYMENT_LINK
       ? `<a class="btn btn-primary btn-shine" href="${esc(payHref())}" rel="noopener" data-buy>Comprar por ${esc(C.PRECO)} ${ic("arrow")}</a>`
       : `<button class="btn btn-primary" type="button" disabled>Pagamentos disponíveis brevemente</button>`;
-    return `<div class="plans">
-      <div class="plan rv">
-        <h3>Grátis</h3>
+    const mesHref = C.PAYMENT_LINK_MES ? esc(payHref(C.PAYMENT_LINK_MES)) : "";
+    const ok = (t) => `<li>${t}</li>`;
+    return `<div class="plans${C.PAYMENT_LINK_MES ? " tres" : ""}">
+      <div class="plan plan-free rv">
+        <div class="plan-head"><h3>Grátis</h3><p class="plan-sub">Para conheceres a app</p></div>
         <div class="price">0 €<small>para sempre</small></div>
+        <a class="btn btn-ghost plan-cta" href="#estudar">Começar grátis</a>
         <ul>
-          <li>${nFree} ${nFree === 1 ? "tópico completo" : "tópicos completos"}</li>
-          <li>Início de todos os outros tópicos</li>
-          <li>${LIM.exercicios} exercícios com correção</li>
-          <li>${LIM.explicador} perguntas ao explicador</li>
-          <li>Grupo I do exame de 2025 resolvido</li>
-          <li>Os ${FREE_PREV} tópicos mais prováveis de 2027</li>
-          <li>Plano de estudo personalizado</li>
+          ${ok(`${nFree} ${nFree === 1 ? "tópico completo" : "tópicos completos"}`)}
+          ${ok("Início de todos os outros tópicos")}
+          ${ok(`${LIM.exercicios} exercícios com correção`)}
+          ${ok(`${LIM.explicador} perguntas ao explicador`)}
+          ${ok("Grupo I do exame de 2025 resolvido")}
+          ${ok(`Os ${FREE_PREV} tópicos mais prováveis de 2027`)}
+          ${ok("Plano de estudo personalizado")}
           <li class="no">Exames completos, Exame Previsto 2027 e simulados</li>
         </ul>
-        <a class="btn btn-ghost" href="#estudar">Começar grátis</a>
       </div>
       <div class="plan main rv">
-        <span class="flag">Preço de lançamento até ${esc(C.PROMO_ATE)}</span>
-        <h3>Completo</h3>
+        <span class="flag">Melhor opção · preço de lançamento</span>
+        <div class="plan-head"><h3>Completo</h3><p class="plan-sub">Tudo até ao exame, de uma vez</p></div>
         <div class="price">${esc(C.PRECO)}<small>pagamento único · depois ${esc(C.PRECO_DEPOIS)}</small></div>
-        ${porDia() ? `<p class="per-day">${icFill("bolt")} Menos de ${porDia()} por dia até ao exame</p>` : ""}
+        <div class="plan-cta">${pay}</div>
+        ${saidaHTML()}
         ${promoOn() ? `<div class="cd-box">${ic("timer")}<span>O preço de lançamento acaba em <b data-cd>${cdText()}</b></span></div>` : ""}
+        ${porDia() ? `<p class="per-day">${icFill("bolt")} Menos de ${porDia()} por dia até ao exame</p>` : ""}
         <ul>
-          <li>Todos os ${TOPICS.length} tópicos e ${nExercicios} exercícios</li>
-          <li>${REAL.length} exames nacionais (${anosTxt}) resolvidos item a item</li>
-          <li>Exame Previsto 2027 e previsão completa dos tópicos</li>
-          <li>${SIMS.length} simulados cronometrados com nota final</li>
-          <li>Plano de estudo, treino sem limites e cábula completa</li>
-          <li>Explicador e correção com IA, sem os limites do plano grátis</li>
-          <li>Acesso até ${esc(C.ACESSO_ATE)}</li>
+          ${ok(`Todos os ${TOPICS.length} tópicos e ${nExercicios} exercícios`)}
+          ${ok(`${REAL.length} exames nacionais (${anosTxt}) resolvidos item a item`)}
+          ${ok("Exame Previsto 2027 e previsão completa dos tópicos")}
+          ${ok(`${SIMS.length} simulados cronometrados com nota final`)}
+          ${ok("Plano de estudo, treino sem limites e cábula completa")}
+          ${ok("Explicador e correção com IA, sem os limites do plano grátis")}
+          ${ok(`Acesso até ${esc(C.ACESSO_ATE)}`)}
         </ul>
         <p class="ancora-plan">Uma explicação custa 15 a 20 € por hora. Aqui tens tudo até ao exame.</p>
-        ${saidaHTML()}
-        ${pay}
-        ${mesBtn()}
-        ${testeBtn("btn-yellow")}
-        ${PARC_VIS.length && !parceiroAtivo() ? `<a class="tem-cod" href="#parcerias">${ic("star")}<span>Tens um código de parceiro? <b>Aplica-o aqui</b> e poupas ${esc(PARC_DESC || "no preço")}.</span></a>` : ""}
-        ${CONTA.on && !unlocked() ? `<button class="tem-cod tem-conv" type="button" data-act="convidar">${icFill("star")}<span>Ainda a decidir? <b>Convida um amigo</b> e ganham os dois 7 dias do Completo.</span></button>` : ""}
-        <p class="small muted buy-terms">Pagamento único${C.IVA === "incluido" ? ", IVA incluído" : ""}. Ao comprar, aceitas os <a href="#termos">Termos e condições</a>.</p>
-        ${G ? `<div class="guarantee">${ic("shield")}<span><b>Garantia de ${G} dias</b>Se não gostares, devolvemos o dinheiro.</span></div>` : ""}
-        ${CONTA.on ? (CONTA.user ? "" : `<button class="btn btn-soft btn-sm" type="button" data-act="login" data-m="comprei">Já compraste? Entra com o teu email</button>`) : `<button class="btn btn-soft btn-sm" type="button" data-act="code">Já tenho um código de acesso</button>`}
       </div>
+      ${C.PAYMENT_LINK_MES ? `<div class="plan plan-mes rv">
+        <div class="plan-head"><h3>Mensal</h3><p class="plan-sub">Para um teste ou um período</p></div>
+        <div class="price">${esc(C.PRECO_MES || "4,99 €")}<small>por mês · cancelas quando quiseres</small></div>
+        <a class="btn btn-dark plan-cta" href="${mesHref}" rel="noopener" data-buy data-mes>Subscrever ${ic("arrow")}</a>
+        <ul>
+          ${ok("Tudo o que está no plano Completo")}
+          ${ok("Explicador e correção com IA, sem os limites do plano grátis")}
+          ${ok("Renova sozinho todos os meses")}
+          ${ok("Cancelas a qualquer momento, sem fidelização")}
+        </ul>
+        <p class="ancora-plan">Até ao exame, o pagamento único fica mais barato.</p>
+      </div>` : ""}
+    </div>
+    <div class="plans-extra">
+      ${testeDisp() ? `<div class="teste-band rv"><div class="tb-txt"><b>Ainda não sabes?</b><span>Experimenta o plano Completo 7 dias grátis. Sem cartão e sem compromisso.</span></div><button class="btn btn-yellow" type="button" data-act="teste">${icFill("bolt")} Experimentar 7 dias grátis</button></div>` : ""}
+      <div class="plans-links">
+        ${PARC_VIS.length && !parceiroAtivo() ? `<a class="tem-cod" href="#parcerias">${ic("star")}<span>Tens um código de parceiro? <b>Aplica-o aqui</b> e poupas ${esc(PARC_DESC || "no preço")}.</span></a>` : ""}
+        ${CONTA.on && !unlocked() ? `<button class="tem-cod tem-conv" type="button" data-act="convidar">${icFill("star")}<span>Convida um amigo e <b>ganham os dois 7 dias</b> do Completo.</span></button>` : ""}
+      </div>
+      <p class="small muted buy-terms">Preços com IVA ${C.IVA === "incluido" ? "incluído" : "aplicável"}. Ao comprar ou subscrever, aceitas os <a href="#termos">Termos e condições</a>. ${CONTA.on ? (CONTA.user ? "" : `<button class="lnk" type="button" data-act="login" data-m="comprei">Já compraste? Entra com o teu email</button>`) : `<button class="lnk" type="button" data-act="code">Já tenho um código de acesso</button>`}</p>
     </div>
     ${G ? `<div class="seal-band rv"><div class="seal"><svg viewBox="0 0 120 120" aria-hidden="true"><defs><path id="sealc" d="M60 60 m-46 0 a46 46 0 1 1 92 0 a46 46 0 1 1 -92 0"/></defs><text><textPath href="#sealc" textLength="286" lengthAdjust="spacingAndGlyphs">GARANTIA · SEM RISCO · GARANTIA · SEM RISCO · </textPath></text></svg><b>${G}</b><span>dias</span></div>
       <div><h3>Experimenta sem risco</h3><p>Compra o plano Completo e usa à vontade. Se nos primeiros ${G} dias achares que não é para ti, devolvemos o teu dinheiro.</p></div></div>` : ""}
@@ -2857,7 +2872,9 @@
         <p>O plano Completo da Nota20: acesso a todos os tópicos, exercícios, exames resolvidos, simulados, previsão de tópicos e ao explicador, para preparar o Exame Nacional de Português (prova ${esc(C.PROVA)}). O acesso dura ${esc(C.ACESSO_ATE)}.</p>
         <p>A Nota20 é um material de estudo. Não tem ligação ao EduQA (antigo IAVE), ao Ministério da Educação nem a nenhuma escola, e não garante nenhuma nota no exame.</p></section>
       <section><h2>3. Preço e pagamento</h2>
-        <p>${esc(C.PRECO)}, pagamento único, sem subscrição e sem renovação automática. ${iva}</p>
+        <p><b>Pagamento único:</b> ${esc(C.PRECO)}, sem subscrição e sem renovação automática. ${iva}</p>
+        ${C.PAYMENT_LINK_MES ? `<p><b>Plano mensal:</b> ${esc(C.PRECO_MES || "4,99 €")} por mês, com o mesmo acesso do plano Completo. A subscrição renova automaticamente todos os meses, na mesma data, até a cancelares. Podes cancelar a qualquer momento, sem custos, escrevendo para ${esc(C.CONTACTO_EMAIL)} (ou pelo link da fatura): não há novas cobranças e o acesso mantém-se até ao fim do mês já pago. O plano mensal só aceita cartão.</p>` : ""}
+        <p><b>Teste grátis:</b> quem cria conta pode experimentar o plano Completo durante 7 dias, uma vez por conta, sem cartão e sem pagamento automático no fim.</p>
         <p>Pagas por ${esc(C.METODOS_PAGAMENTO || "MB WAY ou cartão")}. O pagamento é processado pela Stripe: a Nota20 não recebe nem guarda os dados do teu cartão. Recebes a fatura por email.</p></section>
       <section><h2>4. Acesso</h2>
         <p>${CONTA.on ? "O acesso fica ativo na tua conta logo que o pagamento é confirmado. A Nota20 funciona no navegador do telemóvel ou do computador: entra com o mesmo email em qualquer dispositivo e o plano Completo e o progresso acompanham-te." : "O acesso fica ativo logo que o pagamento é confirmado. A Nota20 funciona no navegador do telemóvel ou do computador. O teu progresso fica guardado nesse dispositivo: se apagares os dados do navegador, o progresso perde-se. Para voltares a ativar o acesso, usa o código que recebes por email depois da compra."}</p></section>

@@ -2780,6 +2780,43 @@ html { overflow-x: clip; }
 .saida-box { display: flex; gap: 8px; align-items: center; background: #fff6d6; border: 1.5px dashed #f0b400; border-radius: 12px; padding: 9px 12px; margin: 8px 0; font-size: .9rem; font-weight: 600; text-align: left; }
 .saida-box svg { width: 18px; height: 18px; flex: none; color: #e0a100; }
 
+
+/* v6.2 preços em 3 cartões */
+.plans.tres { max-width: 1180px; }
+@media (min-width: 980px) { .plans.tres { grid-template-columns: 1fr 1.08fr 1fr; align-items: stretch; } }
+@media (min-width: 820px) and (max-width: 979px) { .plans.tres { grid-template-columns: 1fr 1fr; } .plans.tres .plan.main { grid-column: 1 / -1; order: -1; } }
+.plans .plan { gap: 14px; padding: 28px 26px; }
+.plans .plan-head { display: grid; gap: 2px; min-height: 52px; }
+.plans .plan-head h3 { margin: 0; font-size: 1.35rem; }
+.plan-sub { margin: 0; color: var(--muted); font-weight: 600; font-size: .92rem; }
+.plans .plan .price { font-size: 2.9rem; }
+.plans .plan .price small { font-size: .88rem; }
+.plans .plan-cta, .plans .plan-cta .btn { width: 100%; justify-content: center; }
+.plans .plan ul { gap: 9px; padding-top: 14px; border-top: 1.5px solid var(--line); }
+.plans .plan li { font-weight: 600; font-size: .95rem; line-height: 1.35; }
+.plans .plan .ancora-plan { margin: auto 0 0; font-size: .84rem; color: var(--muted); }
+.plans .plan.main .flag { left: 50%; transform: translateX(-50%); white-space: nowrap; }
+.plans .plan.main .per-day { margin: -4px 0 0; }
+.plans .plan.main .cd-box { margin: 0; }
+.btn-dark { background: var(--ink); color: #fff; box-shadow: 0 4px 0 #000; }
+.btn-dark:hover { filter: brightness(1.15); }
+.plan-mes li::before { background: var(--blue); }
+.plans-extra { max-width: 1180px; margin: 22px auto 0; display: grid; gap: 14px; }
+.teste-band { display: flex; align-items: center; justify-content: space-between; gap: 16px; background: var(--surface); border: 2px solid var(--line); border-radius: 22px; padding: 18px 22px; box-shadow: var(--shadow); }
+.teste-band .tb-txt { display: grid; gap: 2px; }
+.teste-band .tb-txt b { font-family: var(--f-display); font-size: 1.15rem; }
+.teste-band .tb-txt span { color: var(--muted); font-weight: 600; }
+.teste-band .btn { flex: none; }
+.plans-links { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+.plans-extra .buy-terms { text-align: center; margin: 0; }
+.plans-extra .buy-terms .lnk { font-size: inherit; }
+@media (max-width: 700px) { .teste-band { flex-direction: column; align-items: stretch; text-align: center; } .plans .plan { padding: 26px 20px; } }
+
+.plans-extra .buy-terms .lnk { background: none; border: 0; padding: 0; font: inherit; font-weight: 700; color: var(--blue); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.plans .plan.main .per-day { margin: 0; font-size: .95rem; }
+
+@media (max-width: 819px) { .plans .plan.main .flag { position: static; transform: none; left: auto; justify-self: start; white-space: normal; margin: -6px 0 2px; } .plans.tres .plan-free { order: 2; } }
+
 /* ==== TEMA ESCURO GERADO (tools/gerar-escuro.js) · não editar à mão ==== */
 [data-theme="dark"] h4 {
     color: #698eed
@@ -3561,5 +3598,8 @@ html { overflow-x: clip; }
 }
 [data-theme="dark"] .saida-box {
     background: #4a3f19
+}
+[data-theme="dark"] .plans-extra .buy-terms .lnk {
+    color: #6491fb
 }
 /* ==== FIM DO TEMA ESCURO GERADO ==== */
