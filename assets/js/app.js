@@ -133,14 +133,25 @@
     }
     function agendar(k) { if (!user || NAO_SINC.has(k)) return; clearTimeout(timer); timer = setTimeout(() => enviar().catch(() => {}), 4000); }
     async function perfilEPlano() {
-      const { data } = await sb.from("perfis").select("plano,email,completo_ate").eq("id", user.id).maybeSingle();
+      const { data } = await sb.from("perfis").select("plano,email,completo_ate,teste_usado").eq("id", user.id).maybeSingle();
       perfil = data || null;
       if (!perfil) return;
-      const conv = perfil.plano !== "completo" && !!perfil.completo_ate && Date.parse(perfil.completo_ate) > Date.now();
-      convAte = conv ? perfil.completo_ate : (perfil.plano === "completo" ? null : (perfil.completo_ate || null));
+      const mensal = perfil.plano === "mensal" && !!perfil.completo_ate && Date.parse(perfil.completo_ate) > Date.now();
+      const conv = !mensal && perfil.plano !== "completo" && !!perfil.completo_ate && Date.parse(perfil.completo_ate) > Date.now();
+      convAte = mensal ? null : conv ? perfil.completo_ate : (perfil.plano === "completo" ? null : (perfil.completo_ate || null));
       store.set("convAte", convAte);
-      if ((perfil.plano === "completo" || conv) && !st.unlocked) { st.unlocked = true; store.set("unlocked", true); store.set("unlockedConta", true); }
-      if (perfil.plano !== "completo" && !conv) retirarAcessoConta(); /* reembolso, plano grátis ou fim do convite */
+      if ((perfil.plano === "completo" || conv || mensal) && !st.unlocked) { st.unlocked = true; store.set("unlocked", true); store.set("unlockedConta", true); }
+      if (perfil.plano !== "completo" && !conv && !mensal) retirarAcessoConta(); /* reembolso, plano grátis ou fim do convite */
+    }
+    /* teste grátis de 7 dias do Completo (uma vez por conta) */
+    async function ativarTeste() {
+      if (!user) return null;
+      ssSet("n20:querTeste", "");
+      const { data, error } = await sb.rpc("teste_ativar");
+      if (error) return { ok: false, erro: "rede" };
+      if (data && data.ok) { await perfilEPlano(); GC.event("teste-ativado"); }
+      ssSet("n20:conv-msg", JSON.stringify(Object.assign({ teste: true }, data || {})));
+      return data;
     }
     /* convite de um amigo guardado antes de entrar (link …/?convite=ABC123) */
     async function usarConvite(cod) {
@@ -172,6 +183,7 @@
     async function depoisDeEntrar() {
       await perfilEPlano();
       if (store.get("conviteCod", null)) { try { await usarConvite(); } catch (e) { /* tenta na próxima entrada */ } }
+      else if (ssGet("n20:querTeste") === "1") { try { await ativarTeste(); } catch (e) { /* */ } }
       const recarregar = await sincronizar();
       return recarregar;
     }
@@ -272,7 +284,7 @@
     }
     async function rankSair() { if (!user) return; await cliente(); await sb.from("ranking_semana").delete().eq("user_id", user.id); }
     window.addEventListener("pagehide", () => { if (user) enviar().catch(() => {}); });
-    return { on, ia, lead, avaliar, rpc, usarConvite, meuConvite, conviteEmail, rankEnviar, rankSair, contador, arranque, verificarPagamento, pedirCodigo, confirmarCodigo, entrarGoogle, sair, apagar, agendar, enviar,
+    return { on, ia, lead, avaliar, rpc, usarConvite, ativarTeste, meuConvite, conviteEmail, rankEnviar, rankSair, contador, arranque, verificarPagamento, pedirCodigo, confirmarCodigo, entrarGoogle, sair, apagar, agendar, enviar,
       get voltouGoogle() { return voltouGoogle; },
       get user() { return user; }, get perfil() { return perfil; }, get ultima() { return ultima; } };
   })();
@@ -333,14 +345,31 @@
     </div>`;
   }
   /* link de pagamento com a conta: a Stripe devolve o id e o email no webhook */
-  function payHref() {
-    if (!C.PAYMENT_LINK) return "#precos";
+  /* oferta de saída: quem vê os preços 2 vezes sem comprar recebe −10% durante 48 h (uma vez) */
+  const saidaAte = () => +store.get("saidaAte", 0) || 0;
+  const saidaAtiva = () => !!C.CODIGO_SAIDA && saidaAte() > Date.now();
+  function saidaVer() {
+    if (!C.CODIGO_SAIDA || unlocked() || parceiroAtivo() || store.get("saidaUsada", false)) return;
+    const n = (+store.get("precosVistos", 0) || 0) + 1; store.set("precosVistos", n);
+    if (n < 2 || saidaAte()) return;
+    store.set("saidaAte", Date.now() + 48 * 3600e3); store.set("saidaUsada", true); GC.event("oferta-saida");
+    setTimeout(() => toast(`<span class="tl">${lince()}</span><div><b>Ainda a pensar? Tens −10% 🎁</b><span>Só para ti, durante 48 horas: o código <b>${esc(C.CODIGO_SAIDA)}</b> já fica aplicado no pagamento.</span><a class="btn btn-yellow btn-sm" href="#precos" style="margin-top:8px">Ver o desconto ${ic("arrow")}</a></div>`, 12000), 1200);
+  }
+  function saidaHTML() {
+    if (!saidaAtiva() || unlocked()) return "";
+    const h = Math.max(1, Math.ceil((saidaAte() - Date.now()) / 3600e3));
+    return `<div class="saida-box">${icFill("star")}<span><b>−10% com o código ${esc(C.CODIGO_SAIDA)}</b> · aplicado automaticamente · acaba em ${h} h</span></div>`;
+  }
+  function payHref(link) {
+    link = link || C.PAYMENT_LINK;
+    if (!link) return "#precos";
     try {
-      const u = new URL(C.PAYMENT_LINK);
+      const u = new URL(link);
       const pc = parceiroAtivo(); if (pc) u.searchParams.set("prefilled_promo_code", pc.codigo);
+      else if (saidaAtiva()) u.searchParams.set("prefilled_promo_code", C.CODIGO_SAIDA);
       if (CONTA.user) { u.searchParams.set("client_reference_id", CONTA.user.id + (pc ? "_" + pc.codigo : "")); if (CONTA.user.email) u.searchParams.set("prefilled_email", CONTA.user.email); }
       return u.toString();
-    } catch (e) { return C.PAYMENT_LINK; }
+    } catch (e) { return link; }
   }
 
   function chipConta() {
@@ -365,6 +394,7 @@
       ia: "Para usares o explicador e a correção com IA. É grátis e não precisa de palavra-passe.",
       comprei: "Entra com o email que usaste na compra e o plano Completo abre logo.",
       convidar: "Para teres o teu link de convite e ganhares os prémios quando os teus amigos entrarem.",
+      teste: "Cria a tua conta grátis (10 segundos) e os 7 dias do plano Completo ficam logo ativos.",
       convite: "Entra ou cria a tua conta e os 7 dias do plano Completo que o teu amigo te ofereceu ficam logo ativos."
     }[motivo] || "Guarda o teu progresso e usa a Nota20 em qualquer dispositivo.";
     const emApp = /Instagram|FBAN|FBAV|TikTok|musical_ly|Bytedance|Line\//i.test(navigator.userAgent);
@@ -460,7 +490,7 @@
       ${!CONTA.on ? `<div class="card"><p style="margin:0">As contas ainda não estão disponíveis.</p></div>`
         : u ? `<div class="card conta-card">
             <p><b>Email</b><span>${esc(u.email || "")}</span></p>
-            <p><b>Plano</b><span>${p && p.plano === "completo" ? '<span class="chip free">Completo</span>' : convAtivo() ? `<span class="chip free">Completo</span> oferta de um amigo, até ${esc(new Date(convAte).toLocaleDateString("pt-PT", { day: "numeric", month: "long" }))} · <a href="#precos">manter até ao exame</a>` : `Grátis · <a href="#precos">ver o plano Completo</a>`}</span></p>
+            <p><b>Plano</b><span>${p && p.plano === "completo" ? '<span class="chip free">Completo</span>' : convAtivo() ? `<span class="chip free">Completo</span> ${p && p.teste_usado ? "teste grátis" : "oferta de um amigo"}, até ${esc(new Date(convAte).toLocaleDateString("pt-PT", { day: "numeric", month: "long" }))} · <a href="#precos">manter até ao exame</a>` : `Grátis · <a href="#precos">ver o plano Completo</a>`}</span></p>
             <p><b>Progresso</b><span>${CONTA.ultima ? `guardado às ${esc(fmtData(CONTA.ultima))}` : "guardado automaticamente"} · ${st.xp} XP</span></p>
             <div class="row mt"><button class="btn btn-ghost btn-sm" type="button" data-act="conta-guardar">Guardar agora</button><button class="btn btn-soft btn-sm" type="button" data-act="conta-sair">Sair</button></div>
             <div class="row mt"><button class="btn btn-yellow btn-sm" type="button" data-act="ir-avaliar">⭐ Avaliar a Nota20</button></div>
@@ -687,6 +717,7 @@
   }
   function openPaywall(reason) {
     GC.event("paywall-" + reason);
+    saidaVer();
     const M = {
       ultimo: ["Foi o teu último exercício grátis!", `Já fizeste ${LIM.exercicios} exercícios e estás a ganhar ritmo. Não pares agora.`],
       exercicios: ["Chegaste ao limite do plano grátis", `Já fizeste os ${LIM.exercicios} exercícios grátis. Para continuares a treinar, desbloqueia o plano Completo.`],
@@ -709,8 +740,11 @@
       ${s > 0 ? `<p class="pw-loss">${icFill("flame")} Não percas a tua sequência de ${s} ${s === 1 ? "dia" : "dias"}.</p>` : ""}
       <ul class="pw-list"><li>Todos os ${TOPICS.length} tópicos e ${nExercicios} exercícios</li><li>${REAL.length} exames nacionais resolvidos (${anosTxt}) e ${SIMS.length} simulados</li><li>Exame Previsto 2027 e previsão completa dos tópicos</li><li>Explicador e correção com IA, sem os limites do plano grátis</li></ul>
       ${priceLine()}
+      ${saidaHTML()}
+      ${testeBtn("btn-yellow")}
       ${pay}
-      <p class="small muted buy-terms">Pagamento único. Ao comprar, aceitas os <a href="#termos" data-act="modal-close">Termos e condições</a>.</p>
+      ${mesBtn()}
+      <p class="small muted buy-terms">Pagamento único${C.PAYMENT_LINK_MES ? " ou mensal" : ""}. Ao comprar, aceitas os <a href="#termos" data-act="modal-close">Termos e condições</a>.</p>
       ${G ? `<div class="guarantee">${ic("shield")}<span><b>Garantia de ${G} dias</b>Se não gostares, devolvemos o dinheiro.</span></div>` : ""}
       ${conviteHTML()}
       <button class="btn btn-soft btn-sm" type="button" data-act="modal-close">Agora não</button>`);
@@ -816,10 +850,12 @@
     let r = {}; try { r = JSON.parse(raw); } catch (e) { return; }
     if (r.ok) {
       const fim = r.completo_ate ? new Date(r.completo_ate).toLocaleDateString("pt-PT", { day: "numeric", month: "long" }) : "";
-      toast(`<span class="tl">${lince()}</span><div><b>Presente ativo: 7 dias do Completo! 🎁</b><span>Tens tudo desbloqueado${fim ? ` até ${esc(fim)}` : ""}. Bom estudo!</span></div>`, 8000);
+      toast(`<span class="tl">${lince()}</span><div><b>${r.teste ? "Teste ativo: 7 dias do Completo! 🚀" : "Presente ativo: 7 dias do Completo! 🎁"}</b><span>Tens tudo desbloqueado${fim ? ` até ${esc(fim)}` : ""}. Bom estudo!</span></div>`, 8000);
       return;
     }
     const m = { codigo: "Esse código de convite não existe. Confirma o link com o teu amigo.", proprio: "Esse é o teu próprio link: envia-o a um amigo e ganham os dois.", usado: "Já usaste um convite nesta conta.", completo: "Já tens o plano Completo. Partilha o teu link com amigos!", antiga: "Este convite já não pode ser usado nesta conta.", troca: "Não dá para trocar convites com quem te convidou. Convida outro amigo!", rede: "Não foi possível ativar o convite agora. Tenta outra vez mais tarde." }[r.erro];
+    const mt = r.teste ? { usado: "Já usaste o teste grátis (ou um convite) nesta conta. Para manteres tudo, vê o plano Completo.", completo: "Já tens o plano Completo!", rede: "Não foi possível ativar o teste agora. Tenta outra vez daqui a pouco.", sessao: "Entra na tua conta para ativar o teste." }[r.erro] : null;
+    if (mt) { toast(`<span class="tl">${lince()}</span><div><b>Teste grátis</b><span>${mt}</span></div>`, 7000); return; }
     if (m) toast(`<span class="tl">${lince()}</span><div><b>Convite</b><span>${m}</span></div>`, 7000);
   }
   /* acabou a semana do convite: avisa uma vez */
@@ -830,9 +866,17 @@
     toast(`<span class="tl">${lince()}</span><div><b>Acabaram os teus 7 dias do Completo</b><span>O teu progresso continua guardado. Para manteres tudo desbloqueado até ao exame:</span><a class="btn btn-yellow btn-sm" href="#precos" style="margin-top:8px">Ver o plano Completo ${ic("arrow")}</a></div>`, 12000);
   }
 
+  /* teste grátis: só para quem nunca teve o Completo (nem por convite) */
+  const testeDisp = () => CONTA.on && !C.MODO_DEMO && !unlocked() && !convAte && !(CONTA.perfil && (CONTA.perfil.teste_usado || CONTA.perfil.plano === "completo"));
+  function mesBtn(cls = "btn-ghost") {
+    return C.PAYMENT_LINK_MES && !unlocked() ? `<a class="btn ${cls} btn-mes" href="${esc(payHref(C.PAYMENT_LINK_MES))}" rel="noopener" data-buy data-mes>Ou ${esc(C.PRECO_MES || "4,99 €")}/mês, sem compromisso</a>` : "";
+  }
+  function testeBtn(cls = "btn-yellow") {
+    return testeDisp() ? `<button class="btn ${cls} btn-teste" type="button" data-act="teste">${icFill("bolt")} Experimentar 7 dias grátis</button><p class="small muted teste-nota">Tudo desbloqueado durante 7 dias. Sem cartão e sem compromisso.</p>` : "";
+  }
   function priceLine() {
     const pd = porDia();
-    return `<div class="pw-price">${promoOn() ? `<span><b>${esc(C.PRECO)}</b> até ao fim do lançamento (depois ${esc(C.PRECO_DEPOIS)}) · acaba em <b data-cd>${cdText()}</b></span>` : `<span><b>${esc(C.PRECO)}</b> · pagamento único</span>`}${pd ? `<span class="small">Menos de ${pd} por dia até ao exame.</span>` : ""}</div>${parcAvisoHTML()}`;
+    return `<div class="pw-price">${promoOn() ? `<span><b>${esc(C.PRECO)}</b> até ao fim do lançamento (depois ${esc(C.PRECO_DEPOIS)}) · acaba em <b data-cd>${cdText()}</b></span>` : `<span><b>${esc(C.PRECO)}</b> · pagamento único</span>`}${pd ? `<span class="small">Menos de ${pd} por dia até ao exame.</span>` : ""}<span class="small ancora">Uma explicação custa 15 a 20 € por hora. A Nota20 inteira, até ao exame, custa ${esc(C.PRECO)}.</span></div>${parcAvisoHTML()}`;
   }
 
   /* ---------- incentivos: faixa de lançamento e aviso de embalo ---------- */
@@ -1191,6 +1235,7 @@
     const navOf = { testes: "plano", treino: "estudar", erros: "estudar", cabula: "estudar", simulado: "exames", desafio: "estudar", revisao: "estudar" };
     ttsStop();
     if (QZ && currentView !== QZ.kind) QZ = null;
+    if (h === "precos") saidaVer();
     setNav(h === "precos" ? "precos" : (navOf[currentView] || currentView));
     sideSet(h === "precos" ? "precos" : currentView);
     fabSet(currentView);
@@ -1255,7 +1300,7 @@
               <h1>Olá! Por onde queres <span class="grad-text">começar</span>?</h1>
               <p class="lead">Resumos, ${nExercicios} exercícios com resolução, ${REAL.length} exames nacionais resolvidos e o Lince, o explicador com IA. Tudo organizado para os testes e para o exame.</p>
               <div class="row"><a class="btn btn-primary btn-shine" href="#diagnostico">${ic("target")} Diagnóstico de 2 minutos</a><a class="btn btn-ghost" href="#plano">${ic("calendar")} Criar o meu plano</a></div>
-              <p class="hero-gratis">Grátis e sem conta.</p>${madeBy("hm-made")}</div>
+              <p class="hero-gratis">Grátis e sem conta.${testeDisp() ? ` <button class="lnk-teste" type="button" data-act="teste">Ou experimenta tudo 7 dias grátis ${ic("arrow")}</button>` : ""}</p>${madeBy("hm-made")}</div>
             <div class="hm-lince">${lince()}</div>
           </div>`
         : `<div class="hm-hi back rv">
@@ -1428,7 +1473,11 @@
           <li>Explicador e correção com IA, sem os limites do plano grátis</li>
           <li>Acesso até ${esc(C.ACESSO_ATE)}</li>
         </ul>
+        <p class="ancora-plan">Uma explicação custa 15 a 20 € por hora. Aqui tens tudo até ao exame.</p>
+        ${saidaHTML()}
         ${pay}
+        ${mesBtn()}
+        ${testeBtn("btn-yellow")}
         ${PARC_VIS.length && !parceiroAtivo() ? `<a class="tem-cod" href="#parcerias">${ic("star")}<span>Tens um código de parceiro? <b>Aplica-o aqui</b> e poupas ${esc(PARC_DESC || "no preço")}.</span></a>` : ""}
         ${CONTA.on && !unlocked() ? `<button class="tem-cod tem-conv" type="button" data-act="convidar">${icFill("star")}<span>Ainda a decidir? <b>Convida um amigo</b> e ganham os dois 7 dias do Completo.</span></button>` : ""}
         <p class="small muted buy-terms">Pagamento único${C.IVA === "incluido" ? ", IVA incluído" : ""}. Ao comprar, aceitas os <a href="#termos">Termos e condições</a>.</p>
@@ -3657,7 +3706,7 @@
         <p class="des-frase">${frase}</p>
         ${fracos.length ? `<p class="muted" style="font-weight:800;margin:0 0 8px">Começa por aqui:</p><div class="row" style="justify-content:center">${fracos.map((x) => `<a class="btn btn-soft btn-sm" href="${x.e.href}">${esc(x.e.label)} ${ic("arrow")}</a>`).join("")}</div>` : ""}
         <div class="row" style="justify-content:center;margin-top:10px"><a class="btn btn-primary btn-shine" href="#plano">${ic("calendar")} Criar o meu plano grátis</a>
-        ${CONTA.on && !CONTA.user ? `<button class="btn btn-ghost" type="button" data-act="login" data-m="diag">Guardar o progresso (conta grátis)</button>` : ""}</div>
+        ${testeDisp() ? `<button class="btn btn-yellow" type="button" data-act="teste">${icFill("bolt")} Desbloquear tudo 7 dias grátis</button>` : CONTA.on && !CONTA.user ? `<button class="btn btn-ghost" type="button" data-act="login" data-m="diag">Guardar o progresso (conta grátis)</button>` : ""}</div>
       </div>
       <h2 class="des-h">Tema a tema</h2>
       <div class="des-list">${itens.map((x) => `<div class="des-it ${x.ok ? "ok" : "no"}"><span class="fi">${ic(x.ok ? "check" : "x")}</span><div><b>${esc(x.e.label)}</b><span>${esc(strip(x.e.item.enunciado)).slice(0, 140)}</span><a href="${x.e.href}">${x.ok ? "Rever na mesma" : "Estudar este tema"} ${ic("arrow")}</a></div></div>`).join("")}</div>
@@ -4283,8 +4332,10 @@
     if (buy) {
       GC.event("comprar-clique");
       const cod = () => { const pc = parceiroAtivo(); return pc ? pc.codigo : ""; };
-      if (CONTA.on && !CONTA.user) { ev.preventDefault(); closeModal(); openLogin("comprar", () => { AOVIVO.checkout(cod()); location.href = payHref(); }); return; }
-      buy.href = payHref();
+      const lk = buy.hasAttribute("data-mes") ? C.PAYMENT_LINK_MES : C.PAYMENT_LINK;
+      if (buy.hasAttribute("data-mes")) GC.event("comprar-mensal-clique");
+      if (CONTA.on && !CONTA.user) { ev.preventDefault(); closeModal(); if (buy.hasAttribute("data-mes")) ssSet("n20:pos-mes", "1"); openLogin("comprar", () => { AOVIVO.checkout(cod()); location.href = payHref(lk); }); return; }
+      buy.href = payHref(lk);
       AOVIVO.checkout(cod());
     }
     if (ev.target.closest("a[data-pack]")) AOVIVO.pack();
@@ -4413,6 +4464,13 @@
       case "conta-sair": CONTA.sair().then(() => { chipConta(); toast(`<span class="tl">${lince()}</span><div><b>Sessão terminada</b><span>O teu progresso continua guardado na conta.</span></div>`); route(); }); break;
       case "conta-apagar": if (confirm("Apagar a conta e o progresso guardado? Não dá para desfazer.")) { a.disabled = true; CONTA.apagar().then(() => { chipConta(); toast(`<span class="tl">${lince()}</span><div><b>Conta apagada</b><span>Os teus dados foram removidos.</span></div>`); location.hash = "#inicio"; }).catch(() => { a.disabled = false; a.textContent = "Não foi possível. Tenta mais tarde."; }); } break;
       case "convidar": convidar(); break;
+      case "teste": {
+        GC.event("teste-clique");
+        if (!CONTA.user) { ssSet("n20:querTeste", "1"); openLogin("teste"); break; }
+        a.disabled = true;
+        CONTA.ativarTeste().then(() => { closeModal(); mostrarConvMsg(); route(); topoSet(); }).catch(() => { a.disabled = false; });
+        break;
+      }
       case "foco-go": FOCO.alternar(); break;
       case "foco-repor": FOCO.repor(); break;
       case "foco-saltar": FOCO.saltar(); break;
@@ -4664,7 +4722,7 @@
     const ok = CONTA.voltouGoogle === true || ssGet("n20:google-ok") === "1";
     if (ok) {
       ssSet("n20:google-ok", "");
-      if (ssGet("n20:pos-login") === "comprar" && C.PAYMENT_LINK && !unlocked()) { ssSet("n20:pos-login", ""); location.href = payHref(); return; }
+      if (ssGet("n20:pos-login") === "comprar" && C.PAYMENT_LINK && !unlocked()) { ssSet("n20:pos-login", ""); const mes = ssGet("n20:pos-mes") === "1" && C.PAYMENT_LINK_MES; ssSet("n20:pos-mes", ""); location.href = payHref(mes ? C.PAYMENT_LINK_MES : ""); return; }
       if (!ssGet("n20:conv-msg")) toast(`<span class="tl">${lince()}</span><div><b>Sessão iniciada</b><span>O teu progresso fica guardado na conta.</span></div>`, 5000);
     } else if (CONTA.voltouGoogle === "erro") toast(`<span class="tl">${lince()}</span><div><b>Não foi possível entrar com a Google</b><span>Tenta outra vez ou usa o código por email.</span></div>`);
   }).then(regressoPagamento).catch(() => {}).then(() => { lerConviteURL(); mostrarConvMsg(); avisoFimConvite(); topoSet(); leadPop(); });

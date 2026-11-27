@@ -2768,6 +2768,18 @@ html { overflow-x: clip; }
 }
 @media (prefers-reduced-motion: reduce) { .hm-act { transition: none; } }
 
+
+/* v6.1 teste grátis */
+.btn-teste { width: 100%; justify-content: center; margin-top: 10px; }
+.teste-nota { text-align: center; margin: 6px 0 4px; font-weight: 600; }
+.lnk-teste { background: none; border: 0; padding: 0; margin-left: 6px; font: inherit; font-weight: 800; color: var(--blue, #2f6bff); cursor: pointer; display: inline-flex; align-items: center; gap: 4px; text-decoration: underline; text-underline-offset: 3px; }
+.lnk-teste svg { width: 14px; height: 14px; }
+.pw-price .ancora { display: block; margin-top: 4px; opacity: .85; }
+.plan .ancora-plan { font-size: .86rem; font-weight: 600; margin: 4px 0 10px; opacity: .8; }
+.btn-mes { width: 100%; justify-content: center; margin-top: 8px; font-size: .92rem; white-space: normal; text-align: center; line-height: 1.25; }
+.saida-box { display: flex; gap: 8px; align-items: center; background: #fff6d6; border: 1.5px dashed #f0b400; border-radius: 12px; padding: 9px 12px; margin: 8px 0; font-size: .9rem; font-weight: 600; text-align: left; }
+.saida-box svg { width: 18px; height: 18px; flex: none; color: #e0a100; }
+
 /* ==== TEMA ESCURO GERADO (tools/gerar-escuro.js) · não editar à mão ==== */
 [data-theme="dark"] h4 {
     color: #698eed
@@ -3543,5 +3555,11 @@ html { overflow-x: clip; }
 }
 [data-theme="dark"] .hm-ia-sug .chip {
     border: 1.5px solid rgba(41, 50, 96, 0.3)
+}
+[data-theme="dark"] .lnk-teste {
+    color: var(--blue, #6691fb)
+}
+[data-theme="dark"] .saida-box {
+    background: #4a3f19
 }
 /* ==== FIM DO TEMA ESCURO GERADO ==== */
